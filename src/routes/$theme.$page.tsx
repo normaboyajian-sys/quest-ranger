@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
+  remoteHydrated,
   subscribeDesignChanges,
   type DesignKey,
   type PageKey,
@@ -28,18 +29,26 @@ function SuiteView() {
   const emitInputRef = useRef(emitInput);
   emitInputRef.current = emitInput;
 
-  // Synchronous from bundled files — no flash of default content.
-  const [srcDoc, setSrcDoc] = useState<string>(() =>
-    buildSrcDocCached(design, pageKey),
-  );
+  const [ready, setReady] = useState(false);
+  const [srcDoc, setSrcDoc] = useState<string>("");
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    setSrcDoc(buildSrcDocCached(design, pageKey));
-    setVersion((v) => v + 1);
+    let cancelled = false;
+    setReady(false);
+    void remoteHydrated.then(() => {
+      if (cancelled) return;
+      setSrcDoc(buildSrcDocCached(design, pageKey));
+      setVersion((v) => v + 1);
+      setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [design, pageKey]);
 
   useEffect(() => {
+    if (!ready) return;
     const ch = subscribeDesignChanges(
       (d, p) => d === design && (p === pageKey || p === "shared"),
       () => {
@@ -50,7 +59,7 @@ function SuiteView() {
     return () => {
       void ch.unsubscribe();
     };
-  }, [design, pageKey]);
+  }, [design, pageKey, ready]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
