@@ -393,9 +393,11 @@ function QueueCard({
 }) {
   const [open, setOpen] = useState(false);
   const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const [regRev, setRegRev] = useState(0);
+  useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
   const pageOpts: PageOpt[] = useMemo(
     () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
-    [suite],
+    [suite, regRev],
   );
   const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
   // Keep selections valid when suite/page lists change
@@ -542,9 +544,11 @@ function ParticipantCard({
   suites: SuiteOpt[];
 }) {
   const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const [regRev, setRegRev] = useState(0);
+  useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
   const pageOpts: PageOpt[] = useMemo(
     () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
-    [suite],
+    [suite, regRev],
   );
   const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
   useEffect(() => {
