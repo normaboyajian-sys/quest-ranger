@@ -538,11 +538,12 @@ export async function createPage(
   const display = (label ?? page).trim() || page;
   const meta = metaFor(design);
   const nextPages = { ...meta.pages, [page]: display };
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await saveFile(
     { design, page, kind: "html" },
