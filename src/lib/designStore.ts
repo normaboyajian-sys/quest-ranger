@@ -436,6 +436,10 @@ function overrideKey(f: DesignFile): string {
 }
 
 export function loadFileCached(f: DesignFile): string {
+  if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
+    const hidden = getHiddenShared(f.design)[f.kind];
+    if (hidden) return "";
+  }
   const ov = _contentOverrides.get(overrideKey(f));
   if (ov != null) return ov;
   const b = bundledContent(f);
