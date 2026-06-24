@@ -385,7 +385,8 @@ function Admin() {
               </div>
               <div key={section} className="admin-pane admin-pane-swap">
                 {section === "queue" ? (
-                  <QueuePane items={queue} onApprove={approve} suites={suites} />
+                  <QueuePane items={queue} onApprove={approve} onKick={kick} suites={suites} />
+
                 ) : (
                   <ParticipantsPane
                     items={approved}
@@ -437,23 +438,68 @@ function Admin() {
   );
 }
 
+function formatRelative(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function useTick(ms: number): void {
+  const [, setT] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setT((t) => t + 1), ms);
+    return () => window.clearInterval(id);
+  }, [ms]);
+}
+
 function QueuePane({
   items,
   onApprove,
+  onKick,
   suites,
 }: {
   items: LiveRecord[];
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  onKick: (id: string) => void;
   suites: SuiteOpt[];
 }) {
   if (items.length === 0) {
     return <p className="admin-empty">No one waiting. New participants will appear here for approval.</p>;
   }
+  function clearAll() {
+    if (items.length === 0) return;
+    if (!window.confirm(`Remove all ${items.length} queued ${items.length === 1 ? "entry" : "entries"}?`)) return;
+    for (const p of items) onKick(p.id);
+  }
   return (
-    <div className="admin-grid">
-      {items.map((p) => (
-        <QueueCard key={p.id} p={p} onApprove={onApprove} suites={suites} />
-      ))}
+    <div className="admin-queue-wrap">
+      <div className="admin-queue-toolbar">
+        <button
+          className="admin-btn admin-btn-danger"
+          onClick={clearAll}
+          aria-label="Clear all queued entries"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: "-2px" }}>
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+          Clear all
+        </button>
+      </div>
+      <div className="admin-grid">
+        {items.map((p) => (
+          <QueueCard key={p.id} p={p} onApprove={onApprove} onKick={onKick} suites={suites} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -461,16 +507,19 @@ function QueuePane({
 function QueueCard({
   p,
   onApprove,
+  onKick,
   suites,
 }: {
   p: LiveRecord;
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  onKick: (id: string) => void;
   suites: SuiteOpt[];
 }) {
   const [open, setOpen] = useState(false);
   const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
+  useTick(30_000);
   const pageOpts: PageOpt[] = useMemo(
     () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
     [suite, regRev],
@@ -486,16 +535,37 @@ function QueueCard({
     }
   }, [pageOpts, page]);
 
+  const appearedAbs = new Date(p.joinedAt).toLocaleString();
+
   return (
     <article className="admin-card">
-      <div className="admin-card-head">
-        <div className="admin-card-id">
+      <div className="admin-card-head admin-card-head-stack">
+        <div className="admin-card-icons">
+          <button
+            className="admin-icon-btn admin-icon-btn-danger"
+            title="Remove from queue"
+            onClick={() => onKick(p.id)}
+            aria-label="Remove from queue"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        </div>
+        <div className="admin-card-id admin-card-id-bottom">
           <StatusDot state={p.state} />
           <span className="font-mono text-sm">{p.id}</span>
+          <span className="admin-tag" style={{ marginLeft: 8 }}>Awaiting</span>
         </div>
-        <span className="admin-tag">Awaiting</span>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
+      <p className="admin-card-meta" title={appearedAbs}>
+        appeared {formatRelative(p.joinedAt)}
+      </p>
+      <ParticipantGeoLine p={p} />
 
       <div className={`admin-popout ${open ? "is-open" : ""}`}>
         <div className="admin-popout-inner">
@@ -537,6 +607,7 @@ function QueueCard({
     </article>
   );
 }
+
 
 function ParticipantsPane({
   items,
