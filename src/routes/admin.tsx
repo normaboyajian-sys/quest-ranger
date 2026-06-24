@@ -114,6 +114,15 @@ function Admin() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [blockBots, setBlockBotsState] = useState<boolean>(() => getAppSettings().blockBots);
+  useEffect(() => {
+    const stop = startAppSettingsSync();
+    void loadAppSettings();
+    const off = subscribeAppSettings((s) => setBlockBotsState(s.blockBots));
+    return () => { off(); stop(); };
+  }, []);
+
 
   async function refreshRecords() {
     const rows = await loadParticipants();
