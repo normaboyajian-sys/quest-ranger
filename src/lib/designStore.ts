@@ -266,8 +266,36 @@ function metaFor(designId: string): MetaEntry {
       label: bundled.label ?? designId,
       pages: { ...bundled.pages },
       pageMeta: { ...(bundled.pageMeta ?? {}) },
+      hiddenShared: {},
     };
-  return { label: designId, pages: {}, pageMeta: {} };
+  return { label: designId, pages: {}, pageMeta: {}, hiddenShared: {} };
+}
+
+export function getHiddenShared(design: string): { css?: boolean; js?: boolean } {
+  return metaFor(design).hiddenShared ?? {};
+}
+
+export async function setSharedHidden(
+  design: string,
+  kind: "css" | "js",
+  hidden: boolean,
+): Promise<void> {
+  const meta = metaFor(design);
+  const next: MetaEntry = {
+    ...meta,
+    hiddenShared: { ...(meta.hiddenShared ?? {}), [kind]: hidden || undefined },
+  };
+  _metaOverrides.set(design, next);
+  lsSet(META_PREFIX + design, JSON.stringify(next));
+  // If hiding, also clear any content override.
+  if (hidden) {
+    const key = `${design}:shared:${kind}`;
+    _contentOverrides.delete(key);
+    lsDel(OVERRIDE_PREFIX + key);
+  }
+  notifyRegistry();
+  notifyFile({ design, page: "shared", kind });
+  await persistMeta(design);
 }
 
 export function getPageMeta(design: string, page: string): PageMeta {
