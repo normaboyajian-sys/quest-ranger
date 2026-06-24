@@ -355,9 +355,15 @@ export async function setPageMeta(
   for (const [k, v] of Object.entries(nextPageMeta)) {
     const t = (v.title ?? "").trim();
     const f = (v.favicon ?? "").trim();
-    if (t || f) cleaned[k] = { ...(t ? { title: t } : {}), ...(f ? { favicon: f } : {}) };
+    const h = !!v.hidden;
+    if (t || f || h)
+      cleaned[k] = {
+        ...(t ? { title: t } : {}),
+        ...(f ? { favicon: f } : {}),
+        ...(h ? { hidden: true } : {}),
+      };
   }
-  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned };
+  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned, hiddenShared: meta.hiddenShared };
   _metaOverrides.set(design, next);
   lsSet(META_PREFIX + design, JSON.stringify(next));
   notifyRegistry();
