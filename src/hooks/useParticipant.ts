@@ -89,6 +89,7 @@ export function useParticipant() {
       key: id,
       onNavigate: (p) => {
         if (p.targets === "all" || p.targets.includes(id)) {
+          if (p.url !== pathnameRef.current && internalNavActive()) return;
           setApproved(true);
           setApprovedState(true);
           // Hard navigate so the design iframe always remounts against the
