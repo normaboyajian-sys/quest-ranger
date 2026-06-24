@@ -169,10 +169,20 @@ export function PagesEditor() {
   }
 
   async function onRenameDesign(id: string, current: string) {
-    const label = window.prompt("Rename design", current);
+    const label = window.prompt("Rename design folder/link", current);
     if (!label || label.trim() === current) return;
     try {
-      await renameDesign(id, label.trim());
+      const nextId = await renameDesign(id, label.trim());
+      if (nextId !== id) {
+        setOpenFolders((s) => {
+          const next = { ...s, [nextId]: s[id] ?? true };
+          delete next[id];
+          return next;
+        });
+        if (active?.design === id) {
+          void openFile({ ...active, design: nextId });
+        }
+      }
     } catch (e) {
       window.alert((e as Error).message);
     }
@@ -210,10 +220,13 @@ export function PagesEditor() {
     page: string,
     current: string,
   ) {
-    const label = window.prompt("Rename page", current);
+    const label = window.prompt("Rename page file/link", current);
     if (!label || label.trim() === current) return;
     try {
-      await renamePage(design, page, label.trim());
+      const nextPage = await renamePage(design, page, label.trim());
+      if (nextPage !== page && active?.design === design && active.page === page) {
+        void openFile({ design, page: nextPage, kind: active.kind });
+      }
     } catch (e) {
       window.alert((e as Error).message);
     }

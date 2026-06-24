@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
+  getDesigns,
+  getPagesFor,
   subscribeDesignChanges,
   type DesignKey,
   type PageKey,
@@ -20,6 +22,9 @@ function SuiteView() {
   if (!SLUG.test(theme) || !SLUG.test(page) || page === "shared") {
     throw notFound();
   }
+  const designExists = getDesigns().some((d) => d.id === theme);
+  const pageExists = designExists && getPagesFor(theme).some((p) => p.page === page);
+  if (!pageExists) throw notFound();
   const design = theme as DesignKey;
   const pageKey = page as PageKey;
 
