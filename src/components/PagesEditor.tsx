@@ -401,7 +401,18 @@ export function PagesEditor() {
                           <span className="admin-pages-file-icon">·</span>
                           {kind === "css" ? "styles.css" : "script.js"}
                         </button>
+                        <div className="admin-pages-file-actions">
+                          <button
+                            type="button"
+                            className="admin-tree-btn admin-tree-btn-danger"
+                            title={`Delete ${kind === "css" ? "styles.css" : "script.js"}`}
+                            onClick={() => void onDeleteShared(folder.id, kind)}
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
+
                     );
                   })}
                 </div>
