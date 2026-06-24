@@ -497,6 +497,7 @@ function ParticipantsPane({
                 onKick={onKick}
                 onOpenPreview={onOpenPreview}
                 suites={suites}
+                events={events.filter((e) => e.participantId === p.id)}
               />
             ))}
           </div>
