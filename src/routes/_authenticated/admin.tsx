@@ -858,6 +858,9 @@ function SettingsPane({
           />
         </label>
       </section>
+
+      <AccountsSection />
+
     </div>
   );
 }
