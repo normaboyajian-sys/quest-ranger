@@ -4,28 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -45,100 +28,149 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  /* Neutral shell for Focus Room + Admin */
+  --background: oklch(0.985 0.002 270);
+  --foreground: oklch(0.16 0.01 270);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.16 0.01 270);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --popover-foreground: oklch(0.16 0.01 270);
+  --primary: oklch(0.2 0.02 270);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.005 270);
+  --secondary-foreground: oklch(0.2 0.02 270);
+  --muted: oklch(0.96 0.005 270);
+  --muted-foreground: oklch(0.5 0.02 270);
+  --accent: oklch(0.94 0.01 270);
+  --accent-foreground: oklch(0.2 0.02 270);
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.005 270);
+  --input: oklch(0.9 0.005 270);
+  --ring: oklch(0.7 0.02 270);
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
+  * { border-color: var(--color-border); }
+  body { background-color: var(--color-background); color: var(--color-foreground); }
+}
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
+/* ============================================================
+   Controlled Design Suites
+   ============================================================ */
+
+/* Theme A — Industrial Red */
+.theme-red {
+  --suite-bg: oklch(0.16 0.04 25);
+  --suite-fg: oklch(0.96 0.02 30);
+  --suite-accent: oklch(0.55 0.22 25);
+  --suite-mute: oklch(0.65 0.04 25);
+  --suite-card-bg: oklch(0.22 0.05 25);
+  --suite-card-border: oklch(0.55 0.22 25);
+  --suite-input-bg: oklch(0.12 0.03 25);
+}
+
+/* Theme B — Modern Blue (glassmorphism) */
+.theme-blue {
+  --suite-bg: oklch(0.22 0.05 255);
+  --suite-fg: oklch(0.97 0.01 255);
+  --suite-accent: oklch(0.72 0.15 240);
+  --suite-mute: oklch(0.78 0.04 255);
+  --suite-card-bg: oklch(1 0 0 / 0.08);
+  --suite-card-border: oklch(1 0 0 / 0.18);
+  --suite-input-bg: oklch(1 0 0 / 0.06);
+}
+
+.suite-bg {
+  background-color: var(--suite-bg);
+}
+.theme-blue.suite-bg {
+  background-image:
+    radial-gradient(60% 50% at 20% 10%, oklch(0.55 0.18 250 / 0.5), transparent 70%),
+    radial-gradient(50% 50% at 90% 90%, oklch(0.45 0.2 280 / 0.45), transparent 70%);
+}
+.theme-red.suite-bg {
+  background-image:
+    repeating-linear-gradient(45deg, oklch(0.2 0.05 25) 0 12px, oklch(0.18 0.04 25) 12px 24px);
+}
+
+.text-suite-fg { color: var(--suite-fg); }
+
+.suite-header {
+  border-bottom: 1px solid var(--suite-card-border);
+}
+.theme-red .suite-header { border-bottom-width: 3px; }
+
+.suite-mark {
+  width: 1.25rem; height: 1.25rem;
+  background: var(--suite-accent);
+}
+.theme-red .suite-mark { border-radius: 0; border: 2px solid var(--suite-fg); }
+.theme-blue .suite-mark {
+  border-radius: 9999px;
+  box-shadow: 0 0 24px var(--suite-accent);
+}
+
+.suite-h1 {
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--suite-fg);
+}
+.theme-red .suite-h1 { text-transform: uppercase; }
+
+.suite-sub { color: var(--suite-mute); font-size: 1.05rem; }
+
+.suite-card {
+  background: var(--suite-card-bg);
+  border: 1px solid var(--suite-card-border);
+}
+.theme-red .suite-card { border-width: 3px; border-radius: 0; }
+.theme-blue .suite-card {
+  border-radius: 1.25rem;
+  backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 12px 48px oklch(0 0 0 / 0.3);
+}
+
+.suite-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--suite-mute);
+}
+
+.suite-input {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--suite-input-bg);
+  color: var(--suite-fg);
+  border: 1px solid var(--suite-card-border);
+  outline: none;
+}
+.theme-red .suite-input { border-radius: 0; border-width: 2px; }
+.theme-blue .suite-input { border-radius: 0.6rem; }
+.suite-input:focus { border-color: var(--suite-accent); }
+
+.suite-button {
+  padding: 0.7rem 1.2rem;
+  background: var(--suite-accent);
+  color: var(--suite-fg);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+.theme-red .suite-button {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.theme-blue .suite-button {
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 24px oklch(0.55 0.2 250 / 0.4);
 }
