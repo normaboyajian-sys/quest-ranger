@@ -1,0 +1,22 @@
+{
+  "order": [
+    "red",
+    "blue"
+  ],
+  "designs": {
+    "red": {
+      "label": "Industrial Red",
+      "pages": {
+        "contact": "Contact",
+        "home": "Home"
+      }
+    },
+    "blue": {
+      "label": "Modern Blue",
+      "pages": {
+        "contact": "Contact",
+        "home": "Home"
+      }
+    }
+  }
+}
