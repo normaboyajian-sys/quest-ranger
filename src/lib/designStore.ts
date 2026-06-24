@@ -473,11 +473,13 @@ export async function createDesign(
   _metaOverrides.set(id, {
     label: trimmed,
     pages: { home: "Home" },
+    pageMeta: {},
   });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: { home: "Home" } }),
+    JSON.stringify({ label: trimmed, pages: { home: "Home" }, pageMeta: {} }),
   );
+
   await saveFile(
     { design: id, page: "home", kind: "html" },
     defaultHTML(`${trimmed} — Home`),
