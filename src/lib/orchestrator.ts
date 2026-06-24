@@ -37,6 +37,7 @@ export type MousePayload = {
 
 export type ClickPayload = { id: string; x: number; y: number; at: number };
 export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
+export type ViewportPayload = { id: string; w: number; h: number; at: number };
 
 export type DesignPublishPayload = {
   design: "red" | "blue";
