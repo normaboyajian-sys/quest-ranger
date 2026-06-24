@@ -4,9 +4,6 @@ import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
 import { javascript as jsLang } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { StateEffect, StateField } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
-import { diffLines } from "diff";
 import {
   createDesign,
   createPage,
@@ -29,55 +26,11 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
-import {
-  onAIEdit,
-  setActiveFile,
-  setEditorContent,
-  type ActiveFile,
-} from "@/lib/editorBus";
 
 function sameFile(a: DesignFile, b: DesignFile) {
   return a.design === b.design && a.page === b.page && a.kind === b.kind;
 }
 
-// ---- CodeMirror green-line decoration for AI edits ----
-
-const setEditDecos = StateEffect.define<DecorationSet>();
-const editedField = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(set, tr) {
-    set = set.map(tr.changes);
-    for (const e of tr.effects) if (e.is(setEditDecos)) set = e.value;
-    return set;
-  },
-  provide: (f) => EditorView.decorations.from(f),
-});
-
-const editedTheme = EditorView.baseTheme({
-  ".cm-ai-edit": {
-    backgroundColor: "rgba(34,197,94,0.18)",
-    transition: "background-color 800ms ease",
-  },
-});
-
-function changedLineIndicesInNewText(oldText: string, newText: string): number[] {
-  const parts = diffLines(oldText, newText);
-  let line = 0;
-  const out: number[] = [];
-  for (const p of parts) {
-    const count =
-      p.count ?? Math.max(0, p.value.split("\n").length - 1);
-    if (p.added) {
-      for (let i = 0; i < count; i++) out.push(line + i);
-      line += count;
-    } else if (p.removed) {
-      // not present in new text
-    } else {
-      line += count;
-    }
-  }
-  return out;
-}
 
 export function PagesEditor() {
   const [designs, setDesigns] = useState(() => getDesigns());
@@ -123,7 +76,8 @@ export function PagesEditor() {
           if (!dirtyRef.current && activeRef.current && sameFile(activeRef.current, activeRef.current)) {
             setContent(c);
             contentRef.current = c;
-            pushBus();
+
+
           }
         });
       }
@@ -150,7 +104,8 @@ export function PagesEditor() {
         const c = loadFileCached(a);
         setContent(c);
         contentRef.current = c;
-        pushBus();
+
+
       },
     );
     return () => {
@@ -159,67 +114,6 @@ export function PagesEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update the editorBus whenever active/content changes so ChatSidebar sees them
-  const pushBus = useCallback(() => {
-    const a = activeRef.current;
-    if (!a) {
-      setActiveFile(null, "");
-      return;
-    }
-    const designLabel =
-      designs.find((d) => d.id === a.design)?.label ?? a.design;
-    const pageRow = getPagesFor(a.design).find((p) => p.page === a.page);
-    const af: ActiveFile = {
-      design: a.design,
-      designLabel,
-      page: a.page,
-      pageLabel: pageRow?.label ?? a.page,
-      kind: a.kind,
-    };
-    setActiveFile(af, contentRef.current);
-  }, [designs]);
-
-  useEffect(() => {
-    pushBus();
-  }, [active, content, pushBus]);
-
-  // Listen for AI edits and apply with green highlight for 20s
-  useEffect(() => {
-    const off = onAIEdit(async (e) => {
-      const a = activeRef.current;
-      if (!a) return;
-      if (a.design !== e.file.design || a.page !== e.file.page || a.kind !== e.file.kind)
-        return;
-      const oldText = contentRef.current;
-      const newText = e.newContent;
-      setContent(newText);
-      contentRef.current = newText;
-      setDirty(false);
-      setStatus("AI updated · published");
-      setTimeout(() => setStatus(""), 2000);
-      // Highlight changed lines
-      requestAnimationFrame(() => {
-        const view = editorRef.current?.view;
-        if (!view) return;
-        const changed = changedLineIndicesInNewText(oldText, newText);
-        const doc = view.state.doc;
-        const decos = changed
-          .filter((idx) => idx + 1 <= doc.lines)
-          .map((idx) => {
-            const info = doc.line(idx + 1);
-            return Decoration.line({ class: "cm-ai-edit" }).range(info.from);
-          });
-        view.dispatch({
-          effects: setEditDecos.of(Decoration.set(decos, true)),
-        });
-        window.setTimeout(() => {
-          const v = editorRef.current?.view;
-          if (v) v.dispatch({ effects: setEditDecos.of(Decoration.none) });
-        }, 20_000);
-      });
-    });
-    return off;
-  }, []);
 
   async function openFile(f: DesignFile) {
     setActive(f);
@@ -237,7 +131,7 @@ export function PagesEditor() {
     ) {
       setContent(fresh);
       contentRef.current = fresh;
-      pushBus();
+      
     }
   }
 
@@ -356,10 +250,10 @@ export function PagesEditor() {
   // ---- Render ----
 
   const extension = useMemo(() => {
-    if (!active) return [editedField, editedTheme];
-    if (active.kind === "html") return [htmlLang(), editedField, editedTheme];
-    if (active.kind === "css") return [cssLang(), editedField, editedTheme];
-    return [jsLang(), editedField, editedTheme];
+    if (!active) return [];
+    if (active.kind === "html") return [htmlLang()];
+    if (active.kind === "css") return [cssLang()];
+    return [jsLang()];
   }, [active]);
 
   const pathLabel = active
@@ -559,7 +453,7 @@ export function PagesEditor() {
               setContent(v);
               contentRef.current = v;
               setDirty(true);
-              setEditorContent(v);
+              
             }}
             basicSetup={{
               lineNumbers: true,
