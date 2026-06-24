@@ -71,9 +71,14 @@ function Admin() {
   const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("admin_sidebar_open") !== "0";
+  });
+  const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("admin_chat_open") === "1";
   });
   function toggleSidebar(next?: boolean) {
     setSidebarOpen((prev) => {
@@ -84,6 +89,16 @@ function Admin() {
       return v;
     });
   }
+  function toggleChat(next?: boolean) {
+    setChatOpen((prev) => {
+      const v = typeof next === "boolean" ? next : !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_chat_open", v ? "1" : "0");
+      }
+      return v;
+    });
+  }
+  const suites = useMemo(() => suitesFromDesigns(designs), [designs]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
