@@ -320,6 +320,14 @@
   height: 52px;
   margin: 0 auto;
 }
+.admin-shell.is-collapsed .admin-nav-icon {
+  width: 26px;
+  height: 26px;
+}
+.admin-shell.is-collapsed .admin-nav-icon svg {
+  width: 24px;
+  height: 24px;
+}
 .admin-shell.is-collapsed .admin-brand-btn {
   width: 52px;
   height: 52px;
