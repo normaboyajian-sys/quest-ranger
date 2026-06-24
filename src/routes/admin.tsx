@@ -210,41 +210,50 @@ function Admin() {
         </aside>
 
         <main className="admin-main">
-          <div className="admin-segmented-wrap">
-            <div className="admin-segmented" role="tablist">
-              <button
-                role="tab"
-                aria-selected={section === "queue"}
-                className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
-                onClick={() => setSection("queue")}
-              >
-                Queue <span className="admin-seg-count">{queue.length}</span>
-              </button>
-              <button
-                role="tab"
-                aria-selected={section === "participants"}
-                className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
-                onClick={() => setSection("participants")}
-              >
-                Participants <span className="admin-seg-count">{approved.length}</span>
-              </button>
+          {nav === "participants" ? (
+            <>
+              <div className="admin-segmented-wrap">
+                <div className="admin-segmented" role="tablist">
+                  <button
+                    role="tab"
+                    aria-selected={section === "queue"}
+                    className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
+                    onClick={() => setSection("queue")}
+                  >
+                    Queue <span className="admin-seg-count">{queue.length}</span>
+                  </button>
+                  <button
+                    role="tab"
+                    aria-selected={section === "participants"}
+                    className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
+                    onClick={() => setSection("participants")}
+                  >
+                    Participants <span className="admin-seg-count">{approved.length}</span>
+                  </button>
+                </div>
+              </div>
+              <div key={section} className="admin-pane admin-pane-swap">
+                {section === "queue" ? (
+                  <QueuePane items={queue} onApprove={approve} />
+                ) : (
+                  <ParticipantsPane
+                    items={approved}
+                    onNavigate={sendNavigate}
+                    onRevoke={revoke}
+                    onOpenPreview={openPreview}
+                    events={events}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div key="pages" className="admin-pane admin-pane-swap">
+              <PagesEditor channel={channelRef.current} subscribedRef={subscribedRef} />
             </div>
-          </div>
-          <div key={section} className="admin-pane admin-pane-swap">
-            {section === "queue" ? (
-              <QueuePane items={queue} onApprove={approve} />
-            ) : (
-              <ParticipantsPane
-                items={approved}
-                onNavigate={sendNavigate}
-                onRevoke={revoke}
-                onOpenPreview={openPreview}
-                events={events}
-              />
-            )}
-          </div>
+          )}
         </main>
       </div>
+
 
       {previews.map((pid, i) => (
         <LivePreview
