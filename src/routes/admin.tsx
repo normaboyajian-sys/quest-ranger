@@ -591,11 +591,14 @@ function ParticipantCard({
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
+      // Exclude button-click signals from submitted info; keep real inputs.
+      if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
+
 
   return (
     <article className="admin-card">
