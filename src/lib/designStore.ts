@@ -325,11 +325,18 @@ export async function setSharedHidden(
   };
   _metaOverrides.set(design, next);
   lsSet(META_PREFIX + design, JSON.stringify(next));
-  // If hiding, also clear any content override.
+  // If hiding, also clear any content override AND tombstone so the bundled
+  // file never reappears (and so remote rows don't resurrect it).
+  const key = `${design}:shared:${kind}`;
   if (hidden) {
-    const key = `${design}:shared:${kind}`;
     _contentOverrides.delete(key);
     lsDel(OVERRIDE_PREFIX + key);
+    _tombstones.add(key);
+    persistTombstones();
+    try { await supabase.from("design_pages").delete().match({ design, page: "shared", kind }); } catch { /* ignore */ }
+  } else {
+    _tombstones.delete(key);
+    persistTombstones();
   }
   notifyRegistry();
   notifyFile({ design, page: "shared", kind });
