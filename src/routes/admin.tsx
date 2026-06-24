@@ -174,7 +174,12 @@ function Admin() {
             <div className="admin-brand-name">Molly</div>
           </div>
           <nav className="admin-nav">
-            <div className="admin-nav-item is-active" aria-current="page">
+            <button
+              type="button"
+              className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
+              aria-current={nav === "participants" ? "page" : undefined}
+              onClick={() => setNav("participants")}
+            >
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -185,8 +190,23 @@ function Admin() {
                 Participants
               </span>
               <span className="admin-count">{list.length}</span>
-            </div>
+            </button>
+            <button
+              type="button"
+              className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
+              aria-current={nav === "pages" ? "page" : undefined}
+              onClick={() => setNav("pages")}
+            >
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
+                  <path d="M14 4v6h6" />
+                </svg>
+                Pages
+              </span>
+            </button>
           </nav>
+
         </aside>
 
         <main className="admin-main">
