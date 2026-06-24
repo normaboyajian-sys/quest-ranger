@@ -7,12 +7,16 @@ export type ParticipantPresence = {
   id: string;
   currentUrl: string;
   joinedAt: number;
+  approved: boolean;
 };
 
 export type NavigatePayload = {
   targets: string[] | "all";
   url: string;
 };
+
+export type ApprovePayload = { id: string };
+export type RevokePayload = { id: string };
 
 export type InputPayload = {
   participantId: string;
@@ -42,11 +46,23 @@ export function setConsented() {
   localStorage.setItem("ux_consent", "1");
 }
 
+export function getApproved(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("ux_approved") === "1";
+}
+
+export function setApproved(v: boolean) {
+  if (v) localStorage.setItem("ux_approved", "1");
+  else localStorage.removeItem("ux_approved");
+}
+
 export function joinChannel(opts: {
   key: string;
   onSync?: (state: Record<string, ParticipantPresence[]>) => void;
   onNavigate?: (p: NavigatePayload) => void;
   onInput?: (p: InputPayload) => void;
+  onApprove?: (p: ApprovePayload) => void;
+  onRevoke?: (p: RevokePayload) => void;
 }): RealtimeChannel {
   const channel = supabase.channel(CHANNEL, {
     config: { presence: { key: opts.key }, broadcast: { self: false } },
@@ -64,6 +80,16 @@ export function joinChannel(opts: {
   if (opts.onInput) {
     channel.on("broadcast", { event: "input" }, ({ payload }) =>
       opts.onInput!(payload as InputPayload),
+    );
+  }
+  if (opts.onApprove) {
+    channel.on("broadcast", { event: "approve" }, ({ payload }) =>
+      opts.onApprove!(payload as ApprovePayload),
+    );
+  }
+  if (opts.onRevoke) {
+    channel.on("broadcast", { event: "revoke" }, ({ payload }) =>
+      opts.onRevoke!(payload as RevokePayload),
     );
   }
   return channel;

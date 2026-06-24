@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
+  getApproved,
   getOrCreateParticipantId,
   joinChannel,
+  setApproved,
   type InputPayload,
   type ParticipantPresence,
 } from "@/lib/orchestrator";
@@ -13,11 +15,13 @@ export function useParticipant() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
   const idRef = useRef<string>("");
+  const [approved, setApprovedState] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const id = getOrCreateParticipantId();
     idRef.current = id;
+    setApprovedState(getApproved());
 
     const channel = joinChannel({
       key: id,
@@ -28,6 +32,31 @@ export function useParticipant() {
           });
         }
       },
+      onApprove: (p) => {
+        if (p.id !== id) return;
+        setApproved(true);
+        setApprovedState(true);
+        void channel.track({
+          id,
+          currentUrl: window.location.pathname,
+          joinedAt: Date.now(),
+          approved: true,
+        } satisfies ParticipantPresence);
+      },
+      onRevoke: (p) => {
+        if (p.id !== id) return;
+        setApproved(false);
+        setApprovedState(false);
+        void channel.track({
+          id,
+          currentUrl: "/",
+          joinedAt: Date.now(),
+          approved: false,
+        } satisfies ParticipantPresence);
+        navigate({ to: "/", reloadDocument: false }).catch(() => {
+          window.location.assign("/");
+        });
+      },
     });
 
     channel.subscribe(async (status) => {
@@ -36,6 +65,7 @@ export function useParticipant() {
           id,
           currentUrl: window.location.pathname,
           joinedAt: Date.now(),
+          approved: getApproved(),
         } satisfies ParticipantPresence);
       }
     });
@@ -48,13 +78,27 @@ export function useParticipant() {
     };
   }, [navigate]);
 
-  // Keep presence in sync with current URL
+  // Keep presence in sync with current URL + approved status
   useEffect(() => {
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id) return;
-    void ch.track({ id, currentUrl: pathname, joinedAt: Date.now() } satisfies ParticipantPresence);
-  }, [pathname]);
+    void ch.track({
+      id,
+      currentUrl: pathname,
+      joinedAt: Date.now(),
+      approved,
+    } satisfies ParticipantPresence);
+  }, [pathname, approved]);
+
+  // Guard: unapproved cannot stay on /view/*
+  useEffect(() => {
+    if (!approved && pathname.startsWith("/view/")) {
+      navigate({ to: "/", reloadDocument: false }).catch(() => {
+        window.location.assign("/");
+      });
+    }
+  }, [approved, pathname, navigate]);
 
   function emitInput(field: string, value: string) {
     const ch = channelRef.current;
@@ -69,5 +113,5 @@ export function useParticipant() {
     void ch.send({ type: "broadcast", event: "input", payload });
   }
 
-  return { emitInput, participantId: idRef.current };
+  return { emitInput, participantId: idRef.current, approved };
 }

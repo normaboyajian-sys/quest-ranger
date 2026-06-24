@@ -11,8 +11,9 @@ export const Route = createFileRoute("/view/$theme/$page")({
 function SuiteView() {
   const { theme, page } = Route.useParams();
   if (!["red", "blue"].includes(theme) || !["home", "contact"].includes(page)) throw notFound();
-  const { emitInput } = useParticipant();
+  const { emitInput, approved } = useParticipant();
   const onChange = useTrackedInput(emitInput);
+  if (!approved) return null;
 
   const isRed = theme === "red";
   const themeClass = isRed ? "theme-red" : "theme-blue";
