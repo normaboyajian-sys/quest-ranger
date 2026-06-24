@@ -7,13 +7,29 @@ export type AppSettings = {
 
 const DEFAULTS: AppSettings = { blockBots: false };
 
-let _cache: AppSettings = { ...DEFAULTS };
+const LS_KEY = "ux_app_settings_v1";
+
+function readLocal(): AppSettings {
+  if (typeof window === "undefined") return { ...DEFAULTS };
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<AppSettings>) };
+  } catch { /* ignore */ }
+  return { ...DEFAULTS };
+}
+function writeLocal(s: AppSettings) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
+let _cache: AppSettings = readLocal();
 let _loaded = false;
 const listeners = new Set<(s: AppSettings) => void>();
 
 export function getAppSettings(): AppSettings {
   return _cache;
 }
+
 
 export async function loadAppSettings(): Promise<AppSettings> {
   const { data, error } = await supabase
