@@ -1309,15 +1309,20 @@
   color: #555;
 }
 
-/* Stacked card head: icons row on top, id+dot below */
+/* Stacked card head: id+dot on the left, icons in the top-right corner */
 .admin-card-head-stack {
-  flex-direction: column-reverse;
+  flex-direction: row;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
+}
+.admin-card-head-stack .admin-card-icons {
+  margin-left: auto;
 }
 .admin-card-id-bottom {
   color: #8a8a8a;
 }
+
 .admin-card-geo {
   display: flex; align-items: center; gap: 8px;
   font-family: ui-monospace, monospace;
