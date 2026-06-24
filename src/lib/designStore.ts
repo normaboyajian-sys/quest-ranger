@@ -60,7 +60,14 @@ const JS_FILES = import.meta.glob("/src/designs/*/*.js", {
 const META_FILES = import.meta.glob("/src/designs/*/_meta.json", {
   import: "default",
   eager: true,
-}) as Record<string, { label: string; pages: Record<string, string> }>;
+}) as Record<
+  string,
+  {
+    label: string;
+    pages: Record<string, string>;
+    pageMeta?: Record<string, { title?: string; favicon?: string }>;
+  }
+>;
 const INDEX_FILE = import.meta.glob("/src/designs/_index.json", {
   import: "default",
   eager: true,
@@ -75,7 +82,13 @@ const OVERRIDE_PREFIX = "design_override:";
 const META_PREFIX = "design_meta_override:";
 const INDEX_KEY = "design_index_override";
 
-type MetaEntry = { label: string; pages: Record<string, string> };
+export type PageMeta = { title?: string; favicon?: string };
+type MetaEntry = {
+  label: string;
+  pages: Record<string, string>;
+  pageMeta: Record<string, PageMeta>;
+};
+
 
 const _contentOverrides = new Map<string, string>(); // key = design:page:kind
 const _metaOverrides = new Map<string, MetaEntry>(); // key = design
