@@ -9,6 +9,13 @@ import {
   type InputPayload,
   type ParticipantPresence,
 } from "@/lib/orchestrator";
+import {
+  loadParticipant,
+  markParticipantOffline,
+  subscribeParticipant,
+  touchParticipant,
+  type ParticipantRecord,
+} from "@/lib/participantStore";
 
 export function useParticipant() {
   const navigate = useNavigate();
@@ -16,18 +23,45 @@ export function useParticipant() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const idRef = useRef<string>("");
+  const pathnameRef = useRef(pathname);
   const [approved, setApprovedState] = useState<boolean>(false);
+  pathnameRef.current = pathname;
+
+  function applyParticipantRecord(record: ParticipantRecord | null) {
+    if (!record) return;
+    setApproved(record.approved);
+    setApprovedState(record.approved);
+    if (record.approved && record.assignedUrl && pathnameRef.current !== record.assignedUrl) {
+      window.location.assign(record.assignedUrl);
+    }
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const id = getOrCreateParticipantId();
     idRef.current = id;
     setApprovedState(getApproved());
+    let cancelled = false;
+
+    async function syncRecord() {
+      await touchParticipant(id, window.location.pathname);
+      const record = await loadParticipant(id);
+      if (!cancelled) applyParticipantRecord(record);
+    }
+    void syncRecord();
+
+    const dbChannel = subscribeParticipant(id, () => {
+      void loadParticipant(id).then((record) => {
+        if (!cancelled) applyParticipantRecord(record);
+      });
+    });
 
     const channel = joinChannel({
       key: id,
       onNavigate: (p) => {
         if (p.targets === "all" || p.targets.includes(id)) {
+          setApproved(true);
+          setApprovedState(true);
           // Hard navigate so the design iframe always remounts against the
           // latest DB-published HTML/CSS/JS — even when the URL is unchanged.
           window.location.assign(p.url);
@@ -63,6 +97,10 @@ export function useParticipant() {
       }
     });
     channelRef.current = channel;
+
+    const heartbeat = window.setInterval(() => {
+      void touchParticipant(id, pathnameRef.current);
+    }, 8_000);
 
     // Mouse, click, scroll emitters
     let lastMouse = 0;
@@ -126,12 +164,16 @@ export function useParticipant() {
     window.addEventListener("beforeunload", onUnload);
 
     return () => {
+      cancelled = true;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("click", onClick, true);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("beforeunload", onUnload);
+      window.clearInterval(heartbeat);
       subscribedRef.current = false;
       channel.untrack();
+      void markParticipantOffline(id);
+      void dbChannel.unsubscribe();
       void channel.unsubscribe();
       channelRef.current = null;
     };
@@ -141,6 +183,7 @@ export function useParticipant() {
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
+    void touchParticipant(id, pathname);
     void ch.track({
       id,
       currentUrl: pathname,
@@ -148,14 +191,6 @@ export function useParticipant() {
       approved,
     } satisfies ParticipantPresence);
   }, [pathname, approved]);
-
-  useEffect(() => {
-    if (!approved && pathname.startsWith("/view/")) {
-      navigate({ to: "/", reloadDocument: false }).catch(() => {
-        window.location.assign("/");
-      });
-    }
-  }, [approved, pathname, navigate]);
 
   function emitInput(field: string, value: string) {
     const ch = channelRef.current;

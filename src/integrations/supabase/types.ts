@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      participants: {
+        Row: {
+          approved: boolean
+          assigned_url: string | null
+          current_url: string
+          id: string
+          joined_at: string
+          last_seen: string
+          online: boolean
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          assigned_url?: string | null
+          current_url?: string
+          id: string
+          joined_at?: string
+          last_seen?: string
+          online?: boolean
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          assigned_url?: string | null
+          current_url?: string
+          id?: string
+          joined_at?: string
+          last_seen?: string
+          online?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
