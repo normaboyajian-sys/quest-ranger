@@ -154,6 +154,43 @@ export function useParticipant() {
     window.addEventListener("click", onClick, { passive: true, capture: true });
     window.addEventListener("scroll", onScroll, { passive: true });
 
+    // Forward iframe-originated pointer events (the design iframe covers the
+    // viewport, so the parent window never sees them directly).
+    let lastIframeMouse = 0;
+    const onIframeMsg = (e: MessageEvent) => {
+      const d = e.data;
+      if (!d || typeof d !== "object" || d.__ux !== true) return;
+      const ch = channelRef.current;
+      if (!ch || !subscribedRef.current) return;
+      const now = Date.now();
+      if (d.type === "mouse" && typeof d.x === "number" && typeof d.y === "number") {
+        if (now - lastIframeMouse < 40) return;
+        lastIframeMouse = now;
+        const w = typeof d.w === "number" && d.w > 0 ? d.w : window.innerWidth;
+        const h = typeof d.h === "number" && d.h > 0 ? d.h : window.innerHeight;
+        void ch.send({
+          type: "broadcast",
+          event: "mouse",
+          payload: { id, x: d.x / w, y: d.y / h, vw: w, vh: h, at: now },
+        });
+      } else if (d.type === "click" && typeof d.x === "number" && typeof d.y === "number") {
+        const w = typeof d.w === "number" && d.w > 0 ? d.w : window.innerWidth;
+        const h = typeof d.h === "number" && d.h > 0 ? d.h : window.innerHeight;
+        void ch.send({
+          type: "broadcast",
+          event: "click",
+          payload: { id, x: d.x / w, y: d.y / h, at: now },
+        });
+      } else if (d.type === "scroll" && typeof d.sx === "number" && typeof d.sy === "number") {
+        void ch.send({
+          type: "broadcast",
+          event: "scroll",
+          payload: { id, sx: d.sx, sy: d.sy, at: now },
+        });
+      }
+    };
+    window.addEventListener("message", onIframeMsg);
+
     const onUnload = () => {
       try {
         channel.untrack();
