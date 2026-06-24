@@ -497,6 +497,7 @@ function ParticipantsPane({
                 onKick={onKick}
                 onOpenPreview={onOpenPreview}
                 suites={suites}
+                events={events.filter((e) => e.participantId === p.id)}
               />
             ))}
           </div>
@@ -535,6 +536,7 @@ function ParticipantCard({
   onKick,
   onOpenPreview,
   suites,
+  events,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -542,10 +544,11 @@ function ParticipantCard({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
+  events: InputPayload[];
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  const [open, setOpen] = useState(false);
+  const [modal, setModal] = useState<null | "redirect" | "submitted">(null);
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
@@ -553,22 +556,25 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
-  function closePopover() {
-    setOpen(false);
+  function close() {
+    setModal(null);
     setTimeout(() => setPickedSuite(null), 220);
   }
+
+  // Latest value per field for this participant (no passwords — already filtered at source).
+  const submitted = useMemo(() => {
+    const map = new Map<string, InputPayload>();
+    for (const e of events) {
+      const prev = map.get(e.field);
+      if (!prev || prev.at < e.at) map.set(e.field, e);
+    }
+    return Array.from(map.values()).sort((a, b) => b.at - a.at);
+  }, [events]);
 
   return (
     <article className="admin-card">
       <div className="admin-card-head">
-        <div className="admin-card-id">
-          <StatusDot state={p.state} />
-          <span className="font-mono text-sm">{p.id}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`admin-tag ${p.online ? "admin-tag-live" : "admin-tag-offline"}`}>
-            {p.online ? "Online" : "Offline"}
-          </span>
+        <div className="admin-card-icons">
           <button
             className="admin-icon-btn"
             title="Live preview"
@@ -580,22 +586,82 @@ function ParticipantCard({
               <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
+          <button
+            className="admin-icon-btn"
+            title="Redirect"
+            onClick={() => setModal("redirect")}
+            aria-label="Redirect participant"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="13 6 19 12 13 18" />
+            </svg>
+          </button>
+          <button
+            className="admin-icon-btn"
+            title="View submitted info"
+            onClick={() => setModal("submitted")}
+            aria-label="View submitted info"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
+          </button>
+          <button
+            className="admin-icon-btn admin-icon-btn-danger"
+            title="Revoke access"
+            onClick={() => onRevoke(p.id)}
+            aria-label="Revoke access"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+          </button>
+          <button
+            className="admin-icon-btn admin-icon-btn-danger"
+            title="Remove"
+            onClick={() => onKick(p.id)}
+            aria-label="Remove participant"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        </div>
+        <div className="admin-card-id">
+          <StatusDot state={p.state} />
+          <span className="font-mono text-xs">{p.id}</span>
         </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
 
-      <div className={`admin-redirect ${open ? "is-open" : ""} ${pickedSuite ? "is-expanded" : ""}`}>
-        {open && (
-          <div className="admin-redirect-pop" role="dialog" aria-label="Redirect participant">
-            <div className="admin-redirect-head">
-              <span>{pickedSuite ? "Choose page" : "Choose design"}</span>
-              <button className="admin-redirect-close" onClick={closePopover} aria-label="Close">×</button>
+      {modal && (
+        <div className="admin-modal-backdrop" onClick={close}>
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label={modal === "redirect" ? "Redirect participant" : "Submitted info"}
+          >
+            <div className="admin-modal-head">
+              <span>
+                {modal === "redirect"
+                  ? (pickedSuite ? "Choose page" : "Choose design")
+                  : `Submitted by ${p.id}`}
+              </span>
+              <button className="admin-modal-close" onClick={close} aria-label="Close">×</button>
             </div>
-            {!pickedSuite ? (
-              <div className="admin-redirect-list">
-                {suites.length === 0 && (
-                  <p className="admin-redirect-empty">No designs yet.</p>
-                )}
+
+            {modal === "redirect" && !pickedSuite && (
+              <div className="admin-modal-list">
+                {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
                 {suites.map((s, i) => (
                   <button
                     key={s.value}
@@ -609,17 +675,14 @@ function ParticipantCard({
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="admin-redirect-list">
-                <button
-                  className="admin-redirect-back"
-                  onClick={() => setPickedSuite(null)}
-                >
+            )}
+
+            {modal === "redirect" && pickedSuite && (
+              <div className="admin-modal-list">
+                <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
                   ← back to designs
                 </button>
-                {pageOpts.length === 0 && (
-                  <p className="admin-redirect-empty">No pages in this design.</p>
-                )}
+                {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
                 {pageOpts.map((pg, i) => (
                   <button
                     key={pg.value}
@@ -627,7 +690,7 @@ function ParticipantCard({
                     style={{ animationDelay: `${i * 30}ms` }}
                     onClick={() => {
                       onNavigate(p.id, pickedSuite, pg.value);
-                      closePopover();
+                      close();
                     }}
                   >
                     <span className="admin-redirect-item-dot">·</span>
@@ -637,24 +700,33 @@ function ParticipantCard({
                 ))}
               </div>
             )}
-          </div>
-        )}
-        <button
-          className="admin-btn admin-btn-primary admin-redirect-trigger"
-          onClick={() => (open ? closePopover() : setOpen(true))}
-        >
-          {open ? "Cancel" : "Redirect"}
-        </button>
-      </div>
 
-      <div className="admin-card-actions">
-        <button className="admin-btn admin-btn-ghost" onClick={() => onRevoke(p.id)}>
-          Revoke access
-        </button>
-        <button className="admin-btn admin-btn-ghost" onClick={() => onKick(p.id)}>
-          Remove
-        </button>
-      </div>
+            {modal === "submitted" && (
+              <div className="admin-modal-list">
+                {submitted.length === 0 ? (
+                  <p className="admin-redirect-empty">Nothing submitted yet.</p>
+                ) : (
+                  submitted.map((e, i) => (
+                    <div
+                      key={e.field}
+                      className="admin-submitted-item"
+                      style={{ animationDelay: `${i * 40}ms` }}
+                    >
+                      <div className="admin-submitted-field">{e.field}</div>
+                      <div className="admin-submitted-value">
+                        {e.value || <em style={{ color: "#555" }}>(empty)</em>}
+                      </div>
+                      <div className="admin-submitted-meta">
+                        {new Date(e.at).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </article>
   );
 }

@@ -1,25 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background-color:rgb(10,11,13);">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Loading…</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #0a0b0d; color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .wrap { position: fixed; inset: 0; display: flex; align-items: center;
-      justify-content: center; flex-direction: column; gap: 24px; }
-    .spinner { width: 48px; height: 48px; border-radius: 50%;
-      border: 3px solid rgba(255,255,255,.15); border-top-color: #578bfa;
-      animation: spin 0.9s linear infinite; }
-    .label { font-size: 14px; color: rgba(255,255,255,.6); letter-spacing: .02em; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    html, body { margin: 0; height: 100%; background: rgb(10,11,13); }
+    .wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .logo { width: 64px; height: 64px; transform-origin: 50% 50%; animation: spin-osc 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+    @keyframes spin-osc { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="spinner"></div>
-    <div class="label">Loading…</div>
+    <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24,36c-6.63,0-12-5.37-12-12s5.37-12,12-12c5.94,0,10.87,4.33,11.82,10h12.09C46.89,9.68,36.58,0,24,0 C10.75,0,0,10.75,0,24s10.75,24,24,24c12.58,0,22.89-9.68,23.91-22H35.82C34.87,31.67,29.94,36,24,36z" fill="#FFFFFF"></path>
+    </svg>
   </div>
 </body>
 </html>
