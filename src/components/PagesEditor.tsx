@@ -274,18 +274,30 @@ export function PagesEditor() {
 
 
   async function onDeleteShared(design: string, kind: FileKind) {
+    if (kind !== "css" && kind !== "js") return;
     const label = kind === "css" ? "styles.css" : "script.js";
-    if (!window.confirm(`Delete ${label}? This clears its contents.`)) return;
+    if (!window.confirm(`Delete ${label}? It will be removed from the design.`)) return;
     const target: DesignFile = { design, page: "shared", kind };
     try {
-      await saveFile(target, "");
+      await setSharedHidden(design, kind, true);
       if (active && sameFile(active, target)) {
+        setActive(null);
         setContent("");
         contentRef.current = "";
         setDirty(false);
       }
-      setStatus(`${label} cleared`);
+      setStatus(`${label} deleted`);
       setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onRestoreShared(design: string, kind: FileKind) {
+    if (kind !== "css" && kind !== "js") return;
+    try {
+      await setSharedHidden(design, kind, false);
+      void openFile({ design, page: "shared", kind });
     } catch (e) {
       window.alert((e as Error).message);
     }
