@@ -312,7 +312,20 @@
   max-width: 0;
   pointer-events: none;
 }
-.admin-shell.is-collapsed .admin-nav-item { justify-content: center; padding: 9px 0; }
+.admin-shell.is-collapsed .admin-nav-item {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+}
+.admin-shell.is-collapsed .admin-brand-btn {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  gap: 0;
+}
 .admin-nav-item:hover { background: #131313; color: #fff; }
 .admin-nav-item.is-active { background: #1a1a1a; color: #fff; }
 .admin-count {
