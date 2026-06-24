@@ -30,6 +30,27 @@ import {
   type DesignRecord,
   type PageRecord,
 } from "@/lib/designStore";
+import {
+  countryFlagEmoji,
+  getAppSettings,
+  loadAppSettings,
+  setBlockBots,
+  startAppSettingsSync,
+  subscribeAppSettings,
+} from "@/lib/appSettings";
+
+function ParticipantGeoLine({ p }: { p: LiveRecord }) {
+  const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
+  if (!p.ip && !place) return null;
+  return (
+    <p className="admin-card-geo">
+      <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+      {place && <span className="admin-card-place">{place}</span>}
+      {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
+    </p>
+  );
+}
+
 
 
 
