@@ -24,42 +24,54 @@ function SuiteView() {
   const design = theme as DesignKey;
   const pageKey = page as PageKey;
 
-
   const { emitInput } = useParticipant();
   const emitInputRef = useRef(emitInput);
   emitInputRef.current = emitInput;
 
-  const [ready, setReady] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [srcDoc, setSrcDoc] = useState<string>("");
   const [version, setVersion] = useState(0);
+  const [showing, setShowing] = useState(false);
 
+  // One-time hydration wait.
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
     void remoteHydrated.then(() => {
-      if (cancelled) return;
-      setSrcDoc(buildSrcDocCached(design, pageKey));
-      setVersion((v) => v + 1);
-      setReady(true);
+      if (!cancelled) setHydrated(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [design, pageKey]);
+  }, []);
 
+  // Build srcDoc per design/page with a cross-fade.
   useEffect(() => {
-    if (!ready) return;
+    if (!hydrated) return;
+    setShowing(false);
+    const t = window.setTimeout(() => {
+      setSrcDoc(buildSrcDocCached(design, pageKey));
+      setVersion((v) => v + 1);
+      // Allow the iframe to mount before fading in.
+      requestAnimationFrame(() => setShowing(true));
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [hydrated, design, pageKey]);
+
+  // Live-reload on remote/local edits (no fade — instant swap).
+  useEffect(() => {
+    if (!hydrated) return;
     const ch = subscribeDesignChanges(
       (d, p) => d === design && (p === pageKey || p === "shared"),
       () => {
         setSrcDoc(buildSrcDocCached(design, pageKey));
         setVersion((v) => v + 1);
+        setShowing(true);
       },
     );
     return () => {
       void ch.unsubscribe();
     };
-  }, [design, pageKey, ready]);
+  }, [design, pageKey, hydrated]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -77,8 +89,8 @@ function SuiteView() {
   }, []);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#000" }}>
-      {ready && (
+    <div style={{ position: "fixed", inset: 0, background: "#0a0b0d" }}>
+      {hydrated && srcDoc && (
         <iframe
           key={version}
           title="design"
@@ -89,6 +101,8 @@ function SuiteView() {
             width: "100%",
             height: "100%",
             border: 0,
+            opacity: showing ? 1 : 0,
+            transition: "opacity 200ms ease",
           }}
         />
       )}

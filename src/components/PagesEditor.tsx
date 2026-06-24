@@ -14,12 +14,14 @@ import {
   getHiddenShared,
   getPageMeta,
   getPagesFor,
+  isPageHidden,
   loadFile,
   loadFileCached,
   renameDesign,
   renamePage,
   resetFile,
   saveFile,
+  setPageHidden,
   setPageMeta,
   setSharedHidden,
   slugify,
@@ -29,6 +31,7 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
+
 
 
 function sameFile(a: DesignFile, b: DesignFile) {
@@ -164,11 +167,12 @@ export function PagesEditor() {
     try {
       await createDesign(id, label.trim());
       setOpenFolders((s) => ({ ...s, [id]: true }));
-      void openFile({ design: id, page: "home", kind: "html" });
+      // Empty design — no files to open. User clicks + to add a page.
     } catch (e) {
       window.alert((e as Error).message);
     }
   }
+
 
   async function onRenameDesign(id: string, current: string) {
     const label = window.prompt("Rename design folder/link", current);
@@ -389,20 +393,32 @@ export function PagesEditor() {
                       kind: "html",
                     };
                     const isActive = !!active && sameFile(f, active);
+                    const hidden = isPageHidden(folder.id, pg.page);
                     return (
                       <div
                         key={pg.page}
-                        className={`admin-pages-file-row ${isActive ? "is-active" : ""}`}
+                        className={`admin-pages-file-row ${isActive ? "is-active" : ""} ${hidden ? "is-muted" : ""}`}
+                        style={hidden ? { opacity: 0.55 } : undefined}
                       >
                         <button
                           className="admin-pages-file"
                           onClick={() => void openFile(f)}
-                          title={`/${folder.id}/${pg.page}`}
+                          title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
                         >
-                          <span className="admin-pages-file-icon">·</span>
+                          <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
                           {pg.label ?? pg.page}.html
                         </button>
                         <div className="admin-pages-file-actions">
+                          <button
+                            type="button"
+                            className="admin-tree-btn"
+                            title={hidden ? "Show in redirect picker" : "Hide from redirect picker (keep as addon page)"}
+                            onClick={() => {
+                              void setPageHidden(folder.id, pg.page, !hidden);
+                            }}
+                          >
+                            {hidden ? "◌" : "◉"}
+                          </button>
                           <button
                             type="button"
                             className="admin-tree-btn"
@@ -446,6 +462,7 @@ export function PagesEditor() {
                       </div>
                     );
                   })}
+
                   {/* Shared CSS / JS */}
                   {(["css", "js"] as FileKind[]).map((kind) => {
                     const f: DesignFile = {

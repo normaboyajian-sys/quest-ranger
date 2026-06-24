@@ -23,11 +23,15 @@ import { PagesEditor } from "@/components/PagesEditor";
 
 import {
   getDesigns,
+  getDesignLogo,
   getPagesFor,
+  getRedirectPages,
   subscribeRegistry,
   type DesignRecord,
   type PageRecord,
 } from "@/lib/designStore";
+
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
@@ -552,7 +556,7 @@ function ParticipantCard({
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
-    () => (pickedSuite ? pagesFromPagesFor(getPagesFor(pickedSuite)) : []),
+    () => (pickedSuite ? pagesFromPagesFor(getRedirectPages(pickedSuite)) : []),
     [pickedSuite, regRev],
   );
 
@@ -560,6 +564,7 @@ function ParticipantCard({
     setModal(null);
     setTimeout(() => setPickedSuite(null), 220);
   }
+
 
   // Latest value per field for this participant (no passwords — already filtered at source).
   const submitted = useMemo(() => {
@@ -662,20 +667,33 @@ function ParticipantCard({
             {modal === "redirect" && !pickedSuite && (
               <div className="admin-modal-list">
                 {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
-                {suites.map((s, i) => (
-                  <button
-                    key={s.value}
-                    className="admin-redirect-item"
-                    style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => setPickedSuite(s.value)}
-                  >
-                    <span className="admin-redirect-item-dot">▤</span>
-                    <span>{s.label}</span>
-                    <span className="admin-redirect-item-arrow">›</span>
-                  </button>
-                ))}
+                {suites.map((s, i) => {
+                  const logo = getDesignLogo(s.value);
+                  return (
+                    <button
+                      key={s.value}
+                      className="admin-redirect-item"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                      onClick={() => setPickedSuite(s.value)}
+                    >
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt=""
+                          className="admin-redirect-item-logo"
+                          style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
+                        />
+                      ) : (
+                        <span className="admin-redirect-item-dot">▤</span>
+                      )}
+                      <span>{s.label}</span>
+                      <span className="admin-redirect-item-arrow">›</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
+
 
             {modal === "redirect" && pickedSuite && (
               <div className="admin-modal-list">

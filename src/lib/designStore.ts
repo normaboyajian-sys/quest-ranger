@@ -75,6 +75,11 @@ const INDEX_FILE = import.meta.glob("/src/designs/_index.json", {
   import: "default",
   eager: true,
 }) as Record<string, { order: string[] }>;
+const PNG_FILES = import.meta.glob("/src/designs/*/*.png", {
+  query: "?url",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 const BUNDLED_INDEX: { order: string[] } =
   Object.values(INDEX_FILE)[0] ?? { order: [] };
@@ -85,8 +90,9 @@ const OVERRIDE_PREFIX = "design_override:";
 const META_PREFIX = "design_meta_override:";
 const INDEX_KEY = "design_index_override";
 const HIDDEN_DESIGNS_KEY = "design_hidden_bundled";
+const TOMBSTONE_KEY = "design_tombstones";
 
-export type PageMeta = { title?: string; favicon?: string };
+export type PageMeta = { title?: string; favicon?: string; hidden?: boolean };
 type MetaEntry = {
   label: string;
   pages: Record<string, string>;
@@ -98,7 +104,28 @@ type MetaEntry = {
 const _contentOverrides = new Map<string, string>(); // key = design:page:kind
 const _metaOverrides = new Map<string, MetaEntry>(); // key = design
 const _hiddenBundledDesigns = new Set<string>();
+const _tombstones = new Set<string>(); // key = design:page:kind — never resurrect
 let _indexOverride: { order: string[] } | null = null;
+
+function persistTombstones() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(Array.from(_tombstones)));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getDesignLogo(design: string): string | null {
+  const k = `/src/designs/${design}/logo.png`;
+  if (PNG_FILES[k]) return PNG_FILES[k];
+  // Fall back to any png in the folder
+  const prefix = `/src/designs/${design}/`;
+  for (const key of Object.keys(PNG_FILES)) {
+    if (key.startsWith(prefix)) return PNG_FILES[key];
+  }
+  return null;
+}
 
 function lsLoad() {
   if (typeof window === "undefined") return;
@@ -143,7 +170,17 @@ function lsLoad() {
             /* ignore */
           }
         }
+      } else if (k === TOMBSTONE_KEY) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) {
+          try {
+            for (const id of JSON.parse(v) as string[]) _tombstones.add(id);
+          } catch {
+            /* ignore */
+          }
+        }
       }
+
     }
   } catch {
     /* ignore */
@@ -288,11 +325,18 @@ export async function setSharedHidden(
   };
   _metaOverrides.set(design, next);
   lsSet(META_PREFIX + design, JSON.stringify(next));
-  // If hiding, also clear any content override.
+  // If hiding, also clear any content override AND tombstone so the bundled
+  // file never reappears (and so remote rows don't resurrect it).
+  const key = `${design}:shared:${kind}`;
   if (hidden) {
-    const key = `${design}:shared:${kind}`;
     _contentOverrides.delete(key);
     lsDel(OVERRIDE_PREFIX + key);
+    _tombstones.add(key);
+    persistTombstones();
+    try { await supabase.from("design_pages").delete().match({ design, page: "shared", kind }); } catch { /* ignore */ }
+  } else {
+    _tombstones.delete(key);
+    persistTombstones();
   }
   notifyRegistry();
   notifyFile({ design, page: "shared", kind });
@@ -318,9 +362,15 @@ export async function setPageMeta(
   for (const [k, v] of Object.entries(nextPageMeta)) {
     const t = (v.title ?? "").trim();
     const f = (v.favicon ?? "").trim();
-    if (t || f) cleaned[k] = { ...(t ? { title: t } : {}), ...(f ? { favicon: f } : {}) };
+    const h = !!v.hidden;
+    if (t || f || h)
+      cleaned[k] = {
+        ...(t ? { title: t } : {}),
+        ...(f ? { favicon: f } : {}),
+        ...(h ? { hidden: true } : {}),
+      };
   }
-  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned };
+  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned, hiddenShared: meta.hiddenShared };
   _metaOverrides.set(design, next);
   lsSet(META_PREFIX + design, JSON.stringify(next));
   notifyRegistry();
@@ -364,15 +414,10 @@ export function getDesigns(): DesignRecord[] {
 
 export function getPagesFor(design: string): PageRecord[] {
   const meta = metaFor(design);
-  const out: PageRecord[] = Object.entries(meta.pages).map(([page, label]) => ({
-    design,
-    page,
-    label,
-  }));
+  const out: PageRecord[] = Object.entries(meta.pages)
+    .filter(([page]) => !_tombstones.has(`${design}:${page}:html`))
+    .map(([page, label]) => ({ design, page, label }));
   const seen = new Set(out.map((p) => p.page));
-  // Also surface any bundled .html file on disk that isn't in the meta yet —
-  // so loading.html / home.html etc. show up in the editor even if the meta
-  // got out of sync.
   const prefix = `/src/designs/${design}/`;
   for (const k of Object.keys(HTML_FILES)) {
     if (!k.startsWith(prefix)) continue;
@@ -380,17 +425,32 @@ export function getPagesFor(design: string): PageRecord[] {
     if (!file.endsWith(".html")) continue;
     const page = file.slice(0, -5);
     if (page === "shared" || seen.has(page)) continue;
+    if (_tombstones.has(`${design}:${page}:html`)) continue;
     seen.add(page);
     out.push({ design, page, label: page });
   }
-  // Also surface any content overrides for pages not in meta.
   for (const key of _contentOverrides.keys()) {
     const [d, p, k] = key.split(":");
     if (d !== design || k !== "html" || p === "shared" || seen.has(p)) continue;
+    if (_tombstones.has(`${design}:${p}:html`)) continue;
     seen.add(p);
     out.push({ design, page: p, label: p });
   }
   return out;
+}
+
+// Pages shown in the redirect picker — excludes pages with `hidden: true`.
+export function getRedirectPages(design: string): PageRecord[] {
+  const meta = metaFor(design);
+  return getPagesFor(design).filter((p) => !meta.pageMeta[p.page]?.hidden);
+}
+
+export function isPageHidden(design: string, page: string): boolean {
+  return !!metaFor(design).pageMeta[page]?.hidden;
+}
+
+export async function setPageHidden(design: string, page: string, hidden: boolean): Promise<void> {
+  await setPageMeta(design, page, { hidden });
 }
 
 export function getDesignLabel(id: string): string {
@@ -400,6 +460,7 @@ export function getDesignLabel(id: string): string {
 export function getPageLabel(design: string, page: string): string {
   return metaFor(design).pages[page] ?? page;
 }
+
 
 // ---- Defaults for new files ----
 
@@ -481,16 +542,20 @@ function overrideKey(f: DesignFile): string {
 }
 
 export function loadFileCached(f: DesignFile): string {
+  const key = overrideKey(f);
+  // Tombstoned files stay deleted — never resurrect from bundled or defaults.
+  if (_tombstones.has(key)) return "";
   if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
     const hidden = getHiddenShared(f.design)[f.kind];
     if (hidden) return "";
   }
-  const ov = _contentOverrides.get(overrideKey(f));
+  const ov = _contentOverrides.get(key);
   if (ov != null) return ov;
   const b = bundledContent(f);
   if (b != null) return b;
   return defaultContent(f);
 }
+
 
 // Kept for compatibility with the existing editor — same as cached read.
 export async function loadFile(f: DesignFile): Promise<string> {
@@ -498,8 +563,11 @@ export async function loadFile(f: DesignFile): Promise<string> {
 }
 
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
-  _contentOverrides.set(overrideKey(f), content);
-  lsSet(OVERRIDE_PREFIX + overrideKey(f), content);
+  const key = overrideKey(f);
+  // Saving clears any tombstone for this file.
+  if (_tombstones.delete(key)) persistTombstones();
+  _contentOverrides.set(key, content);
+  lsSet(OVERRIDE_PREFIX + key, content);
   // If this is a shared file that was hidden, un-hide it.
   if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
     const hs = getHiddenShared(f.design);
@@ -515,7 +583,6 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
     }
   }
   notifyFile(f);
-  // Push to remote so other browsers/devices see it.
   try {
     await supabase
       .from("design_pages")
@@ -531,29 +598,27 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
       data: { design: f.design, page: f.page, kind: f.kind, content },
     });
   } catch {
-    // Disk write may fail (prod / readonly FS). Local override still applies.
+    /* readonly FS in prod */
   }
 }
 
+// Reset = revert to whatever is currently on disk (bundled). Does NOT rewrite
+// files — the user's source files are the source of truth.
 export async function resetFile(f: DesignFile): Promise<void> {
-  _contentOverrides.delete(overrideKey(f));
-  lsDel(OVERRIDE_PREFIX + overrideKey(f));
-  const bundled = bundledContent(f);
-  notifyFile(f);
-  // Rewrite disk to the bundled (source-of-truth) content so dev FS matches.
+  const key = overrideKey(f);
+  _contentOverrides.delete(key);
+  lsDel(OVERRIDE_PREFIX + key);
+  if (_tombstones.delete(key)) persistTombstones();
   try {
-    await writeDesignFile({
-      data: {
-        design: f.design,
-        page: f.page,
-        kind: f.kind,
-        content: bundled ?? defaultContent(f),
-      },
+    await supabase.from("design_pages").delete().match({
+      design: f.design, page: f.page, kind: f.kind,
     });
   } catch {
     /* ignore */
   }
+  notifyFile(f);
 }
+
 
 // ---- Registry mutations ----
 
@@ -615,31 +680,17 @@ export async function createDesign(
     throw new Error("Design already exists");
   unhideBundledDesign(id);
   const trimmed = label.trim() || id;
-  const seedPages = { home: "Home", loading: "Loading" };
-  _metaOverrides.set(id, {
-    label: trimmed,
-    pages: seedPages,
-    pageMeta: {},
-  });
+  // Empty design — no seed pages, no shared files. The user adds what they want.
+  _metaOverrides.set(id, { label: trimmed, pages: {}, pageMeta: {} });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: seedPages, pageMeta: {} }),
+    JSON.stringify({ label: trimmed, pages: {}, pageMeta: {} }),
   );
-
-  await saveFile(
-    { design: id, page: "home", kind: "html" },
-    defaultHTML(`${trimmed} — Home`),
-  );
-  await saveFile(
-    { design: id, page: "loading", kind: "html" },
-    DEFAULT_LOADING_HTML,
-  );
-  await saveFile({ design: id, page: "shared", kind: "css" }, defaultCSS());
-  await saveFile({ design: id, page: "shared", kind: "js" }, defaultJS());
   await persistMeta(id);
   await persistIndex();
   return { id, label: trimmed, sort_order: getDesigns().length };
 }
+
 
 export async function renameDesign(id: string, label: string): Promise<string> {
   const trimmed = label.trim();
@@ -807,7 +858,6 @@ export async function renamePage(
 
 export async function deletePage(design: string, page: string): Promise<void> {
   const meta = metaFor(design);
-  if (!(page in meta.pages)) return;
   const nextPages = { ...meta.pages };
   delete nextPages[page];
   const nextPageMeta = { ...meta.pageMeta };
@@ -818,11 +868,14 @@ export async function deletePage(design: string, page: string): Promise<void> {
     JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: nextPageMeta }),
   );
 
-  // Drop content override
+  // Drop content override + tombstone so the bundled .html cannot resurrect it.
   const key = `${design}:${page}:html`;
   _contentOverrides.delete(key);
   lsDel(OVERRIDE_PREFIX + key);
+  _tombstones.add(key);
+  persistTombstones();
   notifyRegistry();
+  try { await supabase.from("design_pages").delete().match({ design, page, kind: "html" }); } catch { /* ignore */ }
   try {
     await deleteDesignPage({ data: { design, page } });
   } catch {
@@ -830,6 +883,7 @@ export async function deletePage(design: string, page: string): Promise<void> {
   }
   await persistMeta(design);
 }
+
 
 // ---- Bulk loader (no-op — kept for API compat) ----
 
@@ -903,16 +957,18 @@ function navigateTo(page){
   if (!loc.design) return;
   var target = '/' + loc.design + '/' + page;
   try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
+  // Parent does client-side navigation (no full reload) for smooth transitions.
   try { parent.postMessage({__ux:true, type:'internal_navigation', url: target}, '*'); } catch(e){}
-  try {
-    document.body.style.transition = 'opacity .25s ease';
-    document.body.style.opacity = '0';
-  } catch(e){}
+  // Fallback: if no parent listener acts within 600ms, hard-navigate.
   setTimeout(function(){
-    try { parent.location.assign(target); }
-    catch(e){ try { location.assign(target); } catch(_){} }
-  }, 220);
+    try {
+      if (parent && parent.location && parent.location.pathname !== target) {
+        parent.location.assign(target);
+      }
+    } catch(e){ try { location.assign(target); } catch(_){} }
+  }, 600);
 }
+
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
   if (!email) return;
@@ -1070,11 +1126,14 @@ function applyRemoteRow(row: { design: string; page: string; kind: string; conte
     kind: row.kind as FileKind,
   };
   const key = overrideKey(f);
+  // Respect tombstones — don't resurrect a deleted file from remote.
+  if (_tombstones.has(key)) return;
   if (_contentOverrides.get(key) === row.content) return;
   _contentOverrides.set(key, row.content);
   lsSet(OVERRIDE_PREFIX + key, row.content);
   notifyFile(f);
 }
+
 
 let _hydrateResolve: (() => void) | null = null;
 export const remoteHydrated: Promise<void> = new Promise((res) => {

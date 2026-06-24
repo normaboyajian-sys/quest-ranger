@@ -58,12 +58,15 @@ export function useParticipant() {
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
       if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
-        window.location.assign(assigned);
+        navigate({ to: assigned, reloadDocument: false }).catch(() => {
+          window.location.assign(assigned);
+        });
       }
     } else {
       lastAssignedRef.current = assigned;
     }
   }
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -92,11 +95,13 @@ export function useParticipant() {
           if (p.url !== pathnameRef.current && internalNavActive()) return;
           setApproved(true);
           setApprovedState(true);
-          // Hard navigate so the design iframe always remounts against the
-          // latest DB-published HTML/CSS/JS — even when the URL is unchanged.
-          window.location.assign(p.url);
+          lastAssignedRef.current = p.url;
+          navigate({ to: p.url, reloadDocument: false }).catch(() => {
+            window.location.assign(p.url);
+          });
         }
       },
+
       onApprove: (p) => {
         if (p.id !== id) return;
         setApproved(true);
@@ -212,9 +217,16 @@ export function useParticipant() {
         if (typeof d.url === "string") {
           lastAssignedRef.current = d.url;
           if (idRef.current) void touchParticipant(idRef.current, d.url);
+          // Client-side navigation — no full page reload, smooth swap.
+          if (pathnameRef.current !== d.url) {
+            navigate({ to: d.url, reloadDocument: false }).catch(() => {
+              window.location.assign(d.url);
+            });
+          }
         }
         return;
       }
+
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
       const now = Date.now();
