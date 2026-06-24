@@ -453,7 +453,7 @@ export function PagesEditor() {
               setContent(v);
               contentRef.current = v;
               setDirty(true);
-              setEditorContent(v);
+              
             }}
             basicSetup={{
               lineNumbers: true,
