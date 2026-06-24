@@ -557,7 +557,7 @@ function ParticipantCard({
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
-    () => (pickedSuite ? pagesFromPagesFor(getPagesFor(pickedSuite)) : []),
+    () => (pickedSuite ? pagesFromPagesFor(getRedirectPages(pickedSuite)) : []),
     [pickedSuite, regRev],
   );
 
@@ -565,6 +565,7 @@ function ParticipantCard({
     setModal(null);
     setTimeout(() => setPickedSuite(null), 220);
   }
+
 
   // Latest value per field for this participant (no passwords — already filtered at source).
   const submitted = useMemo(() => {
