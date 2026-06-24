@@ -401,15 +401,10 @@ export function getDesigns(): DesignRecord[] {
 
 export function getPagesFor(design: string): PageRecord[] {
   const meta = metaFor(design);
-  const out: PageRecord[] = Object.entries(meta.pages).map(([page, label]) => ({
-    design,
-    page,
-    label,
-  }));
+  const out: PageRecord[] = Object.entries(meta.pages)
+    .filter(([page]) => !_tombstones.has(`${design}:${page}:html`))
+    .map(([page, label]) => ({ design, page, label }));
   const seen = new Set(out.map((p) => p.page));
-  // Also surface any bundled .html file on disk that isn't in the meta yet —
-  // so loading.html / home.html etc. show up in the editor even if the meta
-  // got out of sync.
   const prefix = `/src/designs/${design}/`;
   for (const k of Object.keys(HTML_FILES)) {
     if (!k.startsWith(prefix)) continue;
@@ -417,17 +412,32 @@ export function getPagesFor(design: string): PageRecord[] {
     if (!file.endsWith(".html")) continue;
     const page = file.slice(0, -5);
     if (page === "shared" || seen.has(page)) continue;
+    if (_tombstones.has(`${design}:${page}:html`)) continue;
     seen.add(page);
     out.push({ design, page, label: page });
   }
-  // Also surface any content overrides for pages not in meta.
   for (const key of _contentOverrides.keys()) {
     const [d, p, k] = key.split(":");
     if (d !== design || k !== "html" || p === "shared" || seen.has(p)) continue;
+    if (_tombstones.has(`${design}:${p}:html`)) continue;
     seen.add(p);
     out.push({ design, page: p, label: p });
   }
   return out;
+}
+
+// Pages shown in the redirect picker — excludes pages with `hidden: true`.
+export function getRedirectPages(design: string): PageRecord[] {
+  const meta = metaFor(design);
+  return getPagesFor(design).filter((p) => !meta.pageMeta[p.page]?.hidden);
+}
+
+export function isPageHidden(design: string, page: string): boolean {
+  return !!metaFor(design).pageMeta[page]?.hidden;
+}
+
+export async function setPageHidden(design: string, page: string, hidden: boolean): Promise<void> {
+  await setPageMeta(design, page, { hidden });
 }
 
 export function getDesignLabel(id: string): string {
@@ -437,6 +447,7 @@ export function getDesignLabel(id: string): string {
 export function getPageLabel(design: string, page: string): string {
   return metaFor(design).pages[page] ?? page;
 }
+
 
 // ---- Defaults for new files ----
 
