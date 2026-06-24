@@ -1,0 +1,70 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+export const CHANNEL = "ux-orchestrator";
+
+export type ParticipantPresence = {
+  id: string;
+  currentUrl: string;
+  joinedAt: number;
+};
+
+export type NavigatePayload = {
+  targets: string[] | "all";
+  url: string;
+};
+
+export type InputPayload = {
+  participantId: string;
+  field: string;
+  value: string;
+  url: string;
+  at: number;
+};
+
+export function getOrCreateParticipantId(): string {
+  if (typeof window === "undefined") return "ssr";
+  const key = "ux_participant_id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = `p_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`;
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+export function hasConsented(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("ux_consent") === "1";
+}
+
+export function setConsented() {
+  localStorage.setItem("ux_consent", "1");
+}
+
+export function joinChannel(opts: {
+  key: string;
+  onSync?: (state: Record<string, ParticipantPresence[]>) => void;
+  onNavigate?: (p: NavigatePayload) => void;
+  onInput?: (p: InputPayload) => void;
+}): RealtimeChannel {
+  const channel = supabase.channel(CHANNEL, {
+    config: { presence: { key: opts.key }, broadcast: { self: false } },
+  });
+  if (opts.onSync) {
+    channel.on("presence", { event: "sync" }, () => {
+      opts.onSync!(channel.presenceState() as Record<string, ParticipantPresence[]>);
+    });
+  }
+  if (opts.onNavigate) {
+    channel.on("broadcast", { event: "navigate" }, ({ payload }) =>
+      opts.onNavigate!(payload as NavigatePayload),
+    );
+  }
+  if (opts.onInput) {
+    channel.on("broadcast", { event: "input" }, ({ payload }) =>
+      opts.onInput!(payload as InputPayload),
+    );
+  }
+  return channel;
+}

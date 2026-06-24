@@ -1,29 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ConsentModal } from "@/components/ConsentModal";
+import { useParticipant } from "@/hooks/useParticipant";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "Focus Room — User Flow Orchestrator" },
+      { name: "description", content: "Moderated UX testing environment. Awaiting administrator." },
     ],
   }),
-  component: Index,
+  component: FocusRoom,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function FocusRoom() {
+  useParticipant();
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <ConsentModal />
+      <div className="text-center max-w-md">
+        <div className="mx-auto mb-8 h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          Focus Room · Ready
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight">
+          Awaiting moderator
+        </h1>
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+          You are connected. The administrator will guide you to the next
+          test suite shortly. Please keep this window focused.
+        </p>
+      </div>
     </div>
   );
 }
