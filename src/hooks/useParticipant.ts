@@ -212,9 +212,16 @@ export function useParticipant() {
         if (typeof d.url === "string") {
           lastAssignedRef.current = d.url;
           if (idRef.current) void touchParticipant(idRef.current, d.url);
+          // Client-side navigation — no full page reload, smooth swap.
+          if (pathnameRef.current !== d.url) {
+            navigate({ to: d.url, reloadDocument: false }).catch(() => {
+              window.location.assign(d.url);
+            });
+          }
         }
         return;
       }
+
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
       const now = Date.now();
