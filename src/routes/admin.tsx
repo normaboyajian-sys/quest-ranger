@@ -19,32 +19,45 @@ import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
 import { PagesEditor } from "@/components/PagesEditor";
+import { ChatSidebar } from "@/components/ChatSidebar";
+import {
+  getDesigns,
+  getPagesFor,
+  loadAll,
+  subscribeRegistry,
+  type DesignRecord,
+  type PageRecord,
+} from "@/lib/designStore";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
   component: Admin,
 });
 
-const SUITES = [
-  { value: "red", label: "Industrial Red" },
-  { value: "blue", label: "Modern Blue" },
-] as const;
-const PAGES = [
-  { value: "home", label: "Home" },
-  { value: "contact", label: "Contact" },
-] as const;
+type Suite = string;
+type Page = string;
+type SuiteOpt = { value: string; label: string };
+type PageOpt = { value: string; label: string };
 
-type Suite = (typeof SUITES)[number]["value"];
-type Page = (typeof PAGES)[number]["value"];
+function suitesFromDesigns(designs: DesignRecord[]): SuiteOpt[] {
+  return designs.map((d) => ({ value: d.id, label: d.label }));
+}
+function pagesFromPagesFor(pages: PageRecord[]): PageOpt[] {
+  return pages.map((p) => ({ value: p.page, label: p.label ?? p.page }));
+}
 
 type LiveRecord = ParticipantRecord & { state: DotState };
 
 function pageLabelFromUrl(url: string): string {
-  const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
+  const m = url.match(/^\/view\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
   if (!m) return url === "/" ? "Focus Room" : url;
-  const suite = m[1] === "red" ? "Industrial Red" : "Modern Blue";
-  const page = m[2] === "home" ? "Home" : "Contact";
-  return `${suite} · ${page}`;
+  const designs = getDesigns();
+  const design = designs.find((d) => d.id === m[1]);
+  const pages = getPagesFor(m[1]);
+  const page = pages.find((p) => p.page === m[2]);
+  const suiteLabel = design?.label ?? m[1];
+  const pageLabel = page?.label ?? m[2];
+  return `${suiteLabel} · ${pageLabel}`;
 }
 
 function dotStateFor(p: ParticipantRecord | undefined): DotState {
@@ -58,9 +71,14 @@ function Admin() {
   const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("admin_sidebar_open") !== "0";
+  });
+  const [chatOpen, setChatOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("admin_chat_open") === "1";
   });
   function toggleSidebar(next?: boolean) {
     setSidebarOpen((prev) => {
@@ -71,6 +89,16 @@ function Admin() {
       return v;
     });
   }
+  function toggleChat(next?: boolean) {
+    setChatOpen((prev) => {
+      const v = typeof next === "boolean" ? next : !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_chat_open", v ? "1" : "0");
+      }
+      return v;
+    });
+  }
+  const suites = useMemo(() => suitesFromDesigns(designs), [designs]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
@@ -121,6 +149,13 @@ function Admin() {
       void participantChannel.unsubscribe();
       void ch.unsubscribe();
     };
+  }, []);
+
+  // Load designs registry for the redirect selectors + page labels
+  useEffect(() => {
+    void loadAll().then(() => setDesigns(getDesigns()));
+    const off = subscribeRegistry(() => setDesigns(getDesigns()));
+    return off;
   }, []);
 
   async function broadcast(event: string, payload: unknown, retries = 3) {
@@ -199,7 +234,9 @@ function Admin() {
 
   return (
     <div className="admin-noir min-h-screen">
-      <div className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"}`}>
+      <div
+        className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"} ${chatOpen ? "chat-open" : "chat-closed"}`}
+      >
         <aside className="admin-sidebar">
           <div className="admin-sidebar-head">
             <button
@@ -265,10 +302,24 @@ function Admin() {
               <span className="admin-nav-label">Pages</span>
             </button>
           </nav>
-
         </aside>
 
         <main className="admin-main">
+          <div className="admin-main-top">
+            <button
+              type="button"
+              className={`admin-chat-toggle ${chatOpen ? "is-active" : ""}`}
+              onClick={() => toggleChat()}
+              title={chatOpen ? "Close AI chat" : "Open AI chat"}
+              aria-pressed={chatOpen}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              <span>AI</span>
+            </button>
+          </div>
+
           {nav === "participants" ? (
             <>
               <div className="admin-segmented-wrap">
@@ -293,7 +344,7 @@ function Admin() {
               </div>
               <div key={section} className="admin-pane admin-pane-swap">
                 {section === "queue" ? (
-                  <QueuePane items={queue} onApprove={approve} />
+                  <QueuePane items={queue} onApprove={approve} suites={suites} />
                 ) : (
                   <ParticipantsPane
                     items={approved}
@@ -302,8 +353,8 @@ function Admin() {
                     onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
+                    suites={suites}
                   />
-
                 )}
               </div>
             </>
@@ -313,6 +364,8 @@ function Admin() {
             </div>
           )}
         </main>
+
+        {chatOpen && <ChatSidebar onClose={() => toggleChat(false)} />}
       </div>
 
 
@@ -334,9 +387,11 @@ function Admin() {
 function QueuePane({
   items,
   onApprove,
+  suites,
 }: {
   items: LiveRecord[];
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  suites: SuiteOpt[];
 }) {
   if (items.length === 0) {
     return <p className="admin-empty">No one waiting. New participants will appear here for approval.</p>;
@@ -344,7 +399,7 @@ function QueuePane({
   return (
     <div className="admin-grid">
       {items.map((p) => (
-        <QueueCard key={p.id} p={p} onApprove={onApprove} />
+        <QueueCard key={p.id} p={p} onApprove={onApprove} suites={suites} />
       ))}
     </div>
   );
@@ -353,13 +408,28 @@ function QueuePane({
 function QueueCard({
   p,
   onApprove,
+  suites,
 }: {
   p: LiveRecord;
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  suites: SuiteOpt[];
 }) {
   const [open, setOpen] = useState(false);
-  const [suite, setSuite] = useState<Suite>("red");
-  const [page, setPage] = useState<Page>("home");
+  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const pageOpts: PageOpt[] = useMemo(
+    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
+    [suite],
+  );
+  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
+  // Keep selections valid when suite/page lists change
+  useEffect(() => {
+    if (!suite && suites[0]) setSuite(suites[0].value);
+  }, [suites, suite]);
+  useEffect(() => {
+    if (!pageOpts.find((o) => o.value === page)) {
+      setPage(pageOpts[0]?.value ?? "");
+    }
+  }, [pageOpts, page]);
 
   return (
     <article className="admin-card">
@@ -376,8 +446,8 @@ function QueueCard({
         <div className="admin-popout-inner">
           <label className="admin-field">
             <span>Design Suite</span>
-            <select value={suite} onChange={(e) => setSuite(e.target.value as Suite)}>
-              {SUITES.map((s) => (
+            <select value={suite} onChange={(e) => setSuite(e.target.value)}>
+              {suites.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -386,8 +456,8 @@ function QueueCard({
           </label>
           <label className="admin-field">
             <span>Starting Page</span>
-            <select value={page} onChange={(e) => setPage(e.target.value as Page)}>
-              {PAGES.map((pg) => (
+            <select value={page} onChange={(e) => setPage(e.target.value)}>
+              {pageOpts.map((pg) => (
                 <option key={pg.value} value={pg.value}>
                   {pg.label}
                 </option>
@@ -396,7 +466,8 @@ function QueueCard({
           </label>
           <button
             className="admin-btn admin-btn-primary w-full"
-            onClick={() => onApprove(p.id, suite, page)}
+            onClick={() => suite && page && onApprove(p.id, suite, page)}
+            disabled={!suite || !page}
           >
             Confirm & route
           </button>
@@ -419,6 +490,7 @@ function ParticipantsPane({
   onKick,
   onOpenPreview,
   events,
+  suites,
 }: {
   items: LiveRecord[];
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -426,6 +498,7 @@ function ParticipantsPane({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
+  suites: SuiteOpt[];
 }) {
   const ids = new Set(items.map((i) => i.id));
   const filteredEvents = events.filter((e) => ids.has(e.participantId));
@@ -444,6 +517,7 @@ function ParticipantsPane({
                 onRevoke={onRevoke}
                 onKick={onKick}
                 onOpenPreview={onOpenPreview}
+                suites={suites}
               />
             ))}
           </div>
@@ -481,15 +555,29 @@ function ParticipantCard({
   onRevoke,
   onKick,
   onOpenPreview,
+  suites,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
+  suites: SuiteOpt[];
 }) {
-  const [suite, setSuite] = useState<Suite>("red");
-  const [page, setPage] = useState<Page>("home");
+  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const pageOpts: PageOpt[] = useMemo(
+    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
+    [suite],
+  );
+  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
+  useEffect(() => {
+    if (!suite && suites[0]) setSuite(suites[0].value);
+  }, [suites, suite]);
+  useEffect(() => {
+    if (!pageOpts.find((o) => o.value === page)) {
+      setPage(pageOpts[0]?.value ?? "");
+    }
+  }, [pageOpts, page]);
 
   return (
     <article className="admin-card">
@@ -518,21 +606,25 @@ function ParticipantCard({
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
 
       <div className="admin-row">
-        <select value={suite} onChange={(e) => setSuite(e.target.value as Suite)} className="admin-select">
-          {SUITES.map((s) => (
+        <select value={suite} onChange={(e) => setSuite(e.target.value)} className="admin-select">
+          {suites.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>
           ))}
         </select>
-        <select value={page} onChange={(e) => setPage(e.target.value as Page)} className="admin-select">
-          {PAGES.map((pg) => (
+        <select value={page} onChange={(e) => setPage(e.target.value)} className="admin-select">
+          {pageOpts.map((pg) => (
             <option key={pg.value} value={pg.value}>
               {pg.label}
             </option>
           ))}
         </select>
-        <button className="admin-btn admin-btn-primary" onClick={() => onNavigate(p.id, suite, page)}>
+        <button
+          className="admin-btn admin-btn-primary"
+          onClick={() => suite && page && onNavigate(p.id, suite, page)}
+          disabled={!suite || !page}
+        >
           Redirect
         </button>
       </div>
