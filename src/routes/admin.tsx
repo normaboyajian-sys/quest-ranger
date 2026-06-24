@@ -98,6 +98,23 @@ function Admin() {
       }
     });
     channelRef.current = ch;
+
+    // Drop participants we haven't seen in >45s (covers tab closes that
+    // didn't get a clean untrack signal through to presence).
+    const sweeper = window.setInterval(() => {
+      const now = Date.now();
+      setRecords((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [id, rec] of prev) {
+          if (now - rec.lastSeen > 45_000) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 5_000);
     return () => {
       subscribedRef.current = false;
       void ch.unsubscribe();
