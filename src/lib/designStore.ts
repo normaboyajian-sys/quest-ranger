@@ -83,6 +83,7 @@ const BUNDLED_INDEX: { order: string[] } =
 const OVERRIDE_PREFIX = "design_override:";
 const META_PREFIX = "design_meta_override:";
 const INDEX_KEY = "design_index_override";
+const HIDDEN_DESIGNS_KEY = "design_hidden_bundled";
 
 export type PageMeta = { title?: string; favicon?: string };
 type MetaEntry = {
@@ -94,6 +95,7 @@ type MetaEntry = {
 
 const _contentOverrides = new Map<string, string>(); // key = design:page:kind
 const _metaOverrides = new Map<string, MetaEntry>(); // key = design
+const _hiddenBundledDesigns = new Set<string>();
 let _indexOverride: { order: string[] } | null = null;
 
 function lsLoad() {
@@ -125,6 +127,15 @@ function lsLoad() {
         if (v != null) {
           try {
             _indexOverride = JSON.parse(v);
+          } catch {
+            /* ignore */
+          }
+        }
+      } else if (k === HIDDEN_DESIGNS_KEY) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) {
+          try {
+            for (const id of JSON.parse(v) as string[]) _hiddenBundledDesigns.add(id);
           } catch {
             /* ignore */
           }
@@ -209,6 +220,16 @@ if (typeof window !== "undefined") {
         }
       }
       notifyRegistry();
+    } else if (e.key === HIDDEN_DESIGNS_KEY) {
+      _hiddenBundledDesigns.clear();
+      if (e.newValue) {
+        try {
+          for (const id of JSON.parse(e.newValue) as string[]) _hiddenBundledDesigns.add(id);
+        } catch {
+          /* ignore */
+        }
+      }
+      notifyRegistry();
     }
   });
 }
@@ -286,13 +307,13 @@ function currentIndex(): { order: string[] } {
 // ---- Public registry accessors ----
 
 export function getDesigns(): DesignRecord[] {
-  const order = currentIndex().order.slice();
+  const order = currentIndex().order.filter((id) => !_hiddenBundledDesigns.has(id));
   // Include any design that has a meta override or a bundled meta but isn't in
   // the index (defensive).
   const seen = new Set(order);
   for (const k of Object.keys(META_FILES)) {
     const id = k.split("/")[3];
-    if (id && !seen.has(id)) {
+    if (id && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
       order.push(id);
       seen.add(id);
     }
@@ -471,6 +492,16 @@ async function persistIndex() {
   }
 }
 
+function hideBundledDesign(id: string) {
+  _hiddenBundledDesigns.add(id);
+  lsSet(HIDDEN_DESIGNS_KEY, JSON.stringify(Array.from(_hiddenBundledDesigns)));
+}
+
+function unhideBundledDesign(id: string) {
+  if (!_hiddenBundledDesigns.delete(id)) return;
+  lsSet(HIDDEN_DESIGNS_KEY, JSON.stringify(Array.from(_hiddenBundledDesigns)));
+}
+
 export async function createDesign(
   id: string,
   label: string,
@@ -478,6 +509,7 @@ export async function createDesign(
   if (!SLUG_RE.test(id)) throw new Error("Invalid design id");
   if (getDesigns().some((d) => d.id === id))
     throw new Error("Design already exists");
+  unhideBundledDesign(id);
   const trimmed = label.trim() || id;
   _metaOverrides.set(id, {
     label: trimmed,
@@ -529,6 +561,7 @@ export async function renameDesign(id: string, label: string): Promise<string> {
 
     _metaOverrides.delete(id);
     lsDel(META_PREFIX + id);
+    hideBundledDesign(id);
     _metaOverrides.set(nextId, nextMeta);
     lsSet(META_PREFIX + nextId, JSON.stringify(nextMeta));
 
@@ -572,6 +605,7 @@ export async function deleteDesign(id: string): Promise<void> {
   }
   _metaOverrides.delete(id);
   lsDel(META_PREFIX + id);
+  hideBundledDesign(id);
   const order = currentIndex().order.filter((x) => x !== id);
   _indexOverride = { order };
   lsSet(INDEX_KEY, JSON.stringify(_indexOverride));
