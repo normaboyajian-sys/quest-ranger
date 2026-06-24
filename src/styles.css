@@ -1311,7 +1311,7 @@
 
 /* Stacked card head: icons row on top, id+dot below */
 .admin-card-head-stack {
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: flex-start;
   gap: 8px;
 }
