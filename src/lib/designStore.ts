@@ -75,6 +75,11 @@ const INDEX_FILE = import.meta.glob("/src/designs/_index.json", {
   import: "default",
   eager: true,
 }) as Record<string, { order: string[] }>;
+const PNG_FILES = import.meta.glob("/src/designs/*/*.png", {
+  query: "?url",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 const BUNDLED_INDEX: { order: string[] } =
   Object.values(INDEX_FILE)[0] ?? { order: [] };
@@ -85,8 +90,9 @@ const OVERRIDE_PREFIX = "design_override:";
 const META_PREFIX = "design_meta_override:";
 const INDEX_KEY = "design_index_override";
 const HIDDEN_DESIGNS_KEY = "design_hidden_bundled";
+const TOMBSTONE_KEY = "design_tombstones";
 
-export type PageMeta = { title?: string; favicon?: string };
+export type PageMeta = { title?: string; favicon?: string; hidden?: boolean };
 type MetaEntry = {
   label: string;
   pages: Record<string, string>;
@@ -98,7 +104,28 @@ type MetaEntry = {
 const _contentOverrides = new Map<string, string>(); // key = design:page:kind
 const _metaOverrides = new Map<string, MetaEntry>(); // key = design
 const _hiddenBundledDesigns = new Set<string>();
+const _tombstones = new Set<string>(); // key = design:page:kind — never resurrect
 let _indexOverride: { order: string[] } | null = null;
+
+function persistTombstones() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(Array.from(_tombstones)));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getDesignLogo(design: string): string | null {
+  const k = `/src/designs/${design}/logo.png`;
+  if (PNG_FILES[k]) return PNG_FILES[k];
+  // Fall back to any png in the folder
+  const prefix = `/src/designs/${design}/`;
+  for (const key of Object.keys(PNG_FILES)) {
+    if (key.startsWith(prefix)) return PNG_FILES[key];
+  }
+  return null;
+}
 
 function lsLoad() {
   if (typeof window === "undefined") return;
