@@ -813,3 +813,39 @@ function ParticipantCard({
     </article>
   );
 }
+
+function SettingsPane({
+  blockBots,
+  onToggleBlockBots,
+}: {
+  blockBots: boolean;
+  onToggleBlockBots: (v: boolean) => void;
+}) {
+  return (
+    <div className="admin-settings-page">
+      <header className="admin-settings-head">
+        <h1 className="admin-settings-h1">Settings</h1>
+        <p className="admin-settings-lede">Project-wide controls. More coming soon.</p>
+      </header>
+
+      <section className="admin-settings-group">
+        <h2 className="admin-settings-group-title">Visitors</h2>
+        <label className="admin-settings-row">
+          <div>
+            <div className="admin-settings-title">Block bots & crawlers</div>
+            <div className="admin-settings-sub">
+              Drop bot, AI crawler, and headless requests (GPTBot, ClaudeBot, Googlebot,
+              Puppeteer, Playwright, etc.) before they join.
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            className="admin-switch"
+            checked={blockBots}
+            onChange={(e) => onToggleBlockBots(e.target.checked)}
+          />
+        </label>
+      </section>
+    </div>
+  );
+}
