@@ -76,14 +76,15 @@ export function useParticipant() {
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     let cancelled = false;
 
-    // Bot/crawler block — respect global toggle
-    let blocked = false;
+    // Bot/crawler block — respect global toggle (sync from localStorage, then refresh)
+    let blocked = getAppSettings().blockBots && isLikelyBot(ua);
     void (async () => {
       try { await loadAppSettings(); } catch { /* ignore */ }
       if (getAppSettings().blockBots && isLikelyBot(ua)) {
         blocked = true;
       }
     })();
+
 
     const id = getOrCreateParticipantId();
     idRef.current = id;
