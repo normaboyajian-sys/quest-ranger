@@ -8,7 +8,7 @@ import {
   type ParticipantPresence,
 } from "@/lib/orchestrator";
 import { StatusDot, type DotState } from "@/components/StatusDot";
-import { MollyLogo } from "@/components/MollyLogo";
+import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
 
 export const Route = createFileRoute("/admin")({
