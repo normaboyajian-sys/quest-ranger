@@ -23,11 +23,16 @@ import { PagesEditor } from "@/components/PagesEditor";
 
 import {
   getDesigns,
+  getDesignLogo,
   getPagesFor,
+  getRedirectPages,
+  isPageHidden,
+  setPageHidden,
   subscribeRegistry,
   type DesignRecord,
   type PageRecord,
 } from "@/lib/designStore";
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
