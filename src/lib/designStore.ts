@@ -248,6 +248,9 @@ window.addEventListener('click', function(e){
 window.addEventListener('mousemove', function(e){
   try { parent.postMessage({__ux:true, type:'mouse', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){}
 }, {passive:true});
+window.addEventListener('scroll', function(){
+  try { parent.postMessage({__ux:true, type:'scroll', sx:scrollX, sy:scrollY}, '*'); } catch(e){}
+}, {passive:true});
 ${js}
 <\/script>
 </body></html>`;
