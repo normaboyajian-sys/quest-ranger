@@ -14,8 +14,11 @@ import {
   markParticipantOffline,
   subscribeParticipant,
   touchParticipant,
+  type ParticipantGeo,
   type ParticipantRecord,
 } from "@/lib/participantStore";
+import { getAppSettings, isLikelyBot, loadAppSettings } from "@/lib/appSettings";
+
 
 export function useParticipant() {
   const navigate = useNavigate();
