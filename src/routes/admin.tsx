@@ -19,32 +19,43 @@ import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
 import { PagesEditor } from "@/components/PagesEditor";
+import { ChatSidebar } from "@/components/ChatSidebar";
+import {
+  getDesigns,
+  getPagesFor,
+  loadAll,
+  subscribeRegistry,
+  type DesignRecord,
+  type PageRecord,
+} from "@/lib/designStore";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
   component: Admin,
 });
 
-const SUITES = [
-  { value: "red", label: "Industrial Red" },
-  { value: "blue", label: "Modern Blue" },
-] as const;
-const PAGES = [
-  { value: "home", label: "Home" },
-  { value: "contact", label: "Contact" },
-] as const;
+type SuiteOpt = { value: string; label: string };
+type PageOpt = { value: string; label: string };
 
-type Suite = (typeof SUITES)[number]["value"];
-type Page = (typeof PAGES)[number]["value"];
+function suitesFromDesigns(designs: DesignRecord[]): SuiteOpt[] {
+  return designs.map((d) => ({ value: d.id, label: d.label }));
+}
+function pagesFromPagesFor(pages: PageRecord[]): PageOpt[] {
+  return pages.map((p) => ({ value: p.page, label: p.label ?? p.page }));
+}
 
 type LiveRecord = ParticipantRecord & { state: DotState };
 
 function pageLabelFromUrl(url: string): string {
-  const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
+  const m = url.match(/^\/view\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
   if (!m) return url === "/" ? "Focus Room" : url;
-  const suite = m[1] === "red" ? "Industrial Red" : "Modern Blue";
-  const page = m[2] === "home" ? "Home" : "Contact";
-  return `${suite} · ${page}`;
+  const designs = getDesigns();
+  const design = designs.find((d) => d.id === m[1]);
+  const pages = getPagesFor(m[1]);
+  const page = pages.find((p) => p.page === m[2]);
+  const suiteLabel = design?.label ?? m[1];
+  const pageLabel = page?.label ?? m[2];
+  return `${suiteLabel} · ${pageLabel}`;
 }
 
 function dotStateFor(p: ParticipantRecord | undefined): DotState {
