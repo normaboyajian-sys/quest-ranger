@@ -929,3 +929,64 @@ export function subscribeDesignChanges(
     },
   };
 }
+
+// ---- Remote sync (Supabase design_pages) ----
+
+function applyRemoteRow(row: { design: string; page: string; kind: string; content: string }) {
+  const f: DesignFile = {
+    design: row.design,
+    page: row.page,
+    kind: row.kind as FileKind,
+  };
+  const key = overrideKey(f);
+  if (_contentOverrides.get(key) === row.content) return;
+  _contentOverrides.set(key, row.content);
+  lsSet(OVERRIDE_PREFIX + key, row.content);
+  notifyFile(f);
+}
+
+async function hydrateFromRemote() {
+  try {
+    const { data, error } = await supabase
+      .from("design_pages")
+      .select("design,page,kind,content");
+    if (error || !data) return;
+    for (const row of data) applyRemoteRow(row);
+  } catch {
+    /* ignore */
+  }
+}
+
+if (typeof window !== "undefined") {
+  void hydrateFromRemote();
+  try {
+    supabase
+      .channel("design-pages-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "design_pages" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as {
+            design?: string;
+            page?: string;
+            kind?: string;
+            content?: string;
+          };
+          if (!row?.design || !row.page || !row.kind) return;
+          if (payload.eventType === "DELETE") {
+            const key = `${row.design}:${row.page}:${row.kind}`;
+            _contentOverrides.delete(key);
+            lsDel(OVERRIDE_PREFIX + key);
+            notifyFile({ design: row.design, page: row.page, kind: row.kind as FileKind });
+            return;
+          }
+          if (typeof row.content === "string") {
+            applyRemoteRow(row as { design: string; page: string; kind: string; content: string });
+          }
+        },
+      )
+      .subscribe();
+  } catch {
+    /* ignore */
+  }
+}
