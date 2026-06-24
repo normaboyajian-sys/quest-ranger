@@ -454,7 +454,7 @@ export function PagesEditor() {
                       kind,
                     };
                     const isActive = !!active && sameFile(f, active);
-                    const hidden = !!getHiddenShared(folder.id)[kind];
+                    const hidden = kind !== "html" && !!getHiddenShared(folder.id)[kind];
                     const label = kind === "css" ? "styles.css" : "script.js";
                     if (hidden) {
                       return (
