@@ -8,7 +8,7 @@ import {
   type ParticipantPresence,
 } from "@/lib/orchestrator";
 import { StatusDot, type DotState } from "@/components/StatusDot";
-import { MollyLogo } from "@/components/MollyLogo";
+import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
 
 export const Route = createFileRoute("/admin")({
@@ -51,6 +51,7 @@ function Admin() {
   const [previews, setPreviews] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
+  const mollyRef = useRef<MollyLogoHandle>(null);
 
   useEffect(() => {
     const ch = joinChannel({
@@ -166,8 +167,8 @@ function Admin() {
     <div className="admin-noir min-h-screen">
       <div className="admin-shell">
         <aside className="admin-sidebar">
-          <div className="admin-brand">
-            <MollyLogo size={36} />
+          <div className="admin-brand" onMouseEnter={() => mollyRef.current?.play()}>
+            <MollyLogo ref={mollyRef} size={36} />
             <div className="admin-brand-name">Molly</div>
           </div>
           <nav className="admin-nav">
@@ -187,25 +188,27 @@ function Admin() {
         </aside>
 
         <main className="admin-main">
-          <div className="admin-segmented" role="tablist">
-            <button
-              role="tab"
-              aria-selected={section === "queue"}
-              className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
-              onClick={() => setSection("queue")}
-            >
-              Queue <span className="admin-seg-count">{queue.length}</span>
-            </button>
-            <button
-              role="tab"
-              aria-selected={section === "participants"}
-              className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
-              onClick={() => setSection("participants")}
-            >
-              Participants <span className="admin-seg-count">{approved.length}</span>
-            </button>
+          <div className="admin-segmented-wrap">
+            <div className="admin-segmented" role="tablist">
+              <button
+                role="tab"
+                aria-selected={section === "queue"}
+                className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
+                onClick={() => setSection("queue")}
+              >
+                Queue <span className="admin-seg-count">{queue.length}</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={section === "participants"}
+                className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
+                onClick={() => setSection("participants")}
+              >
+                Participants <span className="admin-seg-count">{approved.length}</span>
+              </button>
+            </div>
           </div>
-          <div key={section} className="admin-pane">
+          <div key={section} className="admin-pane admin-pane-swap">
             {section === "queue" ? (
               <QueuePane items={queue} onApprove={approve} />
             ) : (
