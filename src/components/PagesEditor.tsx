@@ -572,5 +572,94 @@ function fileLabel(f: DesignFile): string {
   return `${pageRow?.label ?? f.page}.html`;
 }
 
+function PageSettingsPanel({
+  design,
+  page,
+  label,
+  hidden,
+  onClose,
+  onSavedMeta,
+  onToggleHidden,
+  onRename,
+  onDelete,
+}: {
+  design: string;
+  page: string;
+  label: string;
+  hidden: boolean;
+  onClose: () => void;
+  onSavedMeta: () => void;
+  onToggleHidden: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const meta = getPageMeta(design, page);
+  const [title, setTitle] = useState(meta.title ?? "");
+  const [favicon, setFavicon] = useState(meta.favicon ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await setPageMeta(design, page, { title: title.trim(), favicon: favicon.trim() });
+      onSavedMeta();
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="admin-page-panel" role="dialog" aria-label={`${label} settings`}>
+      <div className="admin-page-panel-head">
+        <span className="admin-page-panel-title">{label}.html</span>
+        <button className="admin-page-panel-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+
+      <div className="admin-page-panel-section">
+        <label className="admin-page-panel-field">
+          <span>Browser tab title</span>
+          <input
+            type="text"
+            value={title}
+            placeholder="Use page's own <title>"
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label className="admin-page-panel-field">
+          <span>Favicon URL</span>
+          <input
+            type="text"
+            value={favicon}
+            placeholder="https://… or data:image/…"
+            onChange={(e) => setFavicon(e.target.value)}
+          />
+        </label>
+        <button
+          className="admin-btn admin-btn-primary admin-page-panel-save"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? "Saving…" : "Save settings"}
+        </button>
+      </div>
+
+      <div className="admin-page-panel-section admin-page-panel-row-actions">
+        <button className="admin-btn admin-btn-ghost" onClick={onToggleHidden}>
+          {hidden ? "◌  Show in redirect" : "◉  Hide from redirect"}
+        </button>
+        <button className="admin-btn admin-btn-ghost" onClick={onRename}>
+          ✎  Rename
+        </button>
+        <button className="admin-btn admin-btn-ghost admin-btn-danger" onClick={onDelete}>
+          ×  Delete page
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // keep PageSlot referenced so unused-import lint doesn't strip it
 export type _PageSlot = PageSlot;
+
