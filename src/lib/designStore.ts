@@ -542,16 +542,20 @@ function overrideKey(f: DesignFile): string {
 }
 
 export function loadFileCached(f: DesignFile): string {
+  const key = overrideKey(f);
+  // Tombstoned files stay deleted — never resurrect from bundled or defaults.
+  if (_tombstones.has(key)) return "";
   if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
     const hidden = getHiddenShared(f.design)[f.kind];
     if (hidden) return "";
   }
-  const ov = _contentOverrides.get(overrideKey(f));
+  const ov = _contentOverrides.get(key);
   if (ov != null) return ov;
   const b = bundledContent(f);
   if (b != null) return b;
   return defaultContent(f);
 }
+
 
 // Kept for compatibility with the existing editor — same as cached read.
 export async function loadFile(f: DesignFile): Promise<string> {
