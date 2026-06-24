@@ -3,7 +3,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { joinChannel, type ParticipantPresence } from "@/lib/orchestrator";
 import {
   buildSrcDocCached,
-  loadAll,
   subscribeDesignChanges,
   type DesignKey,
   type PageKey,
@@ -19,7 +18,7 @@ type Cursor = { x: number; y: number };
 type Ripple = { id: number; x: number; y: number };
 
 function parseView(url: string): { theme: DesignKey; page: PageKey } | null {
-  const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
+  const m = url.match(/^\/view\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
   if (!m) return null;
   return { theme: m[1] as DesignKey, page: m[2] as PageKey };
 }
@@ -140,16 +139,12 @@ function Observe() {
 
   useEffect(() => {
     if (!view) return;
-    let cancelled = false;
-    void loadAll().then(() => {
-      if (!cancelled) setVersion((v) => v + 1);
-    });
+    setVersion((v) => v + 1);
     const ch = subscribeDesignChanges(
       (d, p) => d === view.theme && (p === view.page || p === "shared"),
       () => setVersion((v) => v + 1),
     );
     return () => {
-      cancelled = true;
       void ch.unsubscribe();
     };
   }, [view?.theme, view?.page]);

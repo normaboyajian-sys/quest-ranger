@@ -12,7 +12,7 @@ import {
   deletePage,
   getDesigns,
   getPagesFor,
-  loadAll,
+  
   loadFile,
   loadFileCached,
   renameDesign,
@@ -47,44 +47,28 @@ export function PagesEditor() {
   const contentRef = useRef(content);
   contentRef.current = content;
 
-  // Initial sync
+  // Initial sync — bundled designs are available synchronously.
   useEffect(() => {
-    let cancelled = false;
-    void loadAll().then(() => {
-      if (cancelled) return;
-      const list = getDesigns();
-      setDesigns(list);
-      setOpenFolders((s) => {
-        const next = { ...s };
-        for (const d of list) if (next[d.id] == null) next[d.id] = true;
-        return next;
-      });
-      // Open the first available file if nothing is active yet.
-      if (!activeRef.current) {
-        const firstDesign = list[0];
-        if (firstDesign) {
-          const pages = getPagesFor(firstDesign.id);
-          const first = pages[0];
-          const target: DesignFile = first
-            ? { design: firstDesign.id, page: first.page, kind: "html" }
-            : { design: firstDesign.id, page: "shared", kind: "css" };
-          void openFile(target);
-        }
-      } else {
-        // Refresh current
-        void loadFile(activeRef.current).then((c) => {
-          if (!dirtyRef.current && activeRef.current && sameFile(activeRef.current, activeRef.current)) {
-            setContent(c);
-            contentRef.current = c;
-
-
-          }
-        });
-      }
+    const list = getDesigns();
+    setDesigns(list);
+    setOpenFolders((s) => {
+      const next = { ...s };
+      for (const d of list) if (next[d.id] == null) next[d.id] = true;
+      return next;
     });
+    if (!activeRef.current) {
+      const firstDesign = list[0];
+      if (firstDesign) {
+        const pages = getPagesFor(firstDesign.id);
+        const first = pages[0];
+        const target: DesignFile = first
+          ? { design: firstDesign.id, page: first.page, kind: "html" }
+          : { design: firstDesign.id, page: "shared", kind: "css" };
+        void openFile(target);
+      }
+    }
     const offReg = subscribeRegistry(() => setDesigns(getDesigns()));
     return () => {
-      cancelled = true;
       offReg();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

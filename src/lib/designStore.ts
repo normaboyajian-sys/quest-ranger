@@ -1,14 +1,21 @@
-// DB-backed dynamic registry of designs + pages, plus per-file HTML/CSS/JS.
-// Storage:
-//   public.designs(id, label, sort_order)              — list of designs
-//   public.design_pages(design, page, kind, content)   — per-file source
-// Both are mirrored locally for instant reads and updated via Realtime so
-// every viewer/admin sees changes immediately.
+// File-backed dynamic registry of designs + pages.
+//
+// Content lives as REAL files under src/designs/<design>/ — bundled into the
+// app via Vite glob imports so the first paint is synchronous (no flicker).
+// Edits in the admin Pages tab call a server function that rewrites the file
+// on disk (works in `vite dev`); the in-memory override layer makes the new
+// content visible immediately to the editor and the /view page.
 
-import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+  deleteDesignFolder,
+  deleteDesignPage,
+  writeDesignFile,
+  writeDesignIndex,
+  writeDesignMeta,
+} from "@/lib/designFs.functions";
 
-// Open string types: design and page slugs are now user-defined.
+// ---- Types (kept compatible with previous callers) ----
+
 export type DesignKey = string;
 export type PageKey = string;
 export type PageSlot = string; // "<page>" or "shared"
@@ -28,66 +35,254 @@ export type DesignRecord = {
 
 export type PageRecord = {
   design: string;
-  page: string; // page slug (excluding "shared")
+  page: string;
   label: string | null;
 };
 
-const CACHE_KEY = (f: DesignFile) => `design:${f.design}:${f.page}:${f.kind}`;
-const DESIGNS_CACHE = "designs:list";
-const PAGES_CACHE = "designs:pages";
+// ---- Bundled file content (Vite eager glob, ?raw) ----
 
-// In-memory mirrors (also persisted to localStorage so first paint is instant).
-let _designs: DesignRecord[] = [];
-let _pages: PageRecord[] = []; // unique (design,page) where kind='html'
-const _registryListeners = new Set<() => void>();
+type RawMap = Record<string, string>;
+const HTML_FILES = import.meta.glob("/src/designs/*/*.html", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as RawMap;
+const CSS_FILES = import.meta.glob("/src/designs/*/*.css", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as RawMap;
+const JS_FILES = import.meta.glob("/src/designs/*/*.js", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as RawMap;
+const META_FILES = import.meta.glob("/src/designs/*/_meta.json", {
+  import: "default",
+  eager: true,
+}) as Record<string, { label: string; pages: Record<string, string> }>;
+const INDEX_FILE = import.meta.glob("/src/designs/_index.json", {
+  import: "default",
+  eager: true,
+}) as Record<string, { order: string[] }>;
 
-function loadRegistryFromCache() {
+const BUNDLED_INDEX: { order: string[] } =
+  Object.values(INDEX_FILE)[0] ?? { order: [] };
+
+// ---- Mutable runtime state (overrides on top of bundled files) ----
+
+const OVERRIDE_PREFIX = "design_override:";
+const META_PREFIX = "design_meta_override:";
+const INDEX_KEY = "design_index_override";
+
+type MetaEntry = { label: string; pages: Record<string, string> };
+
+const _contentOverrides = new Map<string, string>(); // key = design:page:kind
+const _metaOverrides = new Map<string, MetaEntry>(); // key = design
+let _indexOverride: { order: string[] } | null = null;
+
+function lsLoad() {
   if (typeof window === "undefined") return;
   try {
-    const d = localStorage.getItem(DESIGNS_CACHE);
-    if (d) _designs = JSON.parse(d);
-    const p = localStorage.getItem(PAGES_CACHE);
-    if (p) _pages = JSON.parse(p);
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith(OVERRIDE_PREFIX)) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) _contentOverrides.set(k.slice(OVERRIDE_PREFIX.length), v);
+      } else if (k.startsWith(META_PREFIX)) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) {
+          try {
+            _metaOverrides.set(k.slice(META_PREFIX.length), JSON.parse(v));
+          } catch {
+            /* ignore */
+          }
+        }
+      } else if (k === INDEX_KEY) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) {
+          try {
+            _indexOverride = JSON.parse(v);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
   } catch {
     /* ignore */
   }
 }
-loadRegistryFromCache();
+lsLoad();
 
-function saveRegistryToCache() {
+function lsSet(key: string, value: string) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(DESIGNS_CACHE, JSON.stringify(_designs));
-    localStorage.setItem(PAGES_CACHE, JSON.stringify(_pages));
+    window.localStorage.setItem(key, value);
   } catch {
     /* quota */
   }
 }
 
-function notifyRegistry() {
-  saveRegistryToCache();
-  for (const l of _registryListeners) l();
+function lsDel(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
 }
 
-export function getDesigns(): DesignRecord[] {
-  return _designs.slice();
-}
-export function getPagesFor(design: string): PageRecord[] {
-  return _pages.filter((p) => p.design === design);
-}
-export function getDesignLabel(id: string): string {
-  return _designs.find((d) => d.id === id)?.label ?? id;
-}
-export function getPageLabel(design: string, page: string): string {
-  const row = _pages.find((p) => p.design === design && p.page === page);
-  return row?.label ?? page;
-}
+// ---- Listeners ----
+
+type FileChangeListener = (f: DesignFile) => void;
+const _registryListeners = new Set<() => void>();
+const _fileListeners = new Set<FileChangeListener>();
+
 export function subscribeRegistry(fn: () => void): () => void {
   _registryListeners.add(fn);
   return () => _registryListeners.delete(fn);
 }
 
-// ---- Defaults for new files (minimal generic skeletons) ----
+function notifyRegistry() {
+  for (const l of _registryListeners) l();
+}
+function notifyFile(f: DesignFile) {
+  for (const l of _fileListeners) l(f);
+}
+
+// Cross-tab sync via storage events
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (!e.key) return;
+    if (e.key.startsWith(OVERRIDE_PREFIX)) {
+      const id = e.key.slice(OVERRIDE_PREFIX.length);
+      if (e.newValue == null) _contentOverrides.delete(id);
+      else _contentOverrides.set(id, e.newValue);
+      const [design, page, kind] = id.split(":");
+      if (design && page && kind)
+        notifyFile({
+          design,
+          page,
+          kind: kind as FileKind,
+        });
+    } else if (e.key.startsWith(META_PREFIX)) {
+      const id = e.key.slice(META_PREFIX.length);
+      if (e.newValue == null) _metaOverrides.delete(id);
+      else {
+        try {
+          _metaOverrides.set(id, JSON.parse(e.newValue));
+        } catch {
+          /* ignore */
+        }
+      }
+      notifyRegistry();
+    } else if (e.key === INDEX_KEY) {
+      if (e.newValue == null) _indexOverride = null;
+      else {
+        try {
+          _indexOverride = JSON.parse(e.newValue);
+        } catch {
+          /* ignore */
+        }
+      }
+      notifyRegistry();
+    }
+  });
+}
+
+// ---- Helpers ----
+
+function fileBundleKey(f: DesignFile): string {
+  if (f.kind === "html") return `/src/designs/${f.design}/${f.page}.html`;
+  if (f.kind === "css")
+    return f.page === "shared"
+      ? `/src/designs/${f.design}/shared.css`
+      : `/src/designs/${f.design}/${f.page}.css`;
+  return f.page === "shared"
+    ? `/src/designs/${f.design}/shared.js`
+    : `/src/designs/${f.design}/${f.page}.js`;
+}
+
+function bundledContent(f: DesignFile): string | null {
+  const k = fileBundleKey(f);
+  if (f.kind === "html") return HTML_FILES[k] ?? null;
+  if (f.kind === "css") return CSS_FILES[k] ?? null;
+  return JS_FILES[k] ?? null;
+}
+
+function metaFor(designId: string): MetaEntry {
+  const override = _metaOverrides.get(designId);
+  if (override) return override;
+  const bundled =
+    META_FILES[`/src/designs/${designId}/_meta.json`];
+  if (bundled)
+    return {
+      label: bundled.label ?? designId,
+      pages: { ...bundled.pages },
+    };
+  return { label: designId, pages: {} };
+}
+
+function currentIndex(): { order: string[] } {
+  if (_indexOverride) return _indexOverride;
+  return BUNDLED_INDEX;
+}
+
+// ---- Public registry accessors ----
+
+export function getDesigns(): DesignRecord[] {
+  const order = currentIndex().order.slice();
+  // Include any design that has a meta override or a bundled meta but isn't in
+  // the index (defensive).
+  const seen = new Set(order);
+  for (const k of Object.keys(META_FILES)) {
+    const id = k.split("/")[3];
+    if (id && !seen.has(id)) {
+      order.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of _metaOverrides.keys()) {
+    if (!seen.has(id)) {
+      order.push(id);
+      seen.add(id);
+    }
+  }
+  return order.map((id, i) => ({
+    id,
+    label: metaFor(id).label,
+    sort_order: i,
+  }));
+}
+
+export function getPagesFor(design: string): PageRecord[] {
+  const meta = metaFor(design);
+  return Object.entries(meta.pages).map(([page, label]) => ({
+    design,
+    page,
+    label,
+  }));
+}
+
+export function getDesignLabel(id: string): string {
+  return metaFor(id).label;
+}
+
+export function getPageLabel(design: string, page: string): string {
+  return metaFor(design).pages[page] ?? page;
+}
+
+// ---- Defaults for new files ----
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function defaultHTML(label: string): string {
   return `<!doctype html>
@@ -100,7 +295,7 @@ function defaultHTML(label: string): string {
 <body>
   <main style="font-family:ui-sans-serif,system-ui,sans-serif;padding:40px;max-width:720px;margin:0 auto;">
     <h1 style="margin:0 0 12px;">${escapeHtml(label)}</h1>
-    <p style="color:#666;">Edit this page from the admin Pages tab — or ask the AI in the right sidebar.</p>
+    <p style="color:#666;">Edit this page from the admin Pages tab.</p>
   </main>
 </body>
 </html>`;
@@ -123,14 +318,6 @@ document.addEventListener('input', (e) => {
 `;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 export function defaultContent(f: DesignFile): string {
   if (f.kind === "css") return defaultCSS();
   if (f.kind === "js") return defaultJS();
@@ -138,113 +325,55 @@ export function defaultContent(f: DesignFile): string {
   return defaultHTML(label);
 }
 
-// ---- File content cache ----
+// ---- File read/write ----
 
-function readCache(f: DesignFile): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(CACHE_KEY(f));
-}
-function writeCache(f: DesignFile, content: string) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(CACHE_KEY(f), content);
-  } catch {
-    /* quota */
-  }
+function overrideKey(f: DesignFile): string {
+  return `${f.design}:${f.page}:${f.kind}`;
 }
 
 export function loadFileCached(f: DesignFile): string {
-  return readCache(f) ?? defaultContent(f);
+  const ov = _contentOverrides.get(overrideKey(f));
+  if (ov != null) return ov;
+  const b = bundledContent(f);
+  if (b != null) return b;
+  return defaultContent(f);
 }
 
+// Kept for compatibility with the existing editor — same as cached read.
 export async function loadFile(f: DesignFile): Promise<string> {
-  const { data } = await supabase
-    .from("design_pages")
-    .select("content")
-    .eq("design", f.design)
-    .eq("page", f.page)
-    .eq("kind", f.kind)
-    .maybeSingle();
-  if (data?.content != null) {
-    writeCache(f, data.content);
-    return data.content;
-  }
   return loadFileCached(f);
 }
 
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
-  writeCache(f, content);
-  const { error } = await supabase.from("design_pages").upsert(
-    {
-      design: f.design,
-      page: f.page,
-      kind: f.kind,
-      content,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "design,page,kind" },
-  );
-  if (error) throw error;
+  _contentOverrides.set(overrideKey(f), content);
+  lsSet(OVERRIDE_PREFIX + overrideKey(f), content);
+  notifyFile(f);
+  try {
+    await writeDesignFile({
+      data: { design: f.design, page: f.page, kind: f.kind, content },
+    });
+  } catch {
+    // Disk write may fail (prod / readonly FS). Local override still applies.
+  }
 }
 
 export async function resetFile(f: DesignFile): Promise<void> {
-  await saveFile(f, defaultContent(f));
-}
-
-// ---- Registry loaders ----
-
-export async function loadDesigns(): Promise<DesignRecord[]> {
-  const { data } = await supabase
-    .from("designs")
-    .select("id,label,sort_order")
-    .order("sort_order", { ascending: true })
-    .order("label", { ascending: true });
-  _designs = (data ?? []) as DesignRecord[];
-  notifyRegistry();
-  return _designs;
-}
-
-export async function loadPagesRegistry(): Promise<PageRecord[]> {
-  const { data } = await supabase
-    .from("design_pages")
-    .select("design,page,kind,label")
-    .eq("kind", "html");
-  const seen = new Set<string>();
-  const pages: PageRecord[] = [];
-  for (const r of (data ?? []) as Array<{
-    design: string;
-    page: string;
-    kind: string;
-    label: string | null;
-  }>) {
-    const k = `${r.design}:${r.page}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    pages.push({ design: r.design, page: r.page, label: r.label });
-  }
-  pages.sort((a, b) =>
-    a.design === b.design
-      ? a.page.localeCompare(b.page)
-      : a.design.localeCompare(b.design),
-  );
-  _pages = pages;
-  notifyRegistry();
-  return _pages;
-}
-
-export async function loadAll(): Promise<void> {
-  await Promise.all([loadDesigns(), loadPagesRegistry()]);
-  const { data } = await supabase.from("design_pages").select("*");
-  if (!data) return;
-  for (const row of data) {
-    writeCache(
-      {
-        design: row.design as DesignKey,
-        page: row.page as PageSlot,
-        kind: row.kind as FileKind,
+  _contentOverrides.delete(overrideKey(f));
+  lsDel(OVERRIDE_PREFIX + overrideKey(f));
+  const bundled = bundledContent(f);
+  notifyFile(f);
+  // Rewrite disk to the bundled (source-of-truth) content so dev FS matches.
+  try {
+    await writeDesignFile({
+      data: {
+        design: f.design,
+        page: f.page,
+        kind: f.kind,
+        content: bundled ?? defaultContent(f),
       },
-      row.content,
-    );
+    });
+  } catch {
+    /* ignore */
   }
 }
 
@@ -262,53 +391,93 @@ export function slugify(s: string, max = 30): string {
   return base || "x";
 }
 
+async function persistMeta(designId: string) {
+  const meta = metaFor(designId);
+  _metaOverrides.set(designId, meta);
+  lsSet(META_PREFIX + designId, JSON.stringify(meta));
+  notifyRegistry();
+  try {
+    await writeDesignMeta({
+      data: { design: designId, label: meta.label, pages: meta.pages },
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+async function persistIndex() {
+  const order = getDesigns().map((d) => d.id);
+  _indexOverride = { order };
+  lsSet(INDEX_KEY, JSON.stringify(_indexOverride));
+  notifyRegistry();
+  try {
+    await writeDesignIndex({ data: { order } });
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function createDesign(
   id: string,
   label: string,
 ): Promise<DesignRecord> {
   if (!SLUG_RE.test(id)) throw new Error("Invalid design id");
-  const trimmedLabel = label.trim() || id;
-  const max = _designs.reduce((m, d) => Math.max(m, d.sort_order), -1);
-  const row: DesignRecord = {
-    id,
-    label: trimmedLabel,
-    sort_order: max + 1,
-  };
-  const { error } = await supabase.from("designs").insert(row);
-  if (error) throw error;
-  // Seed a default home.html so the design has at least one page.
+  if (getDesigns().some((d) => d.id === id))
+    throw new Error("Design already exists");
+  const trimmed = label.trim() || id;
+  _metaOverrides.set(id, {
+    label: trimmed,
+    pages: { home: "Home" },
+  });
+  lsSet(
+    META_PREFIX + id,
+    JSON.stringify({ label: trimmed, pages: { home: "Home" } }),
+  );
   await saveFile(
     { design: id, page: "home", kind: "html" },
-    defaultHTML(`${trimmedLabel} — Home`),
+    defaultHTML(`${trimmed} — Home`),
   );
   await saveFile({ design: id, page: "shared", kind: "css" }, defaultCSS());
   await saveFile({ design: id, page: "shared", kind: "js" }, defaultJS());
-  await supabase
-    .from("design_pages")
-    .update({ label: "Home" })
-    .eq("design", id)
-    .eq("page", "home")
-    .eq("kind", "html");
-  await Promise.all([loadDesigns(), loadPagesRegistry()]);
-  return row;
+  await persistMeta(id);
+  await persistIndex();
+  return { id, label: trimmed, sort_order: getDesigns().length };
 }
 
 export async function renameDesign(id: string, label: string): Promise<void> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
-  const { error } = await supabase
-    .from("designs")
-    .update({ label: trimmed })
-    .eq("id", id);
-  if (error) throw error;
-  await loadDesigns();
+  const meta = metaFor(id);
+  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages } });
+  lsSet(
+    META_PREFIX + id,
+    JSON.stringify({ label: trimmed, pages: meta.pages }),
+  );
+  notifyRegistry();
+  await persistMeta(id);
 }
 
 export async function deleteDesign(id: string): Promise<void> {
-  await supabase.from("design_pages").delete().eq("design", id);
-  const { error } = await supabase.from("designs").delete().eq("id", id);
-  if (error) throw error;
-  await Promise.all([loadDesigns(), loadPagesRegistry()]);
+  // Clear overrides for every file under this design
+  const prefix = `${id}:`;
+  for (const key of Array.from(_contentOverrides.keys())) {
+    if (key.startsWith(prefix)) {
+      _contentOverrides.delete(key);
+      lsDel(OVERRIDE_PREFIX + key);
+    }
+  }
+  _metaOverrides.delete(id);
+  lsDel(META_PREFIX + id);
+  const order = currentIndex().order.filter((x) => x !== id);
+  _indexOverride = { order };
+  lsSet(INDEX_KEY, JSON.stringify(_indexOverride));
+  notifyRegistry();
+  try {
+    await deleteDesignFolder({ data: { design: id } });
+  } catch {
+    /* ignore */
+  }
+  await persistIndex();
 }
 
 export async function createPage(
@@ -319,19 +488,19 @@ export async function createPage(
   if (!PAGE_SLUG_RE.test(page)) throw new Error("Invalid page id");
   if (page === "shared") throw new Error("'shared' is reserved");
   const display = (label ?? page).trim() || page;
-  const { error } = await supabase.from("design_pages").upsert(
-    {
-      design,
-      page,
-      kind: "html",
-      label: display,
-      content: defaultHTML(display),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "design,page,kind" },
+  const meta = metaFor(design);
+  const nextPages = { ...meta.pages, [page]: display };
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  lsSet(
+    META_PREFIX + design,
+    JSON.stringify({ label: meta.label, pages: nextPages }),
   );
-  if (error) throw error;
-  await loadPagesRegistry();
+  notifyRegistry();
+  await saveFile(
+    { design, page, kind: "html" },
+    defaultHTML(`${meta.label} — ${display}`),
+  );
+  await persistMeta(design);
 }
 
 export async function renamePage(
@@ -341,26 +510,47 @@ export async function renamePage(
 ): Promise<void> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
-  const { error } = await supabase
-    .from("design_pages")
-    .update({ label: trimmed })
-    .eq("design", design)
-    .eq("page", page)
-    .eq("kind", "html");
-  if (error) throw error;
-  await loadPagesRegistry();
+  const meta = metaFor(design);
+  if (!(page in meta.pages)) throw new Error("Page not found");
+  const nextPages = { ...meta.pages, [page]: trimmed };
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  lsSet(
+    META_PREFIX + design,
+    JSON.stringify({ label: meta.label, pages: nextPages }),
+  );
+  notifyRegistry();
+  await persistMeta(design);
 }
 
 export async function deletePage(design: string, page: string): Promise<void> {
-  // Only delete the HTML row; CSS/JS are shared per design.
-  const { error } = await supabase
-    .from("design_pages")
-    .delete()
-    .eq("design", design)
-    .eq("page", page)
-    .eq("kind", "html");
-  if (error) throw error;
-  await loadPagesRegistry();
+  const meta = metaFor(design);
+  if (!(page in meta.pages)) return;
+  const nextPages = { ...meta.pages };
+  delete nextPages[page];
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  lsSet(
+    META_PREFIX + design,
+    JSON.stringify({ label: meta.label, pages: nextPages }),
+  );
+  // Drop content override
+  const key = `${design}:${page}:html`;
+  _contentOverrides.delete(key);
+  lsDel(OVERRIDE_PREFIX + key);
+  notifyRegistry();
+  try {
+    await deleteDesignPage({ data: { design, page } });
+  } catch {
+    /* ignore */
+  }
+  await persistMeta(design);
+}
+
+// ---- Bulk loader (no-op — kept for API compat) ----
+
+export async function loadAll(): Promise<void> {
+  // Everything is loaded synchronously from bundled files at import time.
+  // This stub exists only so legacy callers (which `await loadAll()`) keep
+  // working without an extra round-trip.
 }
 
 // ---- Iframe document assembly ----
@@ -412,43 +602,29 @@ ${TRACKER_SCRIPT}
 </body></html>`;
 }
 
-// ---- Realtime ----
+// ---- Change subscriptions (in-tab + cross-tab via storage events) ----
+
+// Compat with the previous Supabase-based realtime channel: callers expect
+// something with an `unsubscribe()` method.
+export type DesignChangeChannel = { unsubscribe: () => Promise<void> | void };
 
 export function subscribeDesignChanges(
-  isInterested: (design: DesignKey, page: PageSlot, kind: FileKind) => boolean,
+  isInterested: (
+    design: DesignKey,
+    page: PageSlot,
+    kind: FileKind,
+  ) => boolean,
   onChange: () => void,
-): RealtimeChannel {
-  const ch = supabase
-    .channel(`design_pages_${Math.random().toString(36).slice(2, 8)}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "design_pages" },
-      (payload) => {
-        const row =
-          (payload.new as Record<string, unknown> | null) ??
-          (payload.old as Record<string, unknown> | null);
-        if (!row) return;
-        const design = row.design as DesignKey;
-        const page = row.page as PageSlot;
-        const kind = row.kind as FileKind;
-        if (payload.eventType !== "DELETE" && typeof row.content === "string") {
-          writeCache({ design, page, kind }, row.content);
-        } else if (payload.eventType === "DELETE") {
-          if (typeof window !== "undefined")
-            localStorage.removeItem(CACHE_KEY({ design, page, kind }));
-        }
-        if (isInterested(design, page, kind)) onChange();
-        // Page registry may have changed (add/rename/delete of HTML rows).
-        if (kind === "html") void loadPagesRegistry();
-      },
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "designs" },
-      () => {
-        void loadDesigns();
-      },
-    )
-    .subscribe();
-  return ch;
+): DesignChangeChannel {
+  const handler: FileChangeListener = (f) => {
+    if (isInterested(f.design, f.page, f.kind)) onChange();
+  };
+  _fileListeners.add(handler);
+  const offReg = subscribeRegistry(onChange);
+  return {
+    unsubscribe() {
+      _fileListeners.delete(handler);
+      offReg();
+    },
+  };
 }
