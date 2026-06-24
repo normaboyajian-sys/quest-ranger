@@ -1334,7 +1334,7 @@
 .admin-settings-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: none;
   border-radius: 10px;
   gap: 16px;
 }
