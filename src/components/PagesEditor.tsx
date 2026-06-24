@@ -14,12 +14,14 @@ import {
   getHiddenShared,
   getPageMeta,
   getPagesFor,
+  isPageHidden,
   loadFile,
   loadFileCached,
   renameDesign,
   renamePage,
   resetFile,
   saveFile,
+  setPageHidden,
   setPageMeta,
   setSharedHidden,
   slugify,
@@ -29,6 +31,7 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
+
 
 
 function sameFile(a: DesignFile, b: DesignFile) {
