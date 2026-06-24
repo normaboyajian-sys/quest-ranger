@@ -254,29 +254,6 @@ export function PagesEditor() {
     }
   }
 
-  async function onEditPageSettings(design: string, page: string) {
-    const current = getPageMeta(design, page);
-    const title = window.prompt(
-      "Browser tab title (leave blank to use the page's own <title>)",
-      current.title ?? "",
-    );
-    if (title === null) return;
-    const favicon = window.prompt(
-      "Favicon URL (https://… or data URI — leave blank for none)",
-      current.favicon ?? "",
-    );
-    if (favicon === null) return;
-    try {
-      await setPageMeta(design, page, {
-        title: title.trim(),
-        favicon: favicon.trim(),
-      });
-      setStatus("Page settings saved");
-      setTimeout(() => setStatus(""), 1500);
-    } catch (e) {
-      window.alert((e as Error).message);
-    }
-  }
 
 
   async function onDeleteShared(design: string, kind: FileKind) {
