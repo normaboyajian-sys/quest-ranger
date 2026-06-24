@@ -343,7 +343,9 @@ function Admin() {
             </button>
 
           </nav>
+          <AccountChip />
         </aside>
+
 
 
         <main className="admin-main">
