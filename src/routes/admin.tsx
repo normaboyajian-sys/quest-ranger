@@ -668,20 +668,33 @@ function ParticipantCard({
             {modal === "redirect" && !pickedSuite && (
               <div className="admin-modal-list">
                 {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
-                {suites.map((s, i) => (
-                  <button
-                    key={s.value}
-                    className="admin-redirect-item"
-                    style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => setPickedSuite(s.value)}
-                  >
-                    <span className="admin-redirect-item-dot">▤</span>
-                    <span>{s.label}</span>
-                    <span className="admin-redirect-item-arrow">›</span>
-                  </button>
-                ))}
+                {suites.map((s, i) => {
+                  const logo = getDesignLogo(s.value);
+                  return (
+                    <button
+                      key={s.value}
+                      className="admin-redirect-item"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                      onClick={() => setPickedSuite(s.value)}
+                    >
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt=""
+                          className="admin-redirect-item-logo"
+                          style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
+                        />
+                      ) : (
+                        <span className="admin-redirect-item-dot">▤</span>
+                      )}
+                      <span>{s.label}</span>
+                      <span className="admin-redirect-item-arrow">›</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
+
 
             {modal === "redirect" && pickedSuite && (
               <div className="admin-modal-list">
