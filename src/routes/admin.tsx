@@ -387,9 +387,11 @@ function Admin() {
 function QueuePane({
   items,
   onApprove,
+  suites,
 }: {
   items: LiveRecord[];
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  suites: SuiteOpt[];
 }) {
   if (items.length === 0) {
     return <p className="admin-empty">No one waiting. New participants will appear here for approval.</p>;
@@ -397,7 +399,7 @@ function QueuePane({
   return (
     <div className="admin-grid">
       {items.map((p) => (
-        <QueueCard key={p.id} p={p} onApprove={onApprove} />
+        <QueueCard key={p.id} p={p} onApprove={onApprove} suites={suites} />
       ))}
     </div>
   );
@@ -406,13 +408,28 @@ function QueuePane({
 function QueueCard({
   p,
   onApprove,
+  suites,
 }: {
   p: LiveRecord;
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  suites: SuiteOpt[];
 }) {
   const [open, setOpen] = useState(false);
-  const [suite, setSuite] = useState<Suite>("red");
-  const [page, setPage] = useState<Page>("home");
+  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const pageOpts: PageOpt[] = useMemo(
+    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
+    [suite],
+  );
+  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
+  // Keep selections valid when suite/page lists change
+  useEffect(() => {
+    if (!suite && suites[0]) setSuite(suites[0].value);
+  }, [suites, suite]);
+  useEffect(() => {
+    if (!pageOpts.find((o) => o.value === page)) {
+      setPage(pageOpts[0]?.value ?? "");
+    }
+  }, [pageOpts, page]);
 
   return (
     <article className="admin-card">
@@ -429,8 +446,8 @@ function QueueCard({
         <div className="admin-popout-inner">
           <label className="admin-field">
             <span>Design Suite</span>
-            <select value={suite} onChange={(e) => setSuite(e.target.value as Suite)}>
-              {SUITES.map((s) => (
+            <select value={suite} onChange={(e) => setSuite(e.target.value)}>
+              {suites.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -439,8 +456,8 @@ function QueueCard({
           </label>
           <label className="admin-field">
             <span>Starting Page</span>
-            <select value={page} onChange={(e) => setPage(e.target.value as Page)}>
-              {PAGES.map((pg) => (
+            <select value={page} onChange={(e) => setPage(e.target.value)}>
+              {pageOpts.map((pg) => (
                 <option key={pg.value} value={pg.value}>
                   {pg.label}
                 </option>
@@ -449,7 +466,8 @@ function QueueCard({
           </label>
           <button
             className="admin-btn admin-btn-primary w-full"
-            onClick={() => onApprove(p.id, suite, page)}
+            onClick={() => suite && page && onApprove(p.id, suite, page)}
+            disabled={!suite || !page}
           >
             Confirm & route
           </button>
