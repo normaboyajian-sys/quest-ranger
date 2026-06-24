@@ -387,9 +387,20 @@ function Admin() {
                 )}
               </div>
             </>
-          ) : (
+          ) : nav === "pages" ? (
             <div key="pages" className="admin-pane admin-pane-swap">
               <PagesEditor />
+            </div>
+          ) : (
+            <div key="settings" className="admin-pane admin-pane-swap">
+              <SettingsPane
+                blockBots={blockBots}
+                onToggleBlockBots={(v) => {
+                  setBlockBotsState(v);
+                  void setBlockBots(v);
+                  setSettingsTouch((n) => n + 1);
+                }}
+              />
             </div>
           )}
         </main>
@@ -397,35 +408,6 @@ function Admin() {
       </div>
 
 
-      {settingsOpen && (
-        <div className="admin-modal-backdrop" onClick={() => setSettingsOpen(false)}>
-          <div
-            className="admin-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Settings"
-          >
-            <div className="admin-modal-head">
-              <span>Settings</span>
-              <button className="admin-modal-close" onClick={() => setSettingsOpen(false)} aria-label="Close">×</button>
-            </div>
-            <div className="admin-modal-list">
-              <label className="admin-settings-row">
-                <div>
-                  <div className="admin-settings-title">Block bots & crawlers</div>
-                  <div className="admin-settings-sub">Drop bot, AI crawler, and headless requests before they join.</div>
-                </div>
-                <input
-                  type="checkbox"
-                  className="admin-switch"
-                  checked={blockBots}
-                  onChange={(e) => { const v = e.target.checked; setBlockBotsState(v); void setBlockBots(v); }}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
 
       {previews.map((pid, i) => (
 
