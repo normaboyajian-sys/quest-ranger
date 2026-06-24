@@ -263,7 +263,7 @@ function Admin() {
             </>
           ) : (
             <div key="pages" className="admin-pane admin-pane-swap">
-              <PagesEditor channel={channelRef.current} subscribedRef={subscribedRef} />
+              <PagesEditor />
             </div>
           )}
         </main>
