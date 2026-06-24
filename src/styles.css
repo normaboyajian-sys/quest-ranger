@@ -1329,7 +1329,12 @@
   gap: 8px;
 }
 .admin-card-head-stack .admin-card-icons {
+  order: 2;
   margin-left: auto;
+}
+.admin-card-head-stack .admin-card-id-bottom {
+  order: 1;
+  margin-right: auto;
 }
 .admin-card-id-bottom {
   color: #8a8a8a;
