@@ -48,6 +48,7 @@ function dotStateFor(p: ParticipantPresence | undefined): DotState {
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
   const [section, setSection] = useState<"queue" | "participants">("queue");
+  const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
