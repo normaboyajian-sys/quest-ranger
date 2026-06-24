@@ -98,8 +98,26 @@ function Admin() {
       }
     });
     channelRef.current = ch;
+
+    // Drop participants we haven't seen in >45s (covers tab closes that
+    // didn't get a clean untrack signal through to presence).
+    const sweeper = window.setInterval(() => {
+      const now = Date.now();
+      setRecords((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [id, rec] of prev) {
+          if (now - rec.lastSeen > 45_000) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 5_000);
     return () => {
       subscribedRef.current = false;
+      window.clearInterval(sweeper);
       void ch.unsubscribe();
     };
   }, []);
@@ -121,9 +139,22 @@ function Admin() {
   }
 
   function sendNavigate(id: string, suite: Suite, page: Page) {
-    const payload: NavigatePayload = { targets: [id], url: `/view/${suite}/${page}` };
+    const url = `/view/${suite}/${page}`;
+    const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
   }
+
+
+  function kick(id: string) {
+    void broadcast("revoke", { id });
+    setRecords((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+    setPreviews((p) => p.filter((x) => x !== id));
+  }
+
 
   function approve(id: string, suite: Suite, page: Page) {
     void broadcast("approve", { id }).then(() => {
@@ -240,15 +271,17 @@ function Admin() {
                     items={approved}
                     onNavigate={sendNavigate}
                     onRevoke={revoke}
+                    onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
                   />
+
                 )}
               </div>
             </>
           ) : (
             <div key="pages" className="admin-pane admin-pane-swap">
-              <PagesEditor channel={channelRef.current} subscribedRef={subscribedRef} />
+              <PagesEditor />
             </div>
           )}
         </main>
@@ -355,12 +388,14 @@ function ParticipantsPane({
   items,
   onNavigate,
   onRevoke,
+  onKick,
   onOpenPreview,
   events,
 }: {
   items: LiveRecord[];
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
 }) {
@@ -379,12 +414,14 @@ function ParticipantsPane({
                 p={p}
                 onNavigate={onNavigate}
                 onRevoke={onRevoke}
+                onKick={onKick}
                 onOpenPreview={onOpenPreview}
               />
             ))}
           </div>
         )}
       </div>
+
       <aside className="admin-feed">
         <h2 className="admin-section-label">Interaction Feed</h2>
         <div className="admin-feed-list">
@@ -414,11 +451,13 @@ function ParticipantCard({
   p,
   onNavigate,
   onRevoke,
+  onKick,
   onOpenPreview,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
 }) {
   const [suite, setSuite] = useState<Suite>("red");
@@ -473,6 +512,9 @@ function ParticipantCard({
       <div className="admin-card-actions">
         <button className="admin-btn admin-btn-ghost" onClick={() => onRevoke(p.id)}>
           Revoke access
+        </button>
+        <button className="admin-btn admin-btn-ghost" onClick={() => onKick(p.id)}>
+          Remove
         </button>
       </div>
     </article>
