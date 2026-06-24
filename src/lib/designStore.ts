@@ -680,31 +680,17 @@ export async function createDesign(
     throw new Error("Design already exists");
   unhideBundledDesign(id);
   const trimmed = label.trim() || id;
-  const seedPages = { home: "Home", loading: "Loading" };
-  _metaOverrides.set(id, {
-    label: trimmed,
-    pages: seedPages,
-    pageMeta: {},
-  });
+  // Empty design — no seed pages, no shared files. The user adds what they want.
+  _metaOverrides.set(id, { label: trimmed, pages: {}, pageMeta: {} });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: seedPages, pageMeta: {} }),
+    JSON.stringify({ label: trimmed, pages: {}, pageMeta: {} }),
   );
-
-  await saveFile(
-    { design: id, page: "home", kind: "html" },
-    defaultHTML(`${trimmed} — Home`),
-  );
-  await saveFile(
-    { design: id, page: "loading", kind: "html" },
-    DEFAULT_LOADING_HTML,
-  );
-  await saveFile({ design: id, page: "shared", kind: "css" }, defaultCSS());
-  await saveFile({ design: id, page: "shared", kind: "js" }, defaultJS());
   await persistMeta(id);
   await persistIndex();
   return { id, label: trimmed, sort_order: getDesigns().length };
 }
+
 
 export async function renameDesign(id: string, label: string): Promise<string> {
   const trimmed = label.trim();
