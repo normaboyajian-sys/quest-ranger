@@ -240,11 +240,11 @@
   border-radius: 8px;
   min-width: 0;
 }
-.admin-brand-btn:hover { background: #131313; }
+.admin-brand-btn:hover { background: transparent; }
 .admin-avatar {
   width: 32px; height: 32px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #1f1f1f, #333);
+  background: transparent;
   display: inline-flex; align-items: center; justify-content: center;
   overflow: hidden;
   flex: none;
