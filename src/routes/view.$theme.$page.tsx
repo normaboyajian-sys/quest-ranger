@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
-  loadAll,
   subscribeDesignChanges,
   type DesignKey,
   type PageKey,
@@ -28,22 +27,15 @@ function SuiteView() {
   const emitInputRef = useRef(emitInput);
   emitInputRef.current = emitInput;
 
+  // Synchronous from bundled files — no flash of default content.
   const [srcDoc, setSrcDoc] = useState<string>(() =>
     buildSrcDocCached(design, pageKey),
   );
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
     setSrcDoc(buildSrcDocCached(design, pageKey));
-    void loadAll().then(() => {
-      if (cancelled) return;
-      setSrcDoc(buildSrcDocCached(design, pageKey));
-      setVersion((v) => v + 1);
-    });
-    return () => {
-      cancelled = true;
-    };
+    setVersion((v) => v + 1);
   }, [design, pageKey]);
 
   useEffect(() => {
