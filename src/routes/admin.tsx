@@ -578,7 +578,7 @@ function ParticipantCard({
 
   return (
     <article className="admin-card">
-      <div className="admin-card-head">
+      <div className="admin-card-head admin-card-head-stack">
         <div className="admin-card-icons">
           <button
             className="admin-icon-btn"
@@ -640,12 +640,14 @@ function ParticipantCard({
             </svg>
           </button>
         </div>
-        <div className="admin-card-id">
+        <div className="admin-card-id admin-card-id-bottom">
           <StatusDot state={p.state} />
           <span className="font-mono text-xs">{p.id}</span>
         </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
+      <ParticipantGeoLine p={p} />
+
 
       {modal && (
         <div className="admin-modal-backdrop" onClick={close}>
