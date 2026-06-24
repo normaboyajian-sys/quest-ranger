@@ -410,12 +410,13 @@
 .admin-icon-btn {
   width: 28px; height: 28px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: #161616; color: #cfcfcf;
-  border-radius: 8px;
+  background: transparent; color: #6a6a6a;
+  border-radius: 6px;
+  border: 0;
   cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
+  transition: color 160ms ease;
 }
-.admin-icon-btn:hover { background: #222; color: #fff; }
+.admin-icon-btn:hover { background: transparent; color: #cfcfcf; }
 
 .admin-row {
   display: grid;
