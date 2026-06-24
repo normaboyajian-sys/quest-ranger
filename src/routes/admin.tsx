@@ -9,6 +9,7 @@ import {
 import {
   loadParticipants,
   markStaleParticipantsOffline,
+  purgeStaleUnapproved,
   removeParticipant,
   setParticipantApproval,
   setParticipantAssignment,
