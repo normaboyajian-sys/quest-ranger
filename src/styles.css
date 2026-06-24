@@ -475,6 +475,18 @@
 .admin-btn-primary:hover { background: #fff; }
 .admin-btn-ghost { background: #141414; color: #b0b0b0; }
 .admin-btn-ghost:hover { color: #ff8b8b; background: #1a0e0e; }
+.admin-btn.admin-btn-danger { background: #1a0e0e; color: #ff8b8b; }
+.admin-btn.admin-btn-danger:hover { background: #2a1414; color: #ffb0b0; }
+
+.admin-queue-wrap { display: flex; flex-direction: column; gap: 14px; }
+.admin-queue-toolbar { display: flex; justify-content: flex-end; }
+
+.admin-card-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #8a8a8a;
+  letter-spacing: 0.02em;
+}
 
 .admin-card-actions {
   display: flex; gap: 8px; justify-content: flex-end;
