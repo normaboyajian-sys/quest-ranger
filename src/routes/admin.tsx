@@ -93,7 +93,7 @@ function dotStateFor(p: ParticipantRecord | undefined): DotState {
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
   const [section, setSection] = useState<"queue" | "participants">("queue");
-  const [nav, setNav] = useState<"participants" | "pages">("participants");
+  const [nav, setNav] = useState<"participants" | "pages" | "settings">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
