@@ -11,14 +11,15 @@ import {
   deleteDesign,
   deletePage,
   getDesigns,
+  getPageMeta,
   getPagesFor,
-  
   loadFile,
   loadFileCached,
   renameDesign,
   renamePage,
   resetFile,
   saveFile,
+  setPageMeta,
   slugify,
   subscribeDesignChanges,
   subscribeRegistry,
@@ -26,6 +27,7 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
+
 
 function sameFile(a: DesignFile, b: DesignFile) {
   return a.design === b.design && a.page === b.page && a.kind === b.kind;
