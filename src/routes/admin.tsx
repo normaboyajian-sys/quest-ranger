@@ -34,6 +34,8 @@ export const Route = createFileRoute("/admin")({
   component: Admin,
 });
 
+type Suite = string;
+type Page = string;
 type SuiteOpt = { value: string; label: string };
 type PageOpt = { value: string; label: string };
 
