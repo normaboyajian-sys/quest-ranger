@@ -2,6 +2,7 @@
   "label": "Modern Blue",
   "pages": {
     "contact": "Contact",
-    "home": "Home"
+    "home": "Home",
+    "loading": "Loading"
   }
 }
