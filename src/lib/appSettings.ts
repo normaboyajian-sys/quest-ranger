@@ -46,18 +46,21 @@ export async function loadAppSettings(): Promise<AppSettings> {
   }
   _cache = next;
   _loaded = true;
+  writeLocal(_cache);
   for (const fn of listeners) fn(_cache);
   return _cache;
 }
 
 export async function setBlockBots(enabled: boolean): Promise<void> {
   _cache = { ..._cache, blockBots: enabled };
+  writeLocal(_cache);
   for (const fn of listeners) fn(_cache);
   const { error } = await supabase
     .from("app_settings")
     .upsert({ key: "block_bots", value: { enabled }, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
+
 
 export function subscribeAppSettings(onChange: (s: AppSettings) => void): () => void {
   listeners.add(onChange);
