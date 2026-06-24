@@ -522,25 +522,40 @@
 }
 
 /* Mirror overlays */
-.mirror-root { position: relative; min-height: 100vh; cursor: none; }
+.mirror-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #050505;
+  cursor: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.mirror-stage {
+  position: relative;
+  transform-origin: top left;
+  flex: none;
+}
 .mirror-empty {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  height: 100vh;
+  height: 100vh; width: 100%;
   color: #aaa;
   background: #0a0a0a;
   font-family: ui-monospace, monospace;
 }
 .mirror-empty-sub { color: #555; font-size: 12px; margin-top: 8px; }
 .mirror-cursor {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   z-index: 9998;
   transition: left 60ms linear, top 60ms linear;
   transform: translate(-2px, -2px);
 }
 .mirror-ripple {
-  position: fixed;
+  position: absolute;
   width: 12px; height: 12px;
   margin-left: -6px; margin-top: -6px;
   border-radius: 999px;
