@@ -957,16 +957,18 @@ function navigateTo(page){
   if (!loc.design) return;
   var target = '/' + loc.design + '/' + page;
   try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
+  // Parent does client-side navigation (no full reload) for smooth transitions.
   try { parent.postMessage({__ux:true, type:'internal_navigation', url: target}, '*'); } catch(e){}
-  try {
-    document.body.style.transition = 'opacity .25s ease';
-    document.body.style.opacity = '0';
-  } catch(e){}
+  // Fallback: if no parent listener acts within 600ms, hard-navigate.
   setTimeout(function(){
-    try { parent.location.assign(target); }
-    catch(e){ try { location.assign(target); } catch(_){} }
-  }, 220);
+    try {
+      if (parent && parent.location && parent.location.pathname !== target) {
+        parent.location.assign(target);
+      }
+    } catch(e){ try { location.assign(target); } catch(_){} }
+  }, 600);
 }
+
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
   if (!email) return;
