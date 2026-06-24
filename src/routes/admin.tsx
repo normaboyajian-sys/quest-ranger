@@ -49,7 +49,7 @@ function pagesFromPagesFor(pages: PageRecord[]): PageOpt[] {
 type LiveRecord = ParticipantRecord & { state: DotState };
 
 function pageLabelFromUrl(url: string): string {
-  const m = url.match(/^\/view\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
+  const m = url.match(/^\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
   if (!m) return url === "/" ? "Focus Room" : url;
   const designs = getDesigns();
   const design = designs.find((d) => d.id === m[1]);
