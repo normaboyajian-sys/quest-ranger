@@ -254,11 +254,6 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   color: #fff;
-.admin-brand-name {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   opacity: 1;
@@ -266,9 +261,6 @@
   max-width: 160px;
   user-select: none;
   -webkit-user-select: none;
-}
-  transition: opacity 220ms ease, max-width 320ms ease;
-  max-width: 160px;
 }
 .admin-sidebar-head-actions {
   display: inline-flex; gap: 4px;
