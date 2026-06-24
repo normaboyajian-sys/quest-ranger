@@ -435,11 +435,13 @@ function ParticipantCard({
   p,
   onNavigate,
   onRevoke,
+  onKick,
   onOpenPreview,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
 }) {
   const [suite, setSuite] = useState<Suite>("red");
