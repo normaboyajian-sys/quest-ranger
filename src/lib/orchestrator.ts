@@ -122,5 +122,9 @@ export function joinChannel(opts: {
     channel.on("broadcast", { event: "scroll" }, ({ payload }) =>
       opts.onScroll!(payload as ScrollPayload),
     );
+  if (opts.onDesignPublish)
+    channel.on("broadcast", { event: "design_publish" }, ({ payload }) =>
+      opts.onDesignPublish!(payload as DesignPublishPayload),
+    );
   return channel;
 }
