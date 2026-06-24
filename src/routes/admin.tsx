@@ -26,12 +26,11 @@ import {
   getDesignLogo,
   getPagesFor,
   getRedirectPages,
-  isPageHidden,
-  setPageHidden,
   subscribeRegistry,
   type DesignRecord,
   type PageRecord,
 } from "@/lib/designStore";
+
 
 
 export const Route = createFileRoute("/admin")({
