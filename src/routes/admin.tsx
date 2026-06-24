@@ -58,6 +58,19 @@ function Admin() {
   const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("admin_sidebar_open") !== "0";
+  });
+  function toggleSidebar(next?: boolean) {
+    setSidebarOpen((prev) => {
+      const v = typeof next === "boolean" ? next : !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_sidebar_open", v ? "1" : "0");
+      }
+      return v;
+    });
+  }
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
