@@ -179,10 +179,21 @@
    Admin Noir — black-styled management dashboard (scoped)
    ============================================================ */
 
+@font-face {
+  font-family: "Syne Mono";
+  src: url("/__l5e/assets-v1/5935a8fc-998a-4cf1-92d7-6828dd1c5920/SyneMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.admin-noir,
+.admin-noir * {
+  font-family: "Syne Mono", ui-monospace, monospace !important;
+}
 .admin-noir {
   background: #000;
   color: #ededed;
-  font-feature-settings: "ss01", "cv11";
 }
 .admin-noir * { border-color: transparent; }
 
