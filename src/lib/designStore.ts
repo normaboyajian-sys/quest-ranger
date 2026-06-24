@@ -858,7 +858,6 @@ export async function renamePage(
 
 export async function deletePage(design: string, page: string): Promise<void> {
   const meta = metaFor(design);
-  if (!(page in meta.pages)) return;
   const nextPages = { ...meta.pages };
   delete nextPages[page];
   const nextPageMeta = { ...meta.pageMeta };
@@ -869,11 +868,14 @@ export async function deletePage(design: string, page: string): Promise<void> {
     JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: nextPageMeta }),
   );
 
-  // Drop content override
+  // Drop content override + tombstone so the bundled .html cannot resurrect it.
   const key = `${design}:${page}:html`;
   _contentOverrides.delete(key);
   lsDel(OVERRIDE_PREFIX + key);
+  _tombstones.add(key);
+  persistTombstones();
   notifyRegistry();
+  try { await supabase.from("design_pages").delete().match({ design, page, kind: "html" }); } catch { /* ignore */ }
   try {
     await deleteDesignPage({ data: { design, page } });
   } catch {
@@ -881,6 +883,7 @@ export async function deletePage(design: string, page: string): Promise<void> {
   }
   await persistMeta(design);
 }
+
 
 // ---- Bulk loader (no-op — kept for API compat) ----
 
