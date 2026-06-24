@@ -231,7 +231,26 @@ export function PagesEditor() {
     }
   }
 
+  async function onDeleteShared(design: string, kind: FileKind) {
+    const label = kind === "css" ? "styles.css" : "script.js";
+    if (!window.confirm(`Delete ${label}? This clears its contents.`)) return;
+    const target: DesignFile = { design, page: "shared", kind };
+    try {
+      await saveFile(target, "");
+      if (active && sameFile(active, target)) {
+        setContent("");
+        contentRef.current = "";
+        setDirty(false);
+      }
+      setStatus(`${label} cleared`);
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
   // ---- Render ----
+
 
   const extension = useMemo(() => {
     if (!active) return [];
