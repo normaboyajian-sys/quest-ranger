@@ -562,11 +562,12 @@ export async function renamePage(
   const meta = metaFor(design);
   if (!(page in meta.pages)) throw new Error("Page not found");
   const nextPages = { ...meta.pages, [page]: trimmed };
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await persistMeta(design);
 }
