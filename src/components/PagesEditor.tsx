@@ -379,6 +379,17 @@ export function PagesEditor() {
                           <button
                             type="button"
                             className="admin-tree-btn"
+                            title="Page settings (tab title & favicon)"
+                            onClick={() =>
+                              void onEditPageSettings(folder.id, pg.page)
+                            }
+                          >
+                            ⚙
+                          </button>
+
+                          <button
+                            type="button"
+                            className="admin-tree-btn"
                             title="Rename"
                             onClick={() =>
                               void onRenamePage(
