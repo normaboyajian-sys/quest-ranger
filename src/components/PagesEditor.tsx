@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
@@ -9,21 +8,27 @@ import {
   DESIGN_LABELS,
   PAGE_LABELS,
   defaultContent,
-  exportBundle,
+  loadAll,
   loadFile,
+  loadFileCached,
   resetFile,
   saveFile,
+  subscribeDesignChanges,
   type DesignFile,
   type DesignKey,
-  type PageKey,
+  type FileKind,
+  type PageSlot,
 } from "@/lib/designStore";
-import type { DesignPublishPayload } from "@/lib/orchestrator";
 
-type Node =
-  | { kind: "folder"; design: DesignKey; label: string; children: Node[] }
-  | { kind: "file"; file: DesignFile; label: string };
+type FileNode = { kind: "file"; file: DesignFile; label: string };
+type FolderNode = {
+  kind: "folder";
+  design: DesignKey;
+  label: string;
+  children: FileNode[];
+};
 
-function buildTree(): Node[] {
+function buildTree(): FolderNode[] {
   const designs: DesignKey[] = ["red", "blue"];
   return designs.map((d) => ({
     kind: "folder",
@@ -38,13 +43,11 @@ function buildTree(): Node[] {
   }));
 }
 
-export function PagesEditor({
-  channel,
-  subscribedRef,
-}: {
-  channel: RealtimeChannel | null;
-  subscribedRef: React.MutableRefObject<boolean>;
-}) {
+function sameFile(a: DesignFile, b: DesignFile) {
+  return a.design === b.design && a.page === b.page && a.kind === b.kind;
+}
+
+export function PagesEditor() {
   const tree = useMemo(buildTree, []);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     red: true,
@@ -55,48 +58,71 @@ export function PagesEditor({
     page: "home",
     kind: "html",
   });
-  const [content, setContent] = useState<string>(() => loadFile(active));
+  const [content, setContent] = useState<string>(() => loadFileCached(active));
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
 
-  function openFile(f: DesignFile) {
+  // Initial DB sync + realtime subscription so the cache stays fresh.
+  useEffect(() => {
+    let cancelled = false;
+    void loadAll().then(async () => {
+      if (cancelled) return;
+      const fresh = await loadFile(activeRef.current);
+      if (!cancelled && !dirtyRef.current) setContent(fresh);
+    });
+    const ch = subscribeDesignChanges(
+      (design, page, kind) =>
+        sameFile(activeRef.current, { design, page: page as PageSlot, kind: kind as FileKind }),
+      () => {
+        if (dirtyRef.current) return; // don't clobber unsaved edits
+        setContent(loadFileCached(activeRef.current));
+      },
+    );
+    return () => {
+      cancelled = true;
+      void ch.unsubscribe();
+    };
+  }, []);
+
+  async function openFile(f: DesignFile) {
     setActive(f);
-    setContent(loadFile(f));
+    setContent(loadFileCached(f));
     setDirty(false);
     setStatus("");
-  }
-
-  async function publish(design: DesignKey, pages: PageKey[]) {
-    if (!channel) return;
-    for (const page of pages) {
-      const b = exportBundle(design, page);
-      const payload: DesignPublishPayload = { ...b, at: Date.now() };
-      if (subscribedRef.current) {
-        try {
-          await channel.send({ type: "broadcast", event: "design_publish", payload });
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+    const fresh = await loadFile(f);
+    if (sameFile(activeRef.current, f) && !dirtyRef.current) setContent(fresh);
   }
 
   async function onSave() {
-    saveFile(active, content);
-    setDirty(false);
-    setStatus("Saved · publishing…");
-    const pages: PageKey[] =
-      active.page === "shared" ? ["home", "contact"] : [active.page];
-    await publish(active.design, pages);
-    setStatus("Saved & published");
-    setTimeout(() => setStatus(""), 1500);
+    setStatus("Saving…");
+    try {
+      await saveFile(active, content);
+      setDirty(false);
+      setStatus("Saved & published");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus("Save failed");
+      console.error(e);
+    }
   }
 
-  function onReset() {
-    resetFile(active);
-    setContent(defaultContent(active));
-    setDirty(true);
-    setStatus("Reset (not saved)");
+  async function onReset() {
+    setStatus("Resetting…");
+    try {
+      await resetFile(active);
+      const d = defaultContent(active);
+      setContent(d);
+      setDirty(false);
+      setStatus("Reset to default");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus("Reset failed");
+      console.error(e);
+    }
   }
 
   const extension =
@@ -107,7 +133,7 @@ export function PagesEditor({
       ? active.kind === "css"
         ? "styles.css"
         : "script.js"
-      : `${PAGE_LABELS[active.page]} .html`
+      : `${PAGE_LABELS[active.page]}.html`
   }`;
 
   return (
@@ -115,7 +141,6 @@ export function PagesEditor({
       <aside className="admin-pages-tree">
         <div className="admin-pages-tree-head">Designs</div>
         {tree.map((folder) => {
-          if (folder.kind !== "folder") return null;
           const open = !!openFolders[folder.design];
           return (
             <div key={folder.design} className="admin-pages-folder">
@@ -132,16 +157,12 @@ export function PagesEditor({
               {open && (
                 <div className="admin-pages-files">
                   {folder.children.map((c) => {
-                    if (c.kind !== "file") return null;
-                    const isActive =
-                      c.file.design === active.design &&
-                      c.file.page === active.page &&
-                      c.file.kind === active.kind;
+                    const isActive = sameFile(c.file, active);
                     return (
                       <button
                         key={c.label}
                         className={`admin-pages-file ${isActive ? "is-active" : ""}`}
-                        onClick={() => openFile(c.file)}
+                        onClick={() => void openFile(c.file)}
                       >
                         <span className="admin-pages-file-icon">·</span>
                         {c.label}
@@ -157,13 +178,16 @@ export function PagesEditor({
 
       <section className="admin-pages-editor">
         <div className="admin-pages-bar">
-          <div className="admin-pages-path">{pathLabel}{dirty ? " ·" : ""}</div>
+          <div className="admin-pages-path">
+            {pathLabel}
+            {dirty ? " ·" : ""}
+          </div>
           <div className="admin-pages-actions">
             {status && <span className="admin-pages-status">{status}</span>}
-            <button className="admin-btn admin-btn-ghost" onClick={onReset}>
+            <button className="admin-btn admin-btn-ghost" onClick={() => void onReset()}>
               Reset
             </button>
-            <button className="admin-btn admin-btn-primary" onClick={onSave}>
+            <button className="admin-btn admin-btn-primary" onClick={() => void onSave()}>
               Save & publish
             </button>
           </div>
