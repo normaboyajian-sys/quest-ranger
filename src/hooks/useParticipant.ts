@@ -92,11 +92,13 @@ export function useParticipant() {
           if (p.url !== pathnameRef.current && internalNavActive()) return;
           setApproved(true);
           setApprovedState(true);
-          // Hard navigate so the design iframe always remounts against the
-          // latest DB-published HTML/CSS/JS — even when the URL is unchanged.
-          window.location.assign(p.url);
+          lastAssignedRef.current = p.url;
+          navigate({ to: p.url, reloadDocument: false }).catch(() => {
+            window.location.assign(p.url);
+          });
         }
       },
+
       onApprove: (p) => {
         if (p.id !== id) return;
         setApproved(true);
