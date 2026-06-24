@@ -97,6 +97,10 @@ function Admin() {
     const sweeper = window.setInterval(() => {
       void markStaleParticipantsOffline().then(refreshRecords).catch(() => undefined);
     }, 5_000);
+    // Safety: full refresh in case a realtime event was dropped.
+    const safety = window.setInterval(() => {
+      void refreshRecords().catch(() => undefined);
+    }, 10_000);
     return () => {
       subscribedRef.current = false;
       window.clearInterval(sweeper);
