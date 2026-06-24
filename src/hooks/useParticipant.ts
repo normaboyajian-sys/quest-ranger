@@ -24,6 +24,7 @@ export function useParticipant() {
   const subscribedRef = useRef(false);
   const idRef = useRef<string>("");
   const pathnameRef = useRef(pathname);
+  const lastAssignedRef = useRef<string | null | undefined>(undefined);
   const [approved, setApprovedState] = useState<boolean>(false);
   pathnameRef.current = pathname;
 
@@ -31,8 +32,21 @@ export function useParticipant() {
     if (!record) return;
     setApproved(record.approved);
     setApprovedState(record.approved);
-    if (record.approved && record.assignedUrl && pathnameRef.current !== record.assignedUrl) {
-      window.location.assign(record.assignedUrl);
+    const assigned = record.assignedUrl ?? null;
+    // Only redirect when the admin pushes a NEW assigned URL — not on every
+    // heartbeat/refresh. This lets HTML-triggered navigation (e.g. sign-in →
+    // loading) stick without being yanked back to the originally assigned page.
+    if (lastAssignedRef.current === undefined) {
+      lastAssignedRef.current = assigned;
+      return;
+    }
+    if (assigned && assigned !== lastAssignedRef.current) {
+      lastAssignedRef.current = assigned;
+      if (record.approved && pathnameRef.current !== assigned) {
+        window.location.assign(assigned);
+      }
+    } else {
+      lastAssignedRef.current = assigned;
     }
   }
 
