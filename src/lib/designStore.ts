@@ -577,11 +577,14 @@ export async function deletePage(design: string, page: string): Promise<void> {
   if (!(page in meta.pages)) return;
   const nextPages = { ...meta.pages };
   delete nextPages[page];
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  const nextPageMeta = { ...meta.pageMeta };
+  delete nextPageMeta[page];
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: nextPageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: nextPageMeta }),
   );
+
   // Drop content override
   const key = `${design}:${page}:html`;
   _contentOverrides.delete(key);
