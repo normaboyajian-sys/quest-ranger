@@ -170,7 +170,17 @@ function lsLoad() {
             /* ignore */
           }
         }
+      } else if (k === TOMBSTONE_KEY) {
+        const v = window.localStorage.getItem(k);
+        if (v != null) {
+          try {
+            for (const id of JSON.parse(v) as string[]) _tombstones.add(id);
+          } catch {
+            /* ignore */
+          }
+        }
       }
+
     }
   } catch {
     /* ignore */
