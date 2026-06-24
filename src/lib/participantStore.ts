@@ -89,6 +89,18 @@ export async function markStaleParticipantsOffline(maxAgeMs = 25_000): Promise<v
   if (error) throw error;
 }
 
+// Auto-clear the queue: drop unapproved participants that haven't pinged in a
+// while so the admin queue doesn't accumulate ghosts forever.
+export async function purgeStaleUnapproved(maxAgeMs = 90_000): Promise<void> {
+  const cutoff = new Date(Date.now() - maxAgeMs).toISOString();
+  const { error } = await supabase
+    .from("participants")
+    .delete()
+    .eq("approved", false)
+    .lt("last_seen", cutoff);
+  if (error) throw error;
+}
+
 export async function setParticipantApproval(
   id: string,
   approved: boolean,
