@@ -471,6 +471,17 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
     }
   }
   notifyFile(f);
+  // Push to remote so other browsers/devices see it.
+  try {
+    await supabase
+      .from("design_pages")
+      .upsert(
+        { design: f.design, page: f.page, kind: f.kind, content },
+        { onConflict: "design,page,kind" },
+      );
+  } catch {
+    /* ignore */
+  }
   try {
     await writeDesignFile({
       data: { design: f.design, page: f.page, kind: f.kind, content },
