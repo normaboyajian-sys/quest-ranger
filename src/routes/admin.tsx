@@ -104,6 +104,7 @@ function Admin() {
     return () => {
       subscribedRef.current = false;
       window.clearInterval(sweeper);
+      window.clearInterval(safety);
       void participantChannel.unsubscribe();
       void ch.unsubscribe();
     };
