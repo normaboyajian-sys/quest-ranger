@@ -48,6 +48,14 @@ export function useParticipant() {
       },
     });
 
+    // Force-reload current page (used by admin Redirect when target equals current URL)
+    channel.on("broadcast", { event: "refresh" }, ({ payload }) => {
+      const target = (payload as { id?: string } | undefined)?.id;
+      if (target && target !== id) return;
+      // Bump a query param to remount the iframe-rendering view
+      window.location.reload();
+    });
+
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         subscribedRef.current = true;
