@@ -490,6 +490,7 @@ function ParticipantsPane({
   onKick,
   onOpenPreview,
   events,
+  suites,
 }: {
   items: LiveRecord[];
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -497,6 +498,7 @@ function ParticipantsPane({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
+  suites: SuiteOpt[];
 }) {
   const ids = new Set(items.map((i) => i.id));
   const filteredEvents = events.filter((e) => ids.has(e.participantId));
@@ -515,6 +517,7 @@ function ParticipantsPane({
                 onRevoke={onRevoke}
                 onKick={onKick}
                 onOpenPreview={onOpenPreview}
+                suites={suites}
               />
             ))}
           </div>
@@ -552,15 +555,29 @@ function ParticipantCard({
   onRevoke,
   onKick,
   onOpenPreview,
+  suites,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
+  suites: SuiteOpt[];
 }) {
-  const [suite, setSuite] = useState<Suite>("red");
-  const [page, setPage] = useState<Page>("home");
+  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const pageOpts: PageOpt[] = useMemo(
+    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
+    [suite],
+  );
+  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
+  useEffect(() => {
+    if (!suite && suites[0]) setSuite(suites[0].value);
+  }, [suites, suite]);
+  useEffect(() => {
+    if (!pageOpts.find((o) => o.value === page)) {
+      setPage(pageOpts[0]?.value ?? "");
+    }
+  }, [pageOpts, page]);
 
   return (
     <article className="admin-card">
@@ -589,21 +606,25 @@ function ParticipantCard({
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
 
       <div className="admin-row">
-        <select value={suite} onChange={(e) => setSuite(e.target.value as Suite)} className="admin-select">
-          {SUITES.map((s) => (
+        <select value={suite} onChange={(e) => setSuite(e.target.value)} className="admin-select">
+          {suites.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>
           ))}
         </select>
-        <select value={page} onChange={(e) => setPage(e.target.value as Page)} className="admin-select">
-          {PAGES.map((pg) => (
+        <select value={page} onChange={(e) => setPage(e.target.value)} className="admin-select">
+          {pageOpts.map((pg) => (
             <option key={pg.value} value={pg.value}>
               {pg.label}
             </option>
           ))}
         </select>
-        <button className="admin-btn admin-btn-primary" onClick={() => onNavigate(p.id, suite, page)}>
+        <button
+          className="admin-btn admin-btn-primary"
+          onClick={() => suite && page && onNavigate(p.id, suite, page)}
+          disabled={!suite || !page}
+        >
           Redirect
         </button>
       </div>
