@@ -151,6 +151,13 @@ function Admin() {
     };
   }, []);
 
+  // Load designs registry for the redirect selectors + page labels
+  useEffect(() => {
+    void loadAll().then(() => setDesigns(getDesigns()));
+    const off = subscribeRegistry(() => setDesigns(getDesigns()));
+    return off;
+  }, []);
+
   async function broadcast(event: string, payload: unknown, retries = 3) {
     const ch = channelRef.current;
     if (!ch) return;
