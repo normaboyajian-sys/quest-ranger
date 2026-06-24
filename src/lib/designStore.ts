@@ -495,11 +495,12 @@ export async function renameDesign(id: string, label: string): Promise<void> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
   const meta = metaFor(id);
-  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages } });
+  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages }, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: meta.pages }),
+    JSON.stringify({ label: trimmed, pages: meta.pages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await persistMeta(id);
 }
