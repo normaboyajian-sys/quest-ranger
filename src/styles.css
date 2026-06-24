@@ -529,3 +529,37 @@
   0% { transform: scale(0.4); opacity: 1; box-shadow: 0 0 0 0 rgba(93,255,163,0.6); }
   100% { transform: scale(4.5); opacity: 0; box-shadow: 0 0 0 30px rgba(93,255,163,0); }
 }
+
+/* Segmented switch between Queue / Participants */
+.admin-segmented {
+  display: inline-flex;
+  background: #0d0d0d;
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+.admin-seg {
+  background: transparent;
+  color: #8a8a8a;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 160ms ease, color 160ms ease;
+}
+.admin-seg:hover { color: #fff; }
+.admin-seg.is-active { background: #1f1f1f; color: #fff; }
+.admin-seg-count {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #2a2a2a;
+  color: #cfcfcf;
+}

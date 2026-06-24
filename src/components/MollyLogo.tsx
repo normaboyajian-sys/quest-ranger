@@ -1,27 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
-export function MollyLogo({ size = 32 }: { size?: number }) {
-  const [Comp, setComp] = useState<{ Lottie: any; data: any } | null>(null);
+export function MollyLogo({ size = 36 }: { size?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let alive = true;
+    let anim: { destroy: () => void } | null = null;
+    let cancelled = false;
     Promise.all([
-      import("lottie-react"),
+      import("lottie-web"),
       import("@/assets/molly.json"),
     ]).then(([lottieMod, dataMod]) => {
-      if (!alive) return;
-      setComp({ Lottie: lottieMod.default, data: (dataMod as any).default ?? dataMod });
+      if (cancelled || !ref.current) return;
+      const lottie = (lottieMod as any).default ?? lottieMod;
+      const data = (dataMod as any).default ?? dataMod;
+      anim = lottie.loadAnimation({
+        container: ref.current,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        animationData: data,
+      });
     });
     return () => {
-      alive = false;
+      cancelled = true;
+      anim?.destroy();
     };
   }, []);
 
   return (
-    <div style={{ width: size, height: size, flex: "none" }}>
-      {Comp && (
-        <Comp.Lottie animationData={Comp.data} loop autoplay style={{ width: "100%", height: "100%" }} />
-      )}
-    </div>
+    <div
+      ref={ref}
+      style={{ width: size, height: size, flex: "none" }}
+      aria-label="Molly"
+    />
   );
 }
