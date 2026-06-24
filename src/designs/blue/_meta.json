@@ -2,7 +2,7 @@
   "label": "Modern Blue",
   "pages": {
     "loading": "Loading",
-    "sign-in": "SignIn",
-    "signinaddon": "SignInp"
+    "signin": "SignIn",
+    "signinp": "SignInp"
   }
 }

@@ -2,11 +2,11 @@
   "label": "cb",
   "pages": {
     "loading": "Loading",
-    "sign-in": "SignIn",
-    "signinaddon": "SignInp"
+    "signin": "SignIn",
+    "signinp": "SignInp"
   },
   "pageMeta": {
-    "sign-in": {
+    "signin": {
       "title": "Coinbase - Sign In"
     }
   }
