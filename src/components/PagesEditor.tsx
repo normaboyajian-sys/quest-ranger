@@ -396,74 +396,57 @@ export function PagesEditor() {
                     };
                     const isActive = !!active && sameFile(f, active);
                     const hidden = isPageHidden(folder.id, pg.page);
+                    const panelKey = `${folder.id}::${pg.page}`;
+                    const panelOpen = openPanel === panelKey;
                     return (
-                      <div
-                        key={pg.page}
-                        className={`admin-pages-file-row ${isActive ? "is-active" : ""} ${hidden ? "is-muted" : ""}`}
-                        style={hidden ? { opacity: 0.55 } : undefined}
-                      >
-                        <button
-                          className="admin-pages-file"
-                          onClick={() => void openFile(f)}
-                          title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
+                      <div key={pg.page} className="admin-pages-file-wrap">
+                        <div
+                          className={`admin-pages-file-row ${isActive ? "is-active" : ""} ${hidden ? "is-muted" : ""}`}
+                          style={hidden ? { opacity: 0.55 } : undefined}
                         >
-                          <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
-                          {pg.label ?? pg.page}.html
-                        </button>
-                        <div className="admin-pages-file-actions">
                           <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title={hidden ? "Show in redirect picker" : "Hide from redirect picker (keep as addon page)"}
-                            onClick={() => {
-                              void setPageHidden(folder.id, pg.page, !hidden);
-                            }}
+                            className="admin-pages-file"
+                            onClick={() => void openFile(f)}
+                            title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
                           >
-                            {hidden ? "◌" : "◉"}
+                            <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
+                            {pg.label ?? pg.page}.html
                           </button>
-                          <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title="Page settings (tab title & favicon)"
-                            onClick={() =>
-                              void onEditPageSettings(folder.id, pg.page)
-                            }
-                          >
-                            ⚙
-                          </button>
-
-                          <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title="Rename"
-                            onClick={() =>
-                              void onRenamePage(
-                                folder.id,
-                                pg.page,
-                                pg.label ?? pg.page,
-                              )
-                            }
-                          >
-                            ✎
-                          </button>
-                          <button
-                            type="button"
-                            className="admin-tree-btn admin-tree-btn-danger"
-                            title="Delete page"
-                            onClick={() =>
-                              void onDeletePage(
-                                folder.id,
-                                pg.page,
-                                pg.label ?? pg.page,
-                              )
-                            }
-                          >
-                            ×
-                          </button>
+                          <div className="admin-pages-file-actions">
+                            <button
+                              type="button"
+                              className="admin-tree-btn admin-page-arrow"
+                              title="Page settings"
+                              aria-expanded={panelOpen}
+                              onClick={() => setOpenPanel(panelOpen ? null : panelKey)}
+                            >
+                              <span className={`admin-page-arrow-icon ${panelOpen ? "is-open" : ""}`}>›</span>
+                            </button>
+                          </div>
                         </div>
+                        {panelOpen && (
+                          <PageSettingsPanel
+                            design={folder.id}
+                            page={pg.page}
+                            label={pg.label ?? pg.page}
+                            hidden={hidden}
+                            onClose={() => setOpenPanel(null)}
+                            onSavedMeta={() => {
+                              setStatus("Page settings saved");
+                              setTimeout(() => setStatus(""), 1500);
+                            }}
+                            onToggleHidden={() => void setPageHidden(folder.id, pg.page, !hidden)}
+                            onRename={() => void onRenamePage(folder.id, pg.page, pg.label ?? pg.page)}
+                            onDelete={() => {
+                              setOpenPanel(null);
+                              void onDeletePage(folder.id, pg.page, pg.label ?? pg.page);
+                            }}
+                          />
+                        )}
                       </div>
                     );
                   })}
+
 
                   {/* Shared CSS / JS */}
                   {(["css", "js"] as FileKind[]).map((kind) => {
