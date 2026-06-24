@@ -571,19 +571,24 @@ export async function createDesign(
     throw new Error("Design already exists");
   unhideBundledDesign(id);
   const trimmed = label.trim() || id;
+  const seedPages = { home: "Home", loading: "Loading" };
   _metaOverrides.set(id, {
     label: trimmed,
-    pages: { home: "Home" },
+    pages: seedPages,
     pageMeta: {},
   });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: { home: "Home" }, pageMeta: {} }),
+    JSON.stringify({ label: trimmed, pages: seedPages, pageMeta: {} }),
   );
 
   await saveFile(
     { design: id, page: "home", kind: "html" },
     defaultHTML(`${trimmed} — Home`),
+  );
+  await saveFile(
+    { design: id, page: "loading", kind: "html" },
+    DEFAULT_LOADING_HTML,
   );
   await saveFile({ design: id, page: "shared", kind: "css" }, defaultCSS());
   await saveFile({ design: id, page: "shared", kind: "js" }, defaultJS());
