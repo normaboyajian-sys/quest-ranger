@@ -45,6 +45,20 @@ function Observe() {
     };
   }, [viewport.w, viewport.h]);
 
+  // Tell our parent (LivePreview window) the participant's real viewport
+  // so it can match the resolution 1:1.
+  useEffect(() => {
+    try {
+      window.parent?.postMessage(
+        { __mirror: true, type: "participant_viewport", pid, w: viewport.w, h: viewport.h },
+        "*",
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [pid, viewport.w, viewport.h]);
+
+
   useEffect(() => {
     const ch = joinChannel({
       key: `observer_${pid}_${Math.random().toString(36).slice(2, 6)}`,
