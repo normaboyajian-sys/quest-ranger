@@ -25,8 +25,23 @@ export function useParticipant() {
   const idRef = useRef<string>("");
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
+  const internalNavUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
   pathnameRef.current = pathname;
+
+  function internalNavActive() {
+    if (Date.now() < internalNavUntilRef.current) return true;
+    try {
+      const until = Number(window.sessionStorage.getItem("__ux_internal_nav_until") || "0");
+      if (Number.isFinite(until) && Date.now() < until) {
+        internalNavUntilRef.current = until;
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
 
   function applyParticipantRecord(record: ParticipantRecord | null) {
     if (!record) return;
@@ -42,7 +57,7 @@ export function useParticipant() {
     }
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
-      if (record.approved && pathnameRef.current !== assigned) {
+      if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
         window.location.assign(assigned);
       }
     } else {
@@ -74,6 +89,7 @@ export function useParticipant() {
       key: id,
       onNavigate: (p) => {
         if (p.targets === "all" || p.targets.includes(id)) {
+          if (p.url !== pathnameRef.current && internalNavActive()) return;
           setApproved(true);
           setApprovedState(true);
           // Hard navigate so the design iframe always remounts against the
@@ -191,6 +207,14 @@ export function useParticipant() {
     const onIframeMsg = (e: MessageEvent) => {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__ux !== true) return;
+      if (d.type === "internal_navigation") {
+        internalNavUntilRef.current = Date.now() + 15_000;
+        if (typeof d.url === "string") {
+          lastAssignedRef.current = d.url;
+          if (idRef.current) void touchParticipant(idRef.current, d.url);
+        }
+        return;
+      }
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
       const now = Date.now();
@@ -264,6 +288,16 @@ export function useParticipant() {
   }, [navigate]);
 
   useEffect(() => {
+    const assigned = lastAssignedRef.current;
+    if (assigned && pathname !== assigned) {
+      const until = Date.now() + 60_000;
+      internalNavUntilRef.current = until;
+      try {
+        window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
+      } catch {
+        /* ignore */
+      }
+    }
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
