@@ -6,8 +6,10 @@ import { javascript as jsLang } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import {
   DESIGN_LABELS,
+  PAGE_LINKS,
   PAGE_LABELS,
   defaultContent,
+  ensureDefaultDesignPages,
   loadAll,
   loadFile,
   loadFileCached,
@@ -69,7 +71,7 @@ export function PagesEditor() {
   // Initial DB sync + realtime subscription so the cache stays fresh.
   useEffect(() => {
     let cancelled = false;
-    void loadAll().then(async () => {
+    void ensureDefaultDesignPages().then(loadAll).then(async () => {
       if (cancelled) return;
       const fresh = await loadFile(activeRef.current);
       if (!cancelled && !dirtyRef.current) setContent(fresh);
@@ -140,6 +142,13 @@ export function PagesEditor() {
     <div className="admin-pages">
       <aside className="admin-pages-tree">
         <div className="admin-pages-tree-head">Designs</div>
+        <div className="admin-pages-links">
+          {PAGE_LINKS.map((link) => (
+            <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+              {link.url}
+            </a>
+          ))}
+        </div>
         {tree.map((folder) => {
           const open = !!openFolders[folder.design];
           return (

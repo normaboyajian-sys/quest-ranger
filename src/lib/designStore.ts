@@ -18,6 +18,24 @@ export type DesignFile = {
 
 const CACHE_KEY = (f: DesignFile) => `design:${f.design}:${f.page}:${f.kind}`;
 
+const DEFAULT_FILES: DesignFile[] = [
+  { design: "red", page: "home", kind: "html" },
+  { design: "red", page: "contact", kind: "html" },
+  { design: "red", page: "shared", kind: "css" },
+  { design: "red", page: "shared", kind: "js" },
+  { design: "blue", page: "home", kind: "html" },
+  { design: "blue", page: "contact", kind: "html" },
+  { design: "blue", page: "shared", kind: "css" },
+  { design: "blue", page: "shared", kind: "js" },
+];
+
+export const PAGE_LINKS = [
+  { design: "red", page: "home", label: "Industrial Red / Home", url: "/view/red/home" },
+  { design: "red", page: "contact", label: "Industrial Red / Contact", url: "/view/red/contact" },
+  { design: "blue", page: "home", label: "Modern Blue / Home", url: "/view/blue/home" },
+  { design: "blue", page: "contact", label: "Modern Blue / Contact", url: "/view/blue/contact" },
+] as const;
+
 export const DESIGN_LABELS: Record<DesignKey, string> = {
   red: "Industrial Red",
   blue: "Modern Blue",
@@ -159,6 +177,22 @@ export async function loadFile(f: DesignFile): Promise<string> {
   return loadFileCached(f);
 }
 
+export async function ensureDefaultDesignPages(): Promise<void> {
+  const { data } = await supabase.from("design_pages").select("design,page,kind");
+  const existing = new Set((data ?? []).map((r) => `${r.design}:${r.page}:${r.kind}`));
+  const missing = DEFAULT_FILES.filter((f) => !existing.has(`${f.design}:${f.page}:${f.kind}`));
+  if (missing.length === 0) return;
+  const { error } = await supabase.from("design_pages").insert(
+    missing.map((f) => ({
+      design: f.design,
+      page: f.page,
+      kind: f.kind,
+      content: defaultContent(f),
+    })),
+  );
+  if (error && error.code !== "23505") throw error;
+}
+
 /** Save to DB (upsert). Triggers realtime fan-out. */
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
   writeCache(f, content);
@@ -177,17 +211,12 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
 
 /** Delete the override so the bundled default takes over again. */
 export async function resetFile(f: DesignFile): Promise<void> {
-  if (typeof window !== "undefined") localStorage.removeItem(CACHE_KEY(f));
-  await supabase
-    .from("design_pages")
-    .delete()
-    .eq("design", f.design)
-    .eq("page", f.page)
-    .eq("kind", f.kind);
+  await saveFile(f, defaultContent(f));
 }
 
 /** Load all rows once and refresh the local cache. */
 export async function loadAll(): Promise<void> {
+  await ensureDefaultDesignPages();
   const { data } = await supabase.from("design_pages").select("*");
   if (!data) return;
   for (const row of data) {

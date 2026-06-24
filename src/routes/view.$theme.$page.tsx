@@ -21,7 +21,7 @@ function SuiteView() {
   const design = theme as DesignKey;
   const pageKey = page as PageKey;
 
-  const { emitInput, approved } = useParticipant();
+  const { emitInput } = useParticipant();
   const emitInputRef = useRef(emitInput);
   emitInputRef.current = emitInput;
 
@@ -68,8 +68,6 @@ function SuiteView() {
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
-
-  if (!approved) return null;
 
   return (
     <iframe

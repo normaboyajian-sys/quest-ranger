@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { joinChannel, type ParticipantPresence } from "@/lib/orchestrator";
-import { SuitePage, type SuiteTheme, type SuitePageName } from "@/components/SuitePage";
+import {
+  buildSrcDocCached,
+  loadAll,
+  subscribeDesignChanges,
+  type DesignKey,
+  type PageKey,
+} from "@/lib/designStore";
+import { loadParticipant, subscribeParticipant } from "@/lib/participantStore";
 
 export const Route = createFileRoute("/observe/$pid")({
   head: () => ({ meta: [{ title: "Live Preview" }] }),
@@ -12,19 +18,18 @@ export const Route = createFileRoute("/observe/$pid")({
 type Cursor = { x: number; y: number; vw: number; vh: number };
 type Ripple = { id: number; x: number; y: number };
 
-function parseView(url: string): { theme: SuiteTheme; page: SuitePageName } | null {
+function parseView(url: string): { theme: DesignKey; page: PageKey } | null {
   const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
   if (!m) return null;
-  return { theme: m[1] as SuiteTheme, page: m[2] as SuitePageName };
+  return { theme: m[1] as DesignKey, page: m[2] as PageKey };
 }
 
 function Observe() {
   const { pid } = Route.useParams();
   const [url, setUrl] = useState<string>("/");
-  const [values, setValues] = useState<Record<string, string>>({});
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [ripples, setRipples] = useState<Ripple[]>([]);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [version, setVersion] = useState(0);
   const rippleSeq = useRef(0);
 
   useEffect(() => {
@@ -36,10 +41,6 @@ function Observe() {
             if (p.id === pid) setUrl(p.currentUrl || "/");
           }
         }
-      },
-      onInput: (p) => {
-        if (p.participantId !== pid) return;
-        setValues((prev) => ({ ...prev, [p.field]: p.value }));
       },
       onMouse: (p) => {
         if (p.id !== pid) return;
@@ -57,18 +58,47 @@ function Observe() {
       },
     });
     ch.subscribe();
-    channelRef.current = ch;
+    const dbChannel = subscribeParticipant(pid, () => {
+      void loadParticipant(pid).then((p) => {
+        if (p) setUrl(p.currentUrl || p.assignedUrl || "/");
+      });
+    });
+    void loadParticipant(pid).then((p) => {
+      if (p) setUrl(p.currentUrl || p.assignedUrl || "/");
+    });
     return () => {
+      void dbChannel.unsubscribe();
       void ch.unsubscribe();
     };
   }, [pid]);
 
   const view = parseView(url);
 
+  useEffect(() => {
+    if (!view) return;
+    let cancelled = false;
+    void loadAll().then(() => {
+      if (!cancelled) setVersion((v) => v + 1);
+    });
+    const ch = subscribeDesignChanges(
+      (d, p) => d === view.theme && (p === view.page || p === "shared"),
+      () => setVersion((v) => v + 1),
+    );
+    return () => {
+      cancelled = true;
+      void ch.unsubscribe();
+    };
+  }, [view?.theme, view?.page]);
+
   return (
     <div className="mirror-root">
       {view ? (
-        <SuitePage theme={view.theme} page={view.page} mirror values={values} />
+        <iframe
+          key={`${view.theme}-${view.page}-${version}`}
+          title="Observed design"
+          srcDoc={buildSrcDocCached(view.theme, view.page)}
+          style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0 }}
+        />
       ) : (
         <div className="mirror-empty">
           <p>Participant is in the Focus Room.</p>

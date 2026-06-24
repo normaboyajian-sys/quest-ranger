@@ -5,8 +5,16 @@ import {
   joinChannel,
   type InputPayload,
   type NavigatePayload,
-  type ParticipantPresence,
 } from "@/lib/orchestrator";
+import {
+  loadParticipants,
+  markStaleParticipantsOffline,
+  removeParticipant,
+  setParticipantApproval,
+  setParticipantAssignment,
+  subscribeParticipants,
+  type ParticipantRecord,
+} from "@/lib/participantStore";
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
@@ -29,7 +37,7 @@ const PAGES = [
 type Suite = (typeof SUITES)[number]["value"];
 type Page = (typeof PAGES)[number]["value"];
 
-type LiveRecord = ParticipantPresence & { lastSeen: number; state: DotState };
+type LiveRecord = ParticipantRecord & { state: DotState };
 
 function pageLabelFromUrl(url: string): string {
   const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
@@ -39,10 +47,9 @@ function pageLabelFromUrl(url: string): string {
   return `${suite} · ${page}`;
 }
 
-function dotStateFor(p: ParticipantPresence | undefined): DotState {
+function dotStateFor(p: ParticipantRecord | undefined): DotState {
   if (!p) return "left";
-  if (p.currentUrl.startsWith("/view/")) return "on";
-  return "off";
+  return p.online ? "on" : "left";
 }
 
 function Admin() {
@@ -55,40 +62,24 @@ function Admin() {
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
 
+  async function refreshRecords() {
+    const rows = await loadParticipants();
+    setRecords(
+      new Map(
+        rows.map((row) => [
+          row.id,
+          {
+            ...row,
+            state: dotStateFor(row),
+          },
+        ]),
+      ),
+    );
+  }
+
   useEffect(() => {
     const ch = joinChannel({
       key: `admin_${Math.random().toString(36).slice(2, 8)}`,
-      onSync: (state) => {
-        const now = Date.now();
-        const seen = new Set<string>();
-        const fresh = new Map<string, ParticipantPresence>();
-        for (const arr of Object.values(state)) {
-          for (const p of arr) {
-            const pres = p as Partial<ParticipantPresence>;
-            if (!pres.id) continue;
-            seen.add(pres.id);
-            fresh.set(pres.id, {
-              id: pres.id,
-              currentUrl: pres.currentUrl ?? "/",
-              joinedAt: pres.joinedAt ?? now,
-              approved: !!pres.approved,
-            });
-          }
-        }
-        setRecords((prev) => {
-          const next = new Map<string, LiveRecord>();
-          for (const [id, p] of fresh) {
-            const old = prev.get(id);
-            next.set(id, {
-              ...p,
-              lastSeen: now,
-              state: dotStateFor(p),
-              joinedAt: old?.joinedAt ?? p.joinedAt,
-            });
-          }
-          return next;
-        });
-      },
       onInput: (p) => setEvents((prev) => [p, ...prev].slice(0, 200)),
     });
     ch.subscribe(async (status) => {
@@ -99,25 +90,17 @@ function Admin() {
     });
     channelRef.current = ch;
 
-    // Drop participants we haven't seen in >45s (covers tab closes that
-    // didn't get a clean untrack signal through to presence).
+    void refreshRecords();
+    const participantChannel = subscribeParticipants(() => void refreshRecords());
+
+    // Keep accepted participants forever; only flip stale online users red.
     const sweeper = window.setInterval(() => {
-      const now = Date.now();
-      setRecords((prev) => {
-        let changed = false;
-        const next = new Map(prev);
-        for (const [id, rec] of prev) {
-          if (now - rec.lastSeen > 45_000) {
-            next.delete(id);
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
+      void markStaleParticipantsOffline().then(refreshRecords).catch(() => undefined);
     }, 5_000);
     return () => {
       subscribedRef.current = false;
       window.clearInterval(sweeper);
+      void participantChannel.unsubscribe();
       void ch.unsubscribe();
     };
   }, []);
@@ -138,8 +121,9 @@ function Admin() {
     }
   }
 
-  function sendNavigate(id: string, suite: Suite, page: Page) {
+  async function sendNavigate(id: string, suite: Suite, page: Page) {
     const url = `/view/${suite}/${page}`;
+    await setParticipantAssignment(id, url);
     const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
   }
@@ -147,36 +131,35 @@ function Admin() {
 
   function kick(id: string) {
     void broadcast("revoke", { id });
-    setRecords((prev) => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
+    void removeParticipant(id).then(refreshRecords);
     setPreviews((p) => p.filter((x) => x !== id));
   }
 
 
   function approve(id: string, suite: Suite, page: Page) {
-    void broadcast("approve", { id }).then(() => {
-      setTimeout(() => sendNavigate(id, suite, page), 200);
+    const url = `/view/${suite}/${page}`;
+    void setParticipantApproval(id, true, url).then(() => {
+      void refreshRecords();
+      void broadcast("approve", { id });
+      setTimeout(() => void sendNavigate(id, suite, page), 200);
     });
-    // optimistic local flag
     setRecords((prev) => {
       const r = prev.get(id);
       if (!r) return prev;
       const next = new Map(prev);
-      next.set(id, { ...r, approved: true });
+      next.set(id, { ...r, approved: true, assignedUrl: url, currentUrl: url });
       return next;
     });
   }
 
   function revoke(id: string) {
     void broadcast("revoke", { id });
+    void setParticipantApproval(id, false, null).then(refreshRecords);
     setRecords((prev) => {
       const r = prev.get(id);
       if (!r) return prev;
       const next = new Map(prev);
-      next.set(id, { ...r, approved: false, currentUrl: "/", state: "off" });
+      next.set(id, { ...r, approved: false, assignedUrl: null, currentUrl: "/" });
       return next;
     });
     setPreviews((p) => p.filter((x) => x !== id));
@@ -471,8 +454,8 @@ function ParticipantCard({
           <span className="font-mono text-sm">{p.id}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="admin-tag admin-tag-live">
-            {p.state === "on" ? "On site" : p.state === "off" ? "Focus" : "Left"}
+          <span className={`admin-tag ${p.online ? "admin-tag-live" : "admin-tag-offline"}`}>
+            {p.online ? "Online" : "Offline"}
           </span>
           <button
             className="admin-icon-btn"
