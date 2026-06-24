@@ -112,67 +112,6 @@ export function PagesEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update the editorBus whenever active/content changes so ChatSidebar sees them
-  const pushBus = useCallback(() => {
-    const a = activeRef.current;
-    if (!a) {
-      setActiveFile(null, "");
-      return;
-    }
-    const designLabel =
-      designs.find((d) => d.id === a.design)?.label ?? a.design;
-    const pageRow = getPagesFor(a.design).find((p) => p.page === a.page);
-    const af: ActiveFile = {
-      design: a.design,
-      designLabel,
-      page: a.page,
-      pageLabel: pageRow?.label ?? a.page,
-      kind: a.kind,
-    };
-    setActiveFile(af, contentRef.current);
-  }, [designs]);
-
-  useEffect(() => {
-    pushBus();
-  }, [active, content, pushBus]);
-
-  // Listen for AI edits and apply with green highlight for 20s
-  useEffect(() => {
-    const off = onAIEdit(async (e) => {
-      const a = activeRef.current;
-      if (!a) return;
-      if (a.design !== e.file.design || a.page !== e.file.page || a.kind !== e.file.kind)
-        return;
-      const oldText = contentRef.current;
-      const newText = e.newContent;
-      setContent(newText);
-      contentRef.current = newText;
-      setDirty(false);
-      setStatus("AI updated · published");
-      setTimeout(() => setStatus(""), 2000);
-      // Highlight changed lines
-      requestAnimationFrame(() => {
-        const view = editorRef.current?.view;
-        if (!view) return;
-        const changed = changedLineIndicesInNewText(oldText, newText);
-        const doc = view.state.doc;
-        const decos = changed
-          .filter((idx) => idx + 1 <= doc.lines)
-          .map((idx) => {
-            const info = doc.line(idx + 1);
-            return Decoration.line({ class: "cm-ai-edit" }).range(info.from);
-          });
-        view.dispatch({
-          effects: setEditDecos.of(Decoration.set(decos, true)),
-        });
-        window.setTimeout(() => {
-          const v = editorRef.current?.view;
-          if (v) v.dispatch({ effects: setEditDecos.of(Decoration.none) });
-        }, 20_000);
-      });
-    });
-    return off;
-  }, []);
 
   async function openFile(f: DesignFile) {
     setActive(f);
