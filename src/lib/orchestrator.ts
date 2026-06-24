@@ -85,6 +85,7 @@ export function joinChannel(opts: {
   onMouse?: (p: MousePayload) => void;
   onClick?: (p: ClickPayload) => void;
   onScroll?: (p: ScrollPayload) => void;
+  onViewport?: (p: ViewportPayload) => void;
   onDesignPublish?: (p: DesignPublishPayload) => void;
 }): RealtimeChannel {
   const channel = supabase.channel(CHANNEL, {
