@@ -757,3 +757,44 @@
 .admin-pages-code { flex: 1; min-height: 0; overflow: hidden; }
 .admin-pages-code .cm-editor { height: 100%; background: #050505; }
 .admin-pages-code .cm-scroller { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+/* Minimal gray scrollbars across admin + code editor (no arrows, no track bg) */
+.admin-noir *::-webkit-scrollbar,
+.admin-pages-code .cm-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+.admin-noir *::-webkit-scrollbar-track,
+.admin-pages-code .cm-scroller::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+.admin-noir *::-webkit-scrollbar-thumb,
+.admin-pages-code .cm-scroller::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.admin-noir *::-webkit-scrollbar-thumb:hover,
+.admin-pages-code .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.admin-noir *::-webkit-scrollbar-button,
+.admin-pages-code .cm-scroller::-webkit-scrollbar-button,
+.admin-noir *::-webkit-scrollbar-corner,
+.admin-pages-code .cm-scroller::-webkit-scrollbar-corner {
+  display: none;
+  background: transparent;
+  width: 0;
+  height: 0;
+}
+.admin-noir,
+.admin-noir *,
+.admin-pages-code .cm-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
