@@ -563,8 +563,11 @@ export async function loadFile(f: DesignFile): Promise<string> {
 }
 
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
-  _contentOverrides.set(overrideKey(f), content);
-  lsSet(OVERRIDE_PREFIX + overrideKey(f), content);
+  const key = overrideKey(f);
+  // Saving clears any tombstone for this file.
+  if (_tombstones.delete(key)) persistTombstones();
+  _contentOverrides.set(key, content);
+  lsSet(OVERRIDE_PREFIX + key, content);
   // If this is a shared file that was hidden, un-hide it.
   if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
     const hs = getHiddenShared(f.design);
@@ -580,7 +583,6 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
     }
   }
   notifyFile(f);
-  // Push to remote so other browsers/devices see it.
   try {
     await supabase
       .from("design_pages")
@@ -596,29 +598,27 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
       data: { design: f.design, page: f.page, kind: f.kind, content },
     });
   } catch {
-    // Disk write may fail (prod / readonly FS). Local override still applies.
+    /* readonly FS in prod */
   }
 }
 
+// Reset = revert to whatever is currently on disk (bundled). Does NOT rewrite
+// files — the user's source files are the source of truth.
 export async function resetFile(f: DesignFile): Promise<void> {
-  _contentOverrides.delete(overrideKey(f));
-  lsDel(OVERRIDE_PREFIX + overrideKey(f));
-  const bundled = bundledContent(f);
-  notifyFile(f);
-  // Rewrite disk to the bundled (source-of-truth) content so dev FS matches.
+  const key = overrideKey(f);
+  _contentOverrides.delete(key);
+  lsDel(OVERRIDE_PREFIX + key);
+  if (_tombstones.delete(key)) persistTombstones();
   try {
-    await writeDesignFile({
-      data: {
-        design: f.design,
-        page: f.page,
-        kind: f.kind,
-        content: bundled ?? defaultContent(f),
-      },
+    await supabase.from("design_pages").delete().match({
+      design: f.design, page: f.page, kind: f.kind,
     });
   } catch {
     /* ignore */
   }
+  notifyFile(f);
 }
+
 
 // ---- Registry mutations ----
 
