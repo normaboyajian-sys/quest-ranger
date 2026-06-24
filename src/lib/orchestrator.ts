@@ -124,6 +124,10 @@ export function joinChannel(opts: {
     channel.on("broadcast", { event: "scroll" }, ({ payload }) =>
       opts.onScroll!(payload as ScrollPayload),
     );
+  if (opts.onViewport)
+    channel.on("broadcast", { event: "viewport" }, ({ payload }) =>
+      opts.onViewport!(payload as ViewportPayload),
+    );
   if (opts.onDesignPublish)
     channel.on("broadcast", { event: "design_publish" }, ({ payload }) =>
       opts.onDesignPublish!(payload as DesignPublishPayload),
