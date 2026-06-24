@@ -543,22 +543,20 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
 }) {
-  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
+  const [open, setOpen] = useState(false);
+  const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
+
   const pageOpts: PageOpt[] = useMemo(
-    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
-    [suite, regRev],
+    () => (pickedSuite ? pagesFromPagesFor(getPagesFor(pickedSuite)) : []),
+    [pickedSuite, regRev],
   );
-  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
-  useEffect(() => {
-    if (!suite && suites[0]) setSuite(suites[0].value);
-  }, [suites, suite]);
-  useEffect(() => {
-    if (!pageOpts.find((o) => o.value === page)) {
-      setPage(pageOpts[0]?.value ?? "");
-    }
-  }, [pageOpts, page]);
+
+  function closePopover() {
+    setOpen(false);
+    setTimeout(() => setPickedSuite(null), 220);
+  }
 
   return (
     <article className="admin-card">
@@ -586,27 +584,66 @@ function ParticipantCard({
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
 
-      <div className="admin-row">
-        <select value={suite} onChange={(e) => setSuite(e.target.value)} className="admin-select">
-          {suites.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <select value={page} onChange={(e) => setPage(e.target.value)} className="admin-select">
-          {pageOpts.map((pg) => (
-            <option key={pg.value} value={pg.value}>
-              {pg.label}
-            </option>
-          ))}
-        </select>
+      <div className={`admin-redirect ${open ? "is-open" : ""} ${pickedSuite ? "is-expanded" : ""}`}>
+        {open && (
+          <div className="admin-redirect-pop" role="dialog" aria-label="Redirect participant">
+            <div className="admin-redirect-head">
+              <span>{pickedSuite ? "Choose page" : "Choose design"}</span>
+              <button className="admin-redirect-close" onClick={closePopover} aria-label="Close">×</button>
+            </div>
+            {!pickedSuite ? (
+              <div className="admin-redirect-list">
+                {suites.length === 0 && (
+                  <p className="admin-redirect-empty">No designs yet.</p>
+                )}
+                {suites.map((s, i) => (
+                  <button
+                    key={s.value}
+                    className="admin-redirect-item"
+                    style={{ animationDelay: `${i * 30}ms` }}
+                    onClick={() => setPickedSuite(s.value)}
+                  >
+                    <span className="admin-redirect-item-dot">▤</span>
+                    <span>{s.label}</span>
+                    <span className="admin-redirect-item-arrow">›</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="admin-redirect-list">
+                <button
+                  className="admin-redirect-back"
+                  onClick={() => setPickedSuite(null)}
+                >
+                  ← back to designs
+                </button>
+                {pageOpts.length === 0 && (
+                  <p className="admin-redirect-empty">No pages in this design.</p>
+                )}
+                {pageOpts.map((pg, i) => (
+                  <button
+                    key={pg.value}
+                    className="admin-redirect-item"
+                    style={{ animationDelay: `${i * 30}ms` }}
+                    onClick={() => {
+                      onNavigate(p.id, pickedSuite, pg.value);
+                      closePopover();
+                    }}
+                  >
+                    <span className="admin-redirect-item-dot">·</span>
+                    <span>{pg.label}</span>
+                    <span className="admin-redirect-item-arrow">↗</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <button
-          className="admin-btn admin-btn-primary"
-          onClick={() => suite && page && onNavigate(p.id, suite, page)}
-          disabled={!suite || !page}
+          className="admin-btn admin-btn-primary admin-redirect-trigger"
+          onClick={() => (open ? closePopover() : setOpen(true))}
         >
-          Redirect
+          {open ? "Cancel" : "Redirect"}
         </button>
       </div>
 
