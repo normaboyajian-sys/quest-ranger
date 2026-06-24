@@ -1,9 +1,9 @@
 {
   "label": "cb",
   "pages": {
-    "sign-in": "sign in",
-    "signinaddon": "signinaddon",
-    "loading": "Loading"
+    "loading": "Loading",
+    "sign-in": "SignIn",
+    "signinaddon": "SignInp"
   },
   "pageMeta": {
     "sign-in": {

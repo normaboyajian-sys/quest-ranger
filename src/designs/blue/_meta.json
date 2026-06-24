@@ -1,8 +1,8 @@
 {
   "label": "Modern Blue",
   "pages": {
-    "contact": "Contact",
-    "home": "Home",
-    "loading": "Loading"
+    "loading": "Loading",
+    "sign-in": "SignIn",
+    "signinaddon": "SignInp"
   }
 }

@@ -1,0 +1,1 @@
+DELETE FROM public.design_pages WHERE page NOT IN ('loading','sign-in','signinaddon','shared');
