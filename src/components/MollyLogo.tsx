@@ -31,8 +31,8 @@ export const MollyLogo = forwardRef<MollyLogoHandle, { size?: number }>(function
     Promise.all([import("lottie-web"), import("@/assets/molly.json")]).then(
       ([lottieMod, dataMod]) => {
         if (cancelled || !ref.current) return;
-        const lottie = (lottieMod as unknown as { default: typeof lottieMod }).default ?? lottieMod;
-        const data = (dataMod as unknown as { default: unknown }).default ?? dataMod;
+        const lottie = ((lottieMod as any).default ?? lottieMod) as any;
+        const data = (dataMod as any).default ?? dataMod;
         const anim = lottie.loadAnimation({
           container: ref.current,
           renderer: "svg",
