@@ -14,6 +14,7 @@ export function useParticipant() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscribedRef = useRef(false);
   const idRef = useRef<string>("");
   const [approved, setApprovedState] = useState<boolean>(false);
 
@@ -36,23 +37,11 @@ export function useParticipant() {
         if (p.id !== id) return;
         setApproved(true);
         setApprovedState(true);
-        void channel.track({
-          id,
-          currentUrl: window.location.pathname,
-          joinedAt: Date.now(),
-          approved: true,
-        } satisfies ParticipantPresence);
       },
       onRevoke: (p) => {
         if (p.id !== id) return;
         setApproved(false);
         setApprovedState(false);
-        void channel.track({
-          id,
-          currentUrl: "/",
-          joinedAt: Date.now(),
-          approved: false,
-        } satisfies ParticipantPresence);
         navigate({ to: "/", reloadDocument: false }).catch(() => {
           window.location.assign("/");
         });
@@ -61,6 +50,7 @@ export function useParticipant() {
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
+        subscribedRef.current = true;
         await channel.track({
           id,
           currentUrl: window.location.pathname,
@@ -71,18 +61,83 @@ export function useParticipant() {
     });
     channelRef.current = channel;
 
+    // Mouse, click, scroll emitters
+    let lastMouse = 0;
+    const onMove = (e: MouseEvent) => {
+      const now = Date.now();
+      if (now - lastMouse < 40) return;
+      lastMouse = now;
+      const ch = channelRef.current;
+      if (!ch || !subscribedRef.current) return;
+      void ch.send({
+        type: "broadcast",
+        event: "mouse",
+        payload: {
+          id,
+          x: e.clientX / window.innerWidth,
+          y: e.clientY / window.innerHeight,
+          vw: window.innerWidth,
+          vh: window.innerHeight,
+          at: now,
+        },
+      });
+    };
+    const onClick = (e: MouseEvent) => {
+      const ch = channelRef.current;
+      if (!ch || !subscribedRef.current) return;
+      void ch.send({
+        type: "broadcast",
+        event: "click",
+        payload: {
+          id,
+          x: e.clientX / window.innerWidth,
+          y: e.clientY / window.innerHeight,
+          at: Date.now(),
+        },
+      });
+    };
+    let lastScroll = 0;
+    const onScroll = () => {
+      const now = Date.now();
+      if (now - lastScroll < 60) return;
+      lastScroll = now;
+      const ch = channelRef.current;
+      if (!ch || !subscribedRef.current) return;
+      void ch.send({
+        type: "broadcast",
+        event: "scroll",
+        payload: { id, sx: window.scrollX, sy: window.scrollY, at: now },
+      });
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("click", onClick, { passive: true, capture: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const onUnload = () => {
+      try {
+        channel.untrack();
+      } catch {
+        /* noop */
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+
     return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("click", onClick, true);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("beforeunload", onUnload);
+      subscribedRef.current = false;
       channel.untrack();
       void channel.unsubscribe();
       channelRef.current = null;
     };
   }, [navigate]);
 
-  // Keep presence in sync with current URL + approved status
   useEffect(() => {
     const ch = channelRef.current;
     const id = idRef.current;
-    if (!ch || !id) return;
+    if (!ch || !id || !subscribedRef.current) return;
     void ch.track({
       id,
       currentUrl: pathname,
@@ -91,7 +146,6 @@ export function useParticipant() {
     } satisfies ParticipantPresence);
   }, [pathname, approved]);
 
-  // Guard: unapproved cannot stay on /view/*
   useEffect(() => {
     if (!approved && pathname.startsWith("/view/")) {
       navigate({ to: "/", reloadDocument: false }).catch(() => {
@@ -102,7 +156,7 @@ export function useParticipant() {
 
   function emitInput(field: string, value: string) {
     const ch = channelRef.current;
-    if (!ch) return;
+    if (!ch || !subscribedRef.current) return;
     const payload: InputPayload = {
       participantId: idRef.current,
       field,
