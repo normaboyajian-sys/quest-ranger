@@ -2,7 +2,8 @@
   "label": "cb",
   "pages": {
     "sign-in": "sign in",
-    "signinaddon": "signinaddon"
+    "signinaddon": "signinaddon",
+    "loading": "Loading"
   },
   "pageMeta": {
     "sign-in": {

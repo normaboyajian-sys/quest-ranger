@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading…</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0a0b0d; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .wrap { position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; flex-direction: column; gap: 24px; }
+    .spinner { width: 48px; height: 48px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.15); border-top-color: #578bfa;
+      animation: spin 0.9s linear infinite; }
+    .label { font-size: 14px; color: rgba(255,255,255,.6); letter-spacing: .02em; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner"></div>
+    <div class="label">Loading…</div>
+  </div>
+</body>
+</html>
