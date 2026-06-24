@@ -107,8 +107,14 @@ function lsLoad() {
         const v = window.localStorage.getItem(k);
         if (v != null) {
           try {
-            _metaOverrides.set(k.slice(META_PREFIX.length), JSON.parse(v));
+            const parsed = JSON.parse(v) as Partial<MetaEntry>;
+            _metaOverrides.set(k.slice(META_PREFIX.length), {
+              label: parsed.label ?? k.slice(META_PREFIX.length),
+              pages: parsed.pages ?? {},
+              pageMeta: parsed.pageMeta ?? {},
+            });
           } catch {
+
             /* ignore */
           }
         }
