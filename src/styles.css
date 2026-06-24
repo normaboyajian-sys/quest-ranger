@@ -273,8 +273,8 @@
   max-width: 0;
   transform: translateX(-4px);
 }
-.admin-shell.is-collapsed .admin-sidebar-head { justify-content: center; }
-.admin-shell.is-collapsed .admin-brand-btn { padding: 2px; }
+.admin-shell.is-collapsed .admin-sidebar-head { justify-content: center; padding: 2px 0 4px; }
+.admin-shell.is-collapsed .admin-brand-btn { padding: 0; width: 100%; justify-content: center; }
 
 .admin-nav { display: flex; flex-direction: column; gap: 4px; }
 .admin-nav-item {
