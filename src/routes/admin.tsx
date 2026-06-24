@@ -144,7 +144,7 @@ function Admin() {
 
   // Load designs registry for the redirect selectors + page labels
   useEffect(() => {
-    void loadAll().then(() => setDesigns(getDesigns()));
+    setDesigns(getDesigns());
     const off = subscribeRegistry(() => setDesigns(getDesigns()));
     return off;
   }, []);
