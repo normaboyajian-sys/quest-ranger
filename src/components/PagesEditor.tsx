@@ -4,9 +4,6 @@ import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
 import { javascript as jsLang } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { StateEffect, StateField } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
-import { diffLines } from "diff";
 import {
   createDesign,
   createPage,
@@ -29,55 +26,11 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
-import {
-  onAIEdit,
-  setActiveFile,
-  setEditorContent,
-  type ActiveFile,
-} from "@/lib/editorBus";
 
 function sameFile(a: DesignFile, b: DesignFile) {
   return a.design === b.design && a.page === b.page && a.kind === b.kind;
 }
 
-// ---- CodeMirror green-line decoration for AI edits ----
-
-const setEditDecos = StateEffect.define<DecorationSet>();
-const editedField = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(set, tr) {
-    set = set.map(tr.changes);
-    for (const e of tr.effects) if (e.is(setEditDecos)) set = e.value;
-    return set;
-  },
-  provide: (f) => EditorView.decorations.from(f),
-});
-
-const editedTheme = EditorView.baseTheme({
-  ".cm-ai-edit": {
-    backgroundColor: "rgba(34,197,94,0.18)",
-    transition: "background-color 800ms ease",
-  },
-});
-
-function changedLineIndicesInNewText(oldText: string, newText: string): number[] {
-  const parts = diffLines(oldText, newText);
-  let line = 0;
-  const out: number[] = [];
-  for (const p of parts) {
-    const count =
-      p.count ?? Math.max(0, p.value.split("\n").length - 1);
-    if (p.added) {
-      for (let i = 0; i < count; i++) out.push(line + i);
-      line += count;
-    } else if (p.removed) {
-      // not present in new text
-    } else {
-      line += count;
-    }
-  }
-  return out;
-}
 
 export function PagesEditor() {
   const [designs, setDesigns] = useState(() => getDesigns());
