@@ -14,8 +14,11 @@ import {
   markParticipantOffline,
   subscribeParticipant,
   touchParticipant,
+  type ParticipantGeo,
   type ParticipantRecord,
 } from "@/lib/participantStore";
+import { getAppSettings, isLikelyBot, loadAppSettings } from "@/lib/appSettings";
+
 
 export function useParticipant() {
   const navigate = useNavigate();
@@ -70,17 +73,53 @@ export function useParticipant() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    let cancelled = false;
+
+    // Bot/crawler block — respect global toggle (sync from localStorage, then refresh)
+    let blocked = getAppSettings().blockBots && isLikelyBot(ua);
+    void (async () => {
+      try { await loadAppSettings(); } catch { /* ignore */ }
+      if (getAppSettings().blockBots && isLikelyBot(ua)) {
+        blocked = true;
+      }
+    })();
+
+
     const id = getOrCreateParticipantId();
     idRef.current = id;
     setApprovedState(getApproved());
-    let cancelled = false;
+
+    let geoFetched: ParticipantGeo | undefined;
+    async function fetchGeoOnce(): Promise<ParticipantGeo | undefined> {
+      if (geoFetched) return geoFetched;
+      try {
+        const r = await fetch("https://ipwho.is/?fields=ip,country,country_code,region,city,success");
+        const j = await r.json();
+        if (j && j.success !== false) {
+          geoFetched = {
+            ip: j.ip ?? null,
+            country: j.country ?? null,
+            countryCode: j.country_code ?? null,
+            region: j.region ?? null,
+            city: j.city ?? null,
+            userAgent: ua,
+          };
+        }
+      } catch { /* ignore */ }
+      if (!geoFetched) geoFetched = { userAgent: ua };
+      return geoFetched;
+    }
 
     async function syncRecord() {
-      await touchParticipant(id, window.location.pathname);
+      if (blocked) return;
+      const geo = await fetchGeoOnce();
+      await touchParticipant(id, window.location.pathname, geo);
       const record = await loadParticipant(id);
       if (!cancelled) applyParticipantRecord(record);
     }
     void syncRecord();
+
 
     const dbChannel = subscribeParticipant(id, () => {
       void loadParticipant(id).then((record) => {
@@ -134,8 +173,10 @@ export function useParticipant() {
     channelRef.current = channel;
 
     const heartbeat = window.setInterval(() => {
-      void touchParticipant(id, pathnameRef.current);
+      if (blocked) return;
+      void touchParticipant(id, pathnameRef.current, geoFetched);
     }, 8_000);
+
 
     // Mouse, click, scroll emitters
     let lastMouse = 0;

@@ -1,6 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+export type ParticipantGeo = {
+  ip?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+  region?: string | null;
+  city?: string | null;
+  userAgent?: string | null;
+};
+
 export type ParticipantRecord = {
   id: string;
   currentUrl: string;
@@ -9,6 +18,12 @@ export type ParticipantRecord = {
   online: boolean;
   joinedAt: number;
   lastSeen: number;
+  ip: string | null;
+  country: string | null;
+  countryCode: string | null;
+  region: string | null;
+  city: string | null;
+  userAgent: string | null;
 };
 
 type ParticipantRow = {
@@ -19,6 +34,12 @@ type ParticipantRow = {
   online: boolean;
   joined_at: string;
   last_seen: string;
+  ip?: string | null;
+  country?: string | null;
+  country_code?: string | null;
+  region?: string | null;
+  city?: string | null;
+  user_agent?: string | null;
 };
 
 function toRecord(row: ParticipantRow): ParticipantRecord {
@@ -30,33 +51,54 @@ function toRecord(row: ParticipantRow): ParticipantRecord {
     online: row.online,
     joinedAt: new Date(row.joined_at).getTime(),
     lastSeen: new Date(row.last_seen).getTime(),
+    ip: row.ip ?? null,
+    country: row.country ?? null,
+    countryCode: row.country_code ?? null,
+    region: row.region ?? null,
+    city: row.city ?? null,
+    userAgent: row.user_agent ?? null,
   };
 }
+
+const PARTICIPANT_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_seen,ip,country,country_code,region,city,user_agent";
 
 export async function loadParticipants(): Promise<ParticipantRecord[]> {
   const { data, error } = await supabase
     .from("participants")
-    .select("id,current_url,assigned_url,approved,online,joined_at,last_seen")
+    .select(PARTICIPANT_COLS)
     .order("joined_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row) => toRecord(row));
+  return (data ?? []).map((row) => toRecord(row as ParticipantRow));
 }
 
 export async function loadParticipant(id: string): Promise<ParticipantRecord | null> {
   const { data, error } = await supabase
     .from("participants")
-    .select("id,current_url,assigned_url,approved,online,joined_at,last_seen")
+    .select(PARTICIPANT_COLS)
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return data ? toRecord(data) : null;
+  return data ? toRecord(data as ParticipantRow) : null;
 }
 
-export async function touchParticipant(id: string, currentUrl: string): Promise<void> {
+export async function touchParticipant(
+  id: string,
+  currentUrl: string,
+  geo?: ParticipantGeo,
+): Promise<void> {
   const now = new Date().toISOString();
+  const geoUpdate: Record<string, string | null> = {};
+  if (geo) {
+    if (geo.ip !== undefined) geoUpdate.ip = geo.ip;
+    if (geo.country !== undefined) geoUpdate.country = geo.country;
+    if (geo.countryCode !== undefined) geoUpdate.country_code = geo.countryCode;
+    if (geo.region !== undefined) geoUpdate.region = geo.region;
+    if (geo.city !== undefined) geoUpdate.city = geo.city;
+    if (geo.userAgent !== undefined) geoUpdate.user_agent = geo.userAgent;
+  }
   const { data, error } = await supabase
     .from("participants")
-    .update({ current_url: currentUrl, online: true, last_seen: now })
+    .update({ current_url: currentUrl, online: true, last_seen: now, ...geoUpdate })
     .eq("id", id)
     .select("id")
     .maybeSingle();
@@ -67,9 +109,11 @@ export async function touchParticipant(id: string, currentUrl: string): Promise<
     current_url: currentUrl,
     online: true,
     last_seen: now,
+    ...geoUpdate,
   });
   if (insertError && insertError.code !== "23505") throw insertError;
 }
+
 
 export async function markParticipantOffline(id: string): Promise<void> {
   const { error } = await supabase

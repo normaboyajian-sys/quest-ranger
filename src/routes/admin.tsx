@@ -30,6 +30,27 @@ import {
   type DesignRecord,
   type PageRecord,
 } from "@/lib/designStore";
+import {
+  countryFlagEmoji,
+  getAppSettings,
+  loadAppSettings,
+  setBlockBots,
+  startAppSettingsSync,
+  subscribeAppSettings,
+} from "@/lib/appSettings";
+
+function ParticipantGeoLine({ p }: { p: LiveRecord }) {
+  const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
+  if (!p.ip && !place) return null;
+  return (
+    <p className="admin-card-geo">
+      <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+      {place && <span className="admin-card-place">{place}</span>}
+      {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
+    </p>
+  );
+}
+
 
 
 
@@ -93,6 +114,15 @@ function Admin() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [blockBots, setBlockBotsState] = useState<boolean>(() => getAppSettings().blockBots);
+  useEffect(() => {
+    const stop = startAppSettingsSync();
+    void loadAppSettings();
+    const off = subscribeAppSettings((s) => setBlockBotsState(s.blockBots));
+    return () => { off(); stop(); };
+  }, []);
+
 
   async function refreshRecords() {
     const rows = await loadParticipants();
@@ -296,8 +326,23 @@ function Admin() {
               </span>
               <span className="admin-nav-label">Pages</span>
             </button>
+            <button
+              type="button"
+              className="admin-nav-item"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+            >
+              <span className="admin-nav-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </span>
+              <span className="admin-nav-label">Settings</span>
+            </button>
           </nav>
         </aside>
+
 
         <main className="admin-main">
 
@@ -350,7 +395,38 @@ function Admin() {
       </div>
 
 
+      {settingsOpen && (
+        <div className="admin-modal-backdrop" onClick={() => setSettingsOpen(false)}>
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Settings"
+          >
+            <div className="admin-modal-head">
+              <span>Settings</span>
+              <button className="admin-modal-close" onClick={() => setSettingsOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="admin-modal-list">
+              <label className="admin-settings-row">
+                <div>
+                  <div className="admin-settings-title">Block bots & crawlers</div>
+                  <div className="admin-settings-sub">Drop bot, AI crawler, and headless requests before they join.</div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="admin-switch"
+                  checked={blockBots}
+                  onChange={(e) => { const v = e.target.checked; setBlockBotsState(v); void setBlockBots(v); }}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
       {previews.map((pid, i) => (
+
         <LivePreview
           key={pid}
           pid={pid}
@@ -570,15 +646,18 @@ function ParticipantCard({
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
+      // Exclude button-click signals from submitted info; keep real inputs.
+      if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
 
+
   return (
     <article className="admin-card">
-      <div className="admin-card-head">
+      <div className="admin-card-head admin-card-head-stack">
         <div className="admin-card-icons">
           <button
             className="admin-icon-btn"
@@ -640,12 +719,14 @@ function ParticipantCard({
             </svg>
           </button>
         </div>
-        <div className="admin-card-id">
+        <div className="admin-card-id admin-card-id-bottom">
           <StatusDot state={p.state} />
           <span className="font-mono text-xs">{p.id}</span>
         </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
+      <ParticipantGeoLine p={p} />
+
 
       {modal && (
         <div className="admin-modal-backdrop" onClick={close}>
