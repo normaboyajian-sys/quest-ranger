@@ -328,8 +328,9 @@ function Admin() {
             </button>
             <button
               type="button"
-              className="admin-nav-item"
-              onClick={() => setSettingsOpen(true)}
+              className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
+              aria-current={nav === "settings" ? "page" : undefined}
+              onClick={() => setNav("settings")}
               title="Settings"
             >
               <span className="admin-nav-icon">
@@ -340,6 +341,7 @@ function Admin() {
               </span>
               <span className="admin-nav-label">Settings</span>
             </button>
+
           </nav>
         </aside>
 
