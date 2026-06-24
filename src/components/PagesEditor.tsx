@@ -76,7 +76,8 @@ export function PagesEditor() {
           if (!dirtyRef.current && activeRef.current && sameFile(activeRef.current, activeRef.current)) {
             setContent(c);
             contentRef.current = c;
-            pushBus();
+
+
           }
         });
       }
@@ -103,7 +104,8 @@ export function PagesEditor() {
         const c = loadFileCached(a);
         setContent(c);
         contentRef.current = c;
-        pushBus();
+
+
       },
     );
     return () => {
@@ -129,7 +131,7 @@ export function PagesEditor() {
     ) {
       setContent(fresh);
       contentRef.current = fresh;
-      pushBus();
+      
     }
   }
 
@@ -248,10 +250,10 @@ export function PagesEditor() {
   // ---- Render ----
 
   const extension = useMemo(() => {
-    if (!active) return [editedField, editedTheme];
-    if (active.kind === "html") return [htmlLang(), editedField, editedTheme];
-    if (active.kind === "css") return [cssLang(), editedField, editedTheme];
-    return [jsLang(), editedField, editedTheme];
+    if (!active) return [];
+    if (active.kind === "html") return [htmlLang()];
+    if (active.kind === "css") return [cssLang()];
+    return [jsLang()];
   }, [active]);
 
   const pathLabel = active
