@@ -124,10 +124,8 @@ function Admin() {
     const url = `/view/${suite}/${page}`;
     const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
-    // Also nudge the participant in case they are already on that URL
-    // (so the iframe reloads against the latest published design).
-    void broadcast("refresh", { id });
   }
+
 
   function kick(id: string) {
     void broadcast("revoke", { id });
