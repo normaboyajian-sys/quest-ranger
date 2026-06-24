@@ -1124,11 +1124,14 @@ function applyRemoteRow(row: { design: string; page: string; kind: string; conte
     kind: row.kind as FileKind,
   };
   const key = overrideKey(f);
+  // Respect tombstones — don't resurrect a deleted file from remote.
+  if (_tombstones.has(key)) return;
   if (_contentOverrides.get(key) === row.content) return;
   _contentOverrides.set(key, row.content);
   lsSet(OVERRIDE_PREFIX + key, row.content);
   notifyFile(f);
 }
+
 
 let _hydrateResolve: (() => void) | null = null;
 export const remoteHydrated: Promise<void> = new Promise((res) => {
