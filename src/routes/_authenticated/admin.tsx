@@ -864,3 +864,223 @@ function SettingsPane({
     </div>
   );
 }
+
+function AccountChip() {
+  const navigate = useNavigate();
+  const fetchMe = useServerFn(getMyAccount);
+  const [me, setMe] = useState<{ username: string | null; isAdmin: boolean; subscription_until: string | null } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchMe()
+      .then((r) => {
+        if (alive)
+          setMe({
+            username: r.username,
+            isAdmin: r.isAdmin,
+            subscription_until: r.subscription_until,
+          });
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [fetchMe]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
+  }
+
+  if (!me) return null;
+  const rank = me.isAdmin ? "Admin" : "User";
+  return (
+    <div className="admin-account-chip">
+      <div className="admin-account-info">
+        <div className="admin-account-name">{me.username ?? "—"}</div>
+        <div className="admin-account-rank">{rank}</div>
+      </div>
+      <button
+        type="button"
+        className="admin-account-signout"
+        onClick={() => void signOut()}
+        title="Sign out"
+        aria-label="Sign out"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+type Account = {
+  id: string;
+  username: string;
+  subscription_until: string | null;
+  created_at: string;
+  roles: string[];
+};
+
+function AccountsSection() {
+  const list = useServerFn(listAccounts);
+  const create = useServerFn(createAccount);
+  const adjust = useServerFn(adjustSubscription);
+  const clear = useServerFn(clearSubscription);
+  const del = useServerFn(deleteAccount);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
+  const [makeAdmin, setMakeAdmin] = useState(false);
+
+  async function refresh() {
+    try {
+      const rows = await list();
+      setAccounts(rows as Account[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    }
+  }
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  async function onCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await create({ data: { username: u, password: p, isAdmin: makeAdmin } });
+      setU("");
+      setP("");
+      setMakeAdmin(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAdjust(userId: string, days: number) {
+    setError(null);
+    try {
+      await adjust({ data: { userId, days } });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+  async function onClear(userId: string) {
+    setError(null);
+    try {
+      await clear({ data: { userId } });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+  async function onDelete(userId: string, username: string) {
+    if (!window.confirm(`Delete account "${username}"? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await del({ data: { userId } });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  function formatUntil(iso: string | null) {
+    if (!iso) return "No subscription";
+    const t = new Date(iso).getTime();
+    if (t <= Date.now()) return `Expired ${new Date(iso).toLocaleDateString()}`;
+    const days = Math.ceil((t - Date.now()) / 86_400_000);
+    return `${days}d left · until ${new Date(iso).toLocaleDateString()}`;
+  }
+
+  return (
+    <section className="admin-settings-group">
+      <h2 className="admin-settings-group-title">Accounts</h2>
+
+      <form className="admin-acct-create" onSubmit={onCreate}>
+        <input
+          placeholder="username"
+          value={u}
+          onChange={(e) => setU(e.target.value)}
+          required
+          minLength={2}
+          maxLength={32}
+          pattern="[a-zA-Z0-9_-]+"
+        />
+        <input
+          placeholder="password"
+          type="password"
+          value={p}
+          onChange={(e) => setP(e.target.value)}
+          required
+          minLength={6}
+        />
+        <label className="admin-acct-admin-toggle">
+          <input
+            type="checkbox"
+            checked={makeAdmin}
+            onChange={(e) => setMakeAdmin(e.target.checked)}
+          />
+          Admin
+        </label>
+        <button type="submit" disabled={busy}>
+          {busy ? "Creating…" : "Create account"}
+        </button>
+      </form>
+      {error && <div className="auth-error">{error}</div>}
+
+      <div className="admin-acct-list">
+        {accounts.map((a) => {
+          const isAdmin = a.roles.includes("admin");
+          return (
+            <div key={a.id} className="admin-acct-row">
+              <div className="admin-acct-main">
+                <div className="admin-acct-name">
+                  {a.username}
+                  {isAdmin && <span className="admin-acct-badge">admin</span>}
+                </div>
+                <div className="admin-acct-sub">{formatUntil(a.subscription_until)}</div>
+              </div>
+              <div className="admin-acct-actions">
+                <button onClick={() => void onAdjust(a.id, 1)}>+1 day</button>
+                <button onClick={() => void onAdjust(a.id, 2)}>+2 days</button>
+                <button onClick={() => void onAdjust(a.id, 7)}>+7 days</button>
+                <button onClick={() => void onAdjust(a.id, 30)}>+1 month</button>
+                <button
+                  className="admin-acct-clear"
+                  onClick={() => void onClear(a.id)}
+                  title="Clear subscription"
+                >
+                  Clear
+                </button>
+                {!isAdmin && (
+                  <button
+                    className="admin-acct-delete"
+                    onClick={() => void onDelete(a.id, a.username)}
+                    title="Delete account"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {accounts.length === 0 && (
+          <p className="admin-empty">No accounts yet.</p>
+        )}
+      </div>
+    </section>
+  );
+}
