@@ -171,24 +171,40 @@ function Admin() {
             <div className="admin-brand-name">Molly</div>
           </div>
           <nav className="admin-nav">
-            <button
-              className={`admin-nav-item ${section === "queue" ? "is-active" : ""}`}
-              onClick={() => setSection("queue")}
-            >
-              <span>Queue</span>
-              <span className="admin-count">{queue.length}</span>
-            </button>
-            <button
-              className={`admin-nav-item ${section === "participants" ? "is-active" : ""}`}
-              onClick={() => setSection("participants")}
-            >
-              <span>Participants</span>
-              <span className="admin-count">{approved.length}</span>
-            </button>
+            <div className="admin-nav-item is-active" aria-current="page">
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Participants
+              </span>
+              <span className="admin-count">{list.length}</span>
+            </div>
           </nav>
         </aside>
 
         <main className="admin-main">
+          <div className="admin-segmented" role="tablist">
+            <button
+              role="tab"
+              aria-selected={section === "queue"}
+              className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
+              onClick={() => setSection("queue")}
+            >
+              Queue <span className="admin-seg-count">{queue.length}</span>
+            </button>
+            <button
+              role="tab"
+              aria-selected={section === "participants"}
+              className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
+              onClick={() => setSection("participants")}
+            >
+              Participants <span className="admin-seg-count">{approved.length}</span>
+            </button>
+          </div>
           <div key={section} className="admin-pane">
             {section === "queue" ? (
               <QueuePane items={queue} onApprove={approve} />
