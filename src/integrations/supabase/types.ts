@@ -19,6 +19,7 @@ export type Database = {
           content: string
           design: string
           kind: string
+          label: string | null
           page: string
           updated_at: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           content: string
           design: string
           kind: string
+          label?: string | null
           page: string
           updated_at?: string
         }
@@ -33,7 +35,32 @@ export type Database = {
           content?: string
           design?: string
           kind?: string
+          label?: string | null
           page?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      designs: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
