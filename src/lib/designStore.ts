@@ -296,18 +296,31 @@ function bundledContent(f: DesignFile): string | null {
 
 function metaFor(designId: string): MetaEntry {
   const override = _metaOverrides.get(designId);
-  if (override) return override;
-  const bundled =
+  const bundledRaw =
     META_FILES[`/src/designs/${designId}/_meta.json`];
-  if (bundled)
+  const bundled = bundledRaw
+    ? {
+        label: bundledRaw.label ?? designId,
+        pages: { ...bundledRaw.pages },
+        pageMeta: { ...(bundledRaw.pageMeta ?? {}) },
+        hiddenShared: {} as { css?: boolean; js?: boolean },
+      }
+    : null;
+  if (override && bundled) {
+    // Bundled labels win for bundled pages; keep override-only pages, pageMeta, hiddenShared.
+    const mergedPages: Record<string, string> = { ...override.pages, ...bundled.pages };
     return {
-      label: bundled.label ?? designId,
-      pages: { ...bundled.pages },
-      pageMeta: { ...(bundled.pageMeta ?? {}) },
-      hiddenShared: {},
+      label: bundled.label,
+      pages: mergedPages,
+      pageMeta: { ...bundled.pageMeta, ...override.pageMeta },
+      hiddenShared: override.hiddenShared ?? {},
     };
+  }
+  if (override) return override;
+  if (bundled) return bundled;
   return { label: designId, pages: {}, pageMeta: {}, hiddenShared: {} };
 }
+
 
 export function getHiddenShared(design: string): { css?: boolean; js?: boolean } {
   return metaFor(design).hiddenShared ?? {};
