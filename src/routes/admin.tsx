@@ -24,7 +24,6 @@ import { PagesEditor } from "@/components/PagesEditor";
 import {
   getDesigns,
   getPagesFor,
-  loadAll,
   subscribeRegistry,
   type DesignRecord,
   type PageRecord,
