@@ -324,7 +324,7 @@ export function PagesEditor() {
                         <button
                           className="admin-pages-file"
                           onClick={() => void openFile(f)}
-                          title={`/view/${folder.id}/${pg.page}`}
+                          title={`/${folder.id}/${pg.page}`}
                         >
                           <span className="admin-pages-file-icon">·</span>
                           {pg.label ?? pg.page}.html
