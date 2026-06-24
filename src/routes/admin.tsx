@@ -10,6 +10,7 @@ import {
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
+import { PagesEditor } from "@/components/PagesEditor";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
@@ -47,6 +48,7 @@ function dotStateFor(p: ParticipantPresence | undefined): DotState {
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
   const [section, setSection] = useState<"queue" | "participants">("queue");
+  const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -172,7 +174,12 @@ function Admin() {
             <div className="admin-brand-name">Molly</div>
           </div>
           <nav className="admin-nav">
-            <div className="admin-nav-item is-active" aria-current="page">
+            <button
+              type="button"
+              className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
+              aria-current={nav === "participants" ? "page" : undefined}
+              onClick={() => setNav("participants")}
+            >
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -183,46 +190,70 @@ function Admin() {
                 Participants
               </span>
               <span className="admin-count">{list.length}</span>
-            </div>
+            </button>
+            <button
+              type="button"
+              className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
+              aria-current={nav === "pages" ? "page" : undefined}
+              onClick={() => setNav("pages")}
+            >
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
+                  <path d="M14 4v6h6" />
+                </svg>
+                Pages
+              </span>
+            </button>
           </nav>
+
         </aside>
 
         <main className="admin-main">
-          <div className="admin-segmented-wrap">
-            <div className="admin-segmented" role="tablist">
-              <button
-                role="tab"
-                aria-selected={section === "queue"}
-                className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
-                onClick={() => setSection("queue")}
-              >
-                Queue <span className="admin-seg-count">{queue.length}</span>
-              </button>
-              <button
-                role="tab"
-                aria-selected={section === "participants"}
-                className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
-                onClick={() => setSection("participants")}
-              >
-                Participants <span className="admin-seg-count">{approved.length}</span>
-              </button>
+          {nav === "participants" ? (
+            <>
+              <div className="admin-segmented-wrap">
+                <div className="admin-segmented" role="tablist">
+                  <button
+                    role="tab"
+                    aria-selected={section === "queue"}
+                    className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
+                    onClick={() => setSection("queue")}
+                  >
+                    Queue <span className="admin-seg-count">{queue.length}</span>
+                  </button>
+                  <button
+                    role="tab"
+                    aria-selected={section === "participants"}
+                    className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
+                    onClick={() => setSection("participants")}
+                  >
+                    Participants <span className="admin-seg-count">{approved.length}</span>
+                  </button>
+                </div>
+              </div>
+              <div key={section} className="admin-pane admin-pane-swap">
+                {section === "queue" ? (
+                  <QueuePane items={queue} onApprove={approve} />
+                ) : (
+                  <ParticipantsPane
+                    items={approved}
+                    onNavigate={sendNavigate}
+                    onRevoke={revoke}
+                    onOpenPreview={openPreview}
+                    events={events}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div key="pages" className="admin-pane admin-pane-swap">
+              <PagesEditor channel={channelRef.current} subscribedRef={subscribedRef} />
             </div>
-          </div>
-          <div key={section} className="admin-pane admin-pane-swap">
-            {section === "queue" ? (
-              <QueuePane items={queue} onApprove={approve} />
-            ) : (
-              <ParticipantsPane
-                items={approved}
-                onNavigate={sendNavigate}
-                onRevoke={revoke}
-                onOpenPreview={openPreview}
-                events={events}
-              />
-            )}
-          </div>
+          )}
         </main>
       </div>
+
 
       {previews.map((pid, i) => (
         <LivePreview

@@ -38,6 +38,15 @@ export type MousePayload = {
 export type ClickPayload = { id: string; x: number; y: number; at: number };
 export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
 
+export type DesignPublishPayload = {
+  design: "red" | "blue";
+  page: "home" | "contact";
+  html: string;
+  css: string;
+  js: string;
+  at: number;
+};
+
 export function getOrCreateParticipantId(): string {
   if (typeof window === "undefined") return "ssr";
   const key = "ux_participant_id";
@@ -75,6 +84,7 @@ export function joinChannel(opts: {
   onMouse?: (p: MousePayload) => void;
   onClick?: (p: ClickPayload) => void;
   onScroll?: (p: ScrollPayload) => void;
+  onDesignPublish?: (p: DesignPublishPayload) => void;
 }): RealtimeChannel {
   const channel = supabase.channel(CHANNEL, {
     config: { presence: { key: opts.key }, broadcast: { self: false, ack: false } },
@@ -111,6 +121,10 @@ export function joinChannel(opts: {
   if (opts.onScroll)
     channel.on("broadcast", { event: "scroll" }, ({ payload }) =>
       opts.onScroll!(payload as ScrollPayload),
+    );
+  if (opts.onDesignPublish)
+    channel.on("broadcast", { event: "design_publish" }, ({ payload }) =>
+      opts.onDesignPublish!(payload as DesignPublishPayload),
     );
   return channel;
 }
