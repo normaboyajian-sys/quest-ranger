@@ -202,39 +202,85 @@
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
   background: #000;
+  transition: grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
+.admin-shell.is-collapsed { grid-template-columns: 64px 1fr; }
 @media (max-width: 768px) {
-  .admin-shell { grid-template-columns: 1fr; }
+  .admin-shell, .admin-shell.is-collapsed { grid-template-columns: 1fr; }
 }
 
 .admin-sidebar {
   background: #000;
-  padding: 20px 14px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   border: none;
+  overflow: hidden;
 }
-.admin-brand {
+
+.admin-sidebar-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 6px;
+  min-height: 36px;
+}
+.admin-brand-btn {
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
-  padding: 4px 6px 8px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 4px;
+  border-radius: 8px;
+  min-width: 0;
+}
+.admin-brand-btn:hover { background: #131313; }
+.admin-avatar {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1f1f1f, #333);
+  display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex: none;
 }
 .admin-brand-name {
-  font-size: 17px;
-  font-weight: 400;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 220ms ease, max-width 320ms ease;
+  max-width: 160px;
 }
+.admin-sidebar-head-actions {
+  display: inline-flex; gap: 4px;
+  transition: opacity 200ms ease, transform 240ms ease;
+}
+.admin-shell.is-collapsed .admin-brand-name,
+.admin-shell.is-collapsed .admin-sidebar-head-actions {
+  opacity: 0;
+  pointer-events: none;
+  max-width: 0;
+  transform: translateX(-4px);
+}
+.admin-shell.is-collapsed .admin-sidebar-head { justify-content: center; }
+.admin-shell.is-collapsed .admin-brand-btn { padding: 2px; }
 
 .admin-nav { display: flex; flex-direction: column; gap: 4px; }
 .admin-nav-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 7px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: #a0a0a0;
   font-size: 13px;
@@ -244,8 +290,27 @@
   width: 100%;
   text-align: left;
   font-family: inherit;
-  transition: background 180ms ease, color 180ms ease;
+  transition: background 180ms ease, color 180ms ease, padding 200ms ease;
 }
+.admin-nav-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; flex: none;
+}
+.admin-nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  max-width: 160px;
+  transition: opacity 220ms ease, max-width 320ms ease;
+}
+.admin-shell.is-collapsed .admin-nav-label,
+.admin-shell.is-collapsed .admin-count {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+.admin-shell.is-collapsed .admin-nav-item { justify-content: center; padding: 9px 0; }
 .admin-nav-item:hover { background: #131313; color: #fff; }
 .admin-nav-item.is-active { background: #1a1a1a; color: #fff; }
 .admin-count {
@@ -254,6 +319,7 @@
   padding: 0;
   background: transparent;
   color: #cfcfcf;
+  transition: opacity 220ms ease, max-width 320ms ease;
 }
 
 .admin-main { padding: 28px 32px 48px; background: #000; }
@@ -522,25 +588,40 @@
 }
 
 /* Mirror overlays */
-.mirror-root { position: relative; min-height: 100vh; cursor: none; }
+.mirror-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #050505;
+  cursor: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.mirror-stage {
+  position: relative;
+  transform-origin: top left;
+  flex: none;
+}
 .mirror-empty {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  height: 100vh;
+  height: 100vh; width: 100%;
   color: #aaa;
   background: #0a0a0a;
   font-family: ui-monospace, monospace;
 }
 .mirror-empty-sub { color: #555; font-size: 12px; margin-top: 8px; }
 .mirror-cursor {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   z-index: 9998;
   transition: left 60ms linear, top 60ms linear;
   transform: translate(-2px, -2px);
 }
 .mirror-ripple {
-  position: fixed;
+  position: absolute;
   width: 12px; height: 12px;
   margin-left: -6px; margin-top: -6px;
   border-radius: 999px;

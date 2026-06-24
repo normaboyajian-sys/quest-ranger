@@ -58,6 +58,19 @@ function Admin() {
   const [nav, setNav] = useState<"participants" | "pages">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("admin_sidebar_open") !== "0";
+  });
+  function toggleSidebar(next?: boolean) {
+    setSidebarOpen((prev) => {
+      const v = typeof next === "boolean" ? next : !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_sidebar_open", v ? "1" : "0");
+      }
+      return v;
+    });
+  }
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
@@ -97,9 +110,14 @@ function Admin() {
     const sweeper = window.setInterval(() => {
       void markStaleParticipantsOffline().then(refreshRecords).catch(() => undefined);
     }, 5_000);
+    // Safety: full refresh in case a realtime event was dropped.
+    const safety = window.setInterval(() => {
+      void refreshRecords().catch(() => undefined);
+    }, 10_000);
     return () => {
       subscribedRef.current = false;
       window.clearInterval(sweeper);
+      window.clearInterval(safety);
       void participantChannel.unsubscribe();
       void ch.unsubscribe();
     };
@@ -181,11 +199,42 @@ function Admin() {
 
   return (
     <div className="admin-noir min-h-screen">
-      <div className="admin-shell">
+      <div className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"}`}>
         <aside className="admin-sidebar">
-          <div className="admin-brand" onMouseEnter={() => mollyRef.current?.play()}>
-            <MollyLogo ref={mollyRef} size={36} />
-            <div className="admin-brand-name">Molly</div>
+          <div className="admin-sidebar-head">
+            <button
+              type="button"
+              className="admin-brand-btn"
+              onMouseEnter={() => mollyRef.current?.play()}
+              onClick={() => toggleSidebar()}
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <span className="admin-avatar">
+                <MollyLogo ref={mollyRef} size={28} />
+              </span>
+              <span className="admin-brand-name">Molly</span>
+            </button>
+            <div className="admin-sidebar-head-actions">
+              <button type="button" className="admin-icon-btn" title="New" aria-label="New">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="admin-icon-btn"
+                title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+                aria-label="Toggle sidebar"
+                onClick={() => toggleSidebar()}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M9 4v16" />
+                </svg>
+              </button>
+            </div>
           </div>
           <nav className="admin-nav">
             <button
@@ -193,16 +242,17 @@ function Admin() {
               className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
               aria-current={nav === "participants" ? "page" : undefined}
               onClick={() => setNav("participants")}
+              title="Participants"
             >
-              <span className="flex items-center gap-2">
+              <span className="admin-nav-icon">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="7" height="7" rx="1" />
                   <rect x="14" y="3" width="7" height="7" rx="1" />
                   <rect x="3" y="14" width="7" height="7" rx="1" />
                   <rect x="14" y="14" width="7" height="7" rx="1" />
                 </svg>
-                Participants
               </span>
+              <span className="admin-nav-label">Participants</span>
               <span className="admin-count">{list.length}</span>
             </button>
             <button
@@ -210,14 +260,15 @@ function Admin() {
               className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
               aria-current={nav === "pages" ? "page" : undefined}
               onClick={() => setNav("pages")}
+              title="Pages"
             >
-              <span className="flex items-center gap-2">
+              <span className="admin-nav-icon">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
                   <path d="M14 4v6h6" />
                 </svg>
-                Pages
               </span>
+              <span className="admin-nav-label">Pages</span>
             </button>
           </nav>
 
