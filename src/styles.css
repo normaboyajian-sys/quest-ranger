@@ -211,10 +211,10 @@
 
 .admin-sidebar {
   background: #000;
-  padding: 14px 10px;
+  padding: 6px 6px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 6px;
   border: none;
   overflow: hidden;
 }
@@ -223,9 +223,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 2px 4px 6px;
-  min-height: 36px;
+  gap: 6px;
+  padding: 2px 2px 4px;
+  min-height: 32px;
 }
 .admin-brand-btn {
   display: inline-flex;
