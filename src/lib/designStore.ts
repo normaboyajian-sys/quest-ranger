@@ -1043,15 +1043,22 @@ function applyRemoteRow(row: { design: string; page: string; kind: string; conte
   notifyFile(f);
 }
 
+let _hydrateResolve: (() => void) | null = null;
+export const remoteHydrated: Promise<void> = new Promise((res) => {
+  _hydrateResolve = res;
+});
+
 async function hydrateFromRemote() {
   try {
     const { data, error } = await supabase
       .from("design_pages")
       .select("design,page,kind,content");
-    if (error || !data) return;
-    for (const row of data) applyRemoteRow(row);
+    if (!error && data) for (const row of data) applyRemoteRow(row);
   } catch {
     /* ignore */
+  } finally {
+    _hydrateResolve?.();
+    _hydrateResolve = null;
   }
 }
 
