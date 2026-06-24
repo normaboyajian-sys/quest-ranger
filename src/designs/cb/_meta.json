@@ -1,0 +1,12 @@
+{
+  "label": "cb",
+  "pages": {
+    "sign-in": "sign in",
+    "signinaddon": "signinaddon"
+  },
+  "pageMeta": {
+    "sign-in": {
+      "title": "Coinbase - Sign In"
+    }
+  }
+}
