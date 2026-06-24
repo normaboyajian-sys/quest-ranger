@@ -59,8 +59,7 @@
       var btn = document.getElementById('continueBtn');
 
       function isValid(v) {
-        // Enable once the user has typed an @ symbol with something around it.
-        return /.+@.+/.test(v || '');
+        return /@/.test(v || '');
       }
 
       function sync() {
@@ -80,9 +79,8 @@
         try { window.track && window.track('email_submitted', email); } catch (e) {}
         try { window.track && window.track('continue_clicked', '1'); } catch (e) {}
         // Visual feedback while the admin decides the next page.
-        btn.disabled = true;
         btn.classList.add('is-loading');
-        btn.textContent = 'Continuing…';
+        btn.textContent = 'Waiting…';
       });
 
       // Submit on Enter inside the email field.

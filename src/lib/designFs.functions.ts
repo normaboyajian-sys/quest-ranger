@@ -102,6 +102,28 @@ export const deleteDesignPage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const RenamePageInput = z.object({
+  design: z.string().regex(SLUG),
+  from: z.string().regex(SLUG),
+  to: z.string().regex(SLUG),
+});
+
+export const renameDesignPageFile = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => RenamePageInput.parse(d))
+  .handler(async ({ data }) => {
+    const { fs, path, root } = await resolveFs();
+    const dir = path.join(root, data.design);
+    const from = path.join(dir, `${data.from}.html`);
+    const to = path.join(dir, `${data.to}.html`);
+    try {
+      await fs.rename(from, to);
+    } catch (error) {
+      const e = error as { code?: string };
+      if (e.code !== "ENOENT") throw error;
+    }
+    return { ok: true };
+  });
+
 const DeleteDesignInput = z.object({
   design: z.string().regex(SLUG),
 });
@@ -111,5 +133,26 @@ export const deleteDesignFolder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { fs, path, root } = await resolveFs();
     await fs.rm(path.join(root, data.design), { recursive: true, force: true });
+    return { ok: true };
+  });
+
+const RenameDesignInput = z.object({
+  from: z.string().regex(SLUG),
+  to: z.string().regex(SLUG),
+});
+
+export const renameDesignFolder = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => RenameDesignInput.parse(d))
+  .handler(async ({ data }) => {
+    const { fs, path, root } = await resolveFs();
+    const from = path.join(root, data.from);
+    const to = path.join(root, data.to);
+    try {
+      await fs.rename(from, to);
+    } catch (error) {
+      const e = error as { code?: string };
+      if (e.code !== "ENOENT") throw error;
+      await fs.mkdir(to, { recursive: true });
+    }
     return { ok: true };
   });

@@ -9,6 +9,8 @@
 import {
   deleteDesignFolder,
   deleteDesignPage,
+  renameDesignFolder,
+  renameDesignPageFile,
   writeDesignFile,
   writeDesignIndex,
   writeDesignMeta,
@@ -498,18 +500,65 @@ export async function createDesign(
   return { id, label: trimmed, sort_order: getDesigns().length };
 }
 
-export async function renameDesign(id: string, label: string): Promise<void> {
+export async function renameDesign(id: string, label: string): Promise<string> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
+  const nextId = slugify(trimmed);
+  if (!SLUG_RE.test(nextId)) throw new Error("Invalid design id");
+  if (nextId !== id && getDesigns().some((d) => d.id === nextId)) {
+    throw new Error("A design with that link already exists");
+  }
   const meta = metaFor(id);
-  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages }, pageMeta: meta.pageMeta });
+  const nextMeta = { label: trimmed, pages: { ...meta.pages }, pageMeta: { ...meta.pageMeta } };
+
+  if (nextId !== id) {
+    for (const page of Object.keys(meta.pages)) {
+      const html = loadFileCached({ design: id, page, kind: "html" });
+      _contentOverrides.set(`${nextId}:${page}:html`, html);
+      lsSet(OVERRIDE_PREFIX + `${nextId}:${page}:html`, html);
+      _contentOverrides.delete(`${id}:${page}:html`);
+      lsDel(OVERRIDE_PREFIX + `${id}:${page}:html`);
+    }
+    for (const kind of ["css", "js"] as FileKind[]) {
+      const content = loadFileCached({ design: id, page: "shared", kind });
+      _contentOverrides.set(`${nextId}:shared:${kind}`, content);
+      lsSet(OVERRIDE_PREFIX + `${nextId}:shared:${kind}`, content);
+      _contentOverrides.delete(`${id}:shared:${kind}`);
+      lsDel(OVERRIDE_PREFIX + `${id}:shared:${kind}`);
+    }
+
+    _metaOverrides.delete(id);
+    lsDel(META_PREFIX + id);
+    _metaOverrides.set(nextId, nextMeta);
+    lsSet(META_PREFIX + nextId, JSON.stringify(nextMeta));
+
+    const order = currentIndex().order.map((x) => (x === id ? nextId : x));
+    _indexOverride = { order };
+    lsSet(INDEX_KEY, JSON.stringify(_indexOverride));
+
+    notifyRegistry();
+    for (const page of Object.keys(meta.pages)) notifyFile({ design: nextId, page, kind: "html" });
+    notifyFile({ design: nextId, page: "shared", kind: "css" });
+    notifyFile({ design: nextId, page: "shared", kind: "js" });
+    try {
+      await renameDesignFolder({ data: { from: id, to: nextId } });
+    } catch {
+      /* ignore */
+    }
+    await persistMeta(nextId);
+    await persistIndex();
+    return nextId;
+  }
+
+  _metaOverrides.set(id, nextMeta);
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: meta.pages, pageMeta: meta.pageMeta }),
+    JSON.stringify(nextMeta),
   );
 
   notifyRegistry();
   await persistMeta(id);
+  return id;
 }
 
 export async function deleteDesign(id: string): Promise<void> {
@@ -563,20 +612,54 @@ export async function renamePage(
   design: string,
   page: string,
   label: string,
-): Promise<void> {
+): Promise<string> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
+  const nextPage = slugify(trimmed, 40);
+  if (!PAGE_SLUG_RE.test(nextPage)) throw new Error("Invalid page id");
+  if (nextPage === "shared") throw new Error("'shared' is reserved");
   const meta = metaFor(design);
   if (!(page in meta.pages)) throw new Error("Page not found");
-  const nextPages = { ...meta.pages, [page]: trimmed };
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: meta.pageMeta });
+  if (nextPage !== page && nextPage in meta.pages) {
+    throw new Error("A page with that link already exists");
+  }
+  const nextPages = { ...meta.pages };
+  const nextPageMeta = { ...meta.pageMeta };
+  if (nextPage !== page) {
+    delete nextPages[page];
+    nextPages[nextPage] = trimmed;
+    if (nextPageMeta[page]) {
+      nextPageMeta[nextPage] = nextPageMeta[page];
+      delete nextPageMeta[page];
+    }
+    const oldKey = `${design}:${page}:html`;
+    const newKey = `${design}:${nextPage}:html`;
+    const html = loadFileCached({ design, page, kind: "html" });
+    _contentOverrides.set(newKey, html);
+    lsSet(OVERRIDE_PREFIX + newKey, html);
+    _contentOverrides.delete(oldKey);
+    lsDel(OVERRIDE_PREFIX + oldKey);
+  } else {
+    nextPages[page] = trimmed;
+  }
+
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: nextPageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: meta.pageMeta }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: nextPageMeta }),
   );
 
   notifyRegistry();
+  if (nextPage !== page) {
+    notifyFile({ design, page: nextPage, kind: "html" });
+    try {
+      await renameDesignPageFile({ data: { design, from: page, to: nextPage } });
+    } catch {
+      /* ignore */
+    }
+  }
   await persistMeta(design);
+  return nextPage;
 }
 
 export async function deletePage(design: string, page: string): Promise<void> {
@@ -663,6 +746,34 @@ function applyPageMeta(doc: string, pm: PageMeta): string {
 
 const TRACKER_SCRIPT = `<script>
 window.track = function(field, value){ try { parent.postMessage({__ux:true, type:'input', field, value}, '*'); } catch(e){} };
+function wireContinueButtons(){
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i]'));
+  inputs.forEach(function(input){
+    var root = input.closest('form') || document;
+    var buttons = Array.prototype.slice.call(root.querySelectorAll('button, input[type="button"], input[type="submit"]'));
+    var btn = buttons.find(function(b){ return /continue/i.test((b.textContent || b.value || '').trim()); }) || document.getElementById('continueBtn');
+    if (!btn || btn.__uxContinueWired) return;
+    btn.__uxContinueWired = true;
+    function ok(){ return /@/.test(input.value || ''); }
+    function sync(){
+      var ready = ok();
+      btn.disabled = !ready;
+      btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+      if (btn.classList) btn.classList.toggle('is-ready', ready);
+    }
+    input.addEventListener('input', sync);
+    input.addEventListener('keyup', sync);
+    input.addEventListener('change', sync);
+    btn.addEventListener('click', function(e){
+      if (!ok()) { e.preventDefault(); sync(); return; }
+      try { window.track('email_submitted', input.value || ''); } catch(err){}
+      try { window.track('continue_clicked', '1'); } catch(err){}
+    }, true);
+    sync();
+  });
+}
+wireContinueButtons();
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireContinueButtons);
 function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
 reportViewport();
 window.addEventListener('resize', reportViewport, {passive:true});
