@@ -28,9 +28,9 @@ export function useParticipant() {
       key: id,
       onNavigate: (p) => {
         if (p.targets === "all" || p.targets.includes(id)) {
-          navigate({ to: p.url, reloadDocument: false }).catch(() => {
-            window.location.assign(p.url);
-          });
+          // Hard navigate so the design iframe always remounts against the
+          // latest DB-published HTML/CSS/JS — even when the URL is unchanged.
+          window.location.assign(p.url);
         }
       },
       onApprove: (p) => {
