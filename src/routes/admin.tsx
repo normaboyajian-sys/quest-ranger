@@ -51,6 +51,7 @@ function Admin() {
   const [previews, setPreviews] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
+  const mollyRef = useRef<MollyLogoHandle>(null);
 
   useEffect(() => {
     const ch = joinChannel({
