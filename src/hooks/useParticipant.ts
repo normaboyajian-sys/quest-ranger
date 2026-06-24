@@ -205,6 +205,7 @@ export function useParticipant() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("click", onClick, true);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("message", onIframeMsg);
       window.removeEventListener("beforeunload", onUnload);
       window.clearInterval(heartbeat);
       subscribedRef.current = false;
