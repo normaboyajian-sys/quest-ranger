@@ -41,6 +41,15 @@ const MetaInput = z.object({
   design: z.string().regex(SLUG),
   label: z.string().min(1).max(80),
   pages: z.record(z.string(), z.string()),
+  pageMeta: z
+    .record(
+      z.string(),
+      z.object({
+        title: z.string().max(200).optional(),
+        favicon: z.string().max(2000).optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const writeDesignMeta = createServerFn({ method: "POST" })
@@ -51,11 +60,16 @@ export const writeDesignMeta = createServerFn({ method: "POST" })
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(
       path.join(dir, "_meta.json"),
-      JSON.stringify({ label: data.label, pages: data.pages }, null, 2),
+      JSON.stringify(
+        { label: data.label, pages: data.pages, pageMeta: data.pageMeta ?? {} },
+        null,
+        2,
+      ),
       "utf8",
     );
     return { ok: true };
   });
+
 
 const IndexInput = z.object({
   order: z.array(z.string().regex(SLUG)),
