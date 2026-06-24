@@ -121,9 +121,24 @@ function Admin() {
   }
 
   function sendNavigate(id: string, suite: Suite, page: Page) {
-    const payload: NavigatePayload = { targets: [id], url: `/view/${suite}/${page}` };
+    const url = `/view/${suite}/${page}`;
+    const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
+    // Also nudge the participant in case they are already on that URL
+    // (so the iframe reloads against the latest published design).
+    void broadcast("refresh", { id });
   }
+
+  function kick(id: string) {
+    void broadcast("revoke", { id });
+    setRecords((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+    setPreviews((p) => p.filter((x) => x !== id));
+  }
+
 
   function approve(id: string, suite: Suite, page: Page) {
     void broadcast("approve", { id }).then(() => {
