@@ -48,14 +48,31 @@ export type DesignPublishPayload = {
   at: number;
 };
 
+const PID_KEY = "ux_participant_id";
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.split("; ").find((r) => r.startsWith(name + "="));
+  return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
+}
+function writeCookie(name: string, value: string) {
+  if (typeof document === "undefined") return;
+  // 2 years, same-site lax so it survives normal navigation/rejoins.
+  const maxAge = 60 * 60 * 24 * 730;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
 export function getOrCreateParticipantId(): string {
   if (typeof window === "undefined") return "ssr";
-  const key = "ux_participant_id";
-  let id = localStorage.getItem(key);
+  let id: string | null = null;
+  try { id = localStorage.getItem(PID_KEY); } catch { /* ignore */ }
+  if (!id) id = readCookie(PID_KEY);
   if (!id) {
     id = `p_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`;
-    localStorage.setItem(key, id);
   }
+  // Re-persist to both stores so a wipe of one is restored from the other.
+  try { localStorage.setItem(PID_KEY, id); } catch { /* ignore */ }
+  writeCookie(PID_KEY, id);
   return id;
 }
 
