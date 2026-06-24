@@ -372,12 +372,14 @@ function ParticipantsPane({
   items,
   onNavigate,
   onRevoke,
+  onKick,
   onOpenPreview,
   events,
 }: {
   items: LiveRecord[];
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
 }) {
@@ -396,12 +398,14 @@ function ParticipantsPane({
                 p={p}
                 onNavigate={onNavigate}
                 onRevoke={onRevoke}
+                onKick={onKick}
                 onOpenPreview={onOpenPreview}
               />
             ))}
           </div>
         )}
       </div>
+
       <aside className="admin-feed">
         <h2 className="admin-section-label">Interaction Feed</h2>
         <div className="admin-feed-list">
