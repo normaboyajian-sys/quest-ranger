@@ -613,11 +613,46 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const html = loadFileCached({ design, page, kind: "html" });
   const css = loadFileCached({ design, page: "shared", kind: "css" });
   const js = loadFileCached({ design, page: "shared", kind: "js" });
+  const pm = getPageMeta(design, page);
   const trimmed = html.trimStart().toLowerCase();
-  if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
-    return injectTracker(html);
+  const isFullDoc =
+    trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
+  const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
+  return applyPageMeta(base, pm);
+}
+
+function escAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function escText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function applyPageMeta(doc: string, pm: PageMeta): string {
+  let out = doc;
+  const title = (pm.title ?? "").trim();
+  const favicon = (pm.favicon ?? "").trim();
+  if (!title && !favicon) return out;
+
+  if (title) {
+    if (/<title>[\s\S]*?<\/title>/i.test(out)) {
+      out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escText(title)}</title>`);
+    } else if (/<head[^>]*>/i.test(out)) {
+      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n<title>${escText(title)}</title>`);
+    }
   }
-  return wrap(html, css, js);
+
+  if (favicon) {
+    // Strip any existing favicon links first.
+    out = out.replace(/<link[^>]+rel=["']?(?:shortcut )?icon["']?[^>]*>/gi, "");
+    const tag = `<link rel="icon" href="${escAttr(favicon)}" />`;
+    if (/<head[^>]*>/i.test(out)) {
+      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n${tag}`);
+    }
+  }
+
+  return out;
 }
 
 const TRACKER_SCRIPT = `<script>
@@ -655,6 +690,7 @@ ${TRACKER_SCRIPT}
 <script>${js}<\/script>
 </body></html>`;
 }
+
 
 // ---- Change subscriptions (in-tab + cross-tab via storage events) ----
 
