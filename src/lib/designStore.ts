@@ -15,6 +15,7 @@ import {
   writeDesignIndex,
   writeDesignMeta,
 } from "@/lib/designFs.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // ---- Types (kept compatible with previous callers) ----
 
