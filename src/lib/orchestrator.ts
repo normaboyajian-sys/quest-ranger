@@ -84,6 +84,7 @@ export function joinChannel(opts: {
   onMouse?: (p: MousePayload) => void;
   onClick?: (p: ClickPayload) => void;
   onScroll?: (p: ScrollPayload) => void;
+  onDesignPublish?: (p: DesignPublishPayload) => void;
 }): RealtimeChannel {
   const channel = supabase.channel(CHANNEL, {
     config: { presence: { key: opts.key }, broadcast: { self: false, ack: false } },
