@@ -114,7 +114,7 @@ function Admin() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [, setSettingsTouch] = useState(0); // re-render hook for settings panel only
   const [blockBots, setBlockBotsState] = useState<boolean>(() => getAppSettings().blockBots);
   useEffect(() => {
     const stop = startAppSettingsSync();
