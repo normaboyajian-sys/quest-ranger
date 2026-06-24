@@ -172,8 +172,10 @@ export function useParticipant() {
     channelRef.current = channel;
 
     const heartbeat = window.setInterval(() => {
-      void touchParticipant(id, pathnameRef.current);
+      if (blocked) return;
+      void touchParticipant(id, pathnameRef.current, geoFetched);
     }, 8_000);
+
 
     // Mouse, click, scroll emitters
     let lastMouse = 0;
