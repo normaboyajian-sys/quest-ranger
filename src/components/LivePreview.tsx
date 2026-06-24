@@ -37,13 +37,31 @@ export function LivePreview({
       dragRef.current = null;
       resizeRef.current = null;
     }
+    function onMsg(e: MessageEvent) {
+      const d = e.data;
+      if (!d || typeof d !== "object" || d.__mirror !== true) return;
+      if (d.type === "participant_viewport" && d.pid === pid) {
+        const w = Number(d.w);
+        const h = Number(d.h);
+        if (w > 0 && h > 0) {
+          // Cap to 90% of admin viewport so the window still fits on screen.
+          const maxW = Math.floor(window.innerWidth * 0.9);
+          const maxH = Math.floor(window.innerHeight * 0.9);
+          const scale = Math.min(1, maxW / w, maxH / h);
+          setSize({ w: Math.round(w * scale) + 2, h: Math.round(h * scale) + 32 });
+        }
+      }
+    }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("message", onMsg);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("message", onMsg);
     };
-  }, []);
+  }, [pid]);
+
 
   return (
     <div
