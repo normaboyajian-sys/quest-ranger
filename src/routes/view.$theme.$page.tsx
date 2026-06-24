@@ -2,12 +2,12 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import {
-  applyBundle,
-  buildSrcDoc,
+  buildSrcDocCached,
+  loadAll,
   type DesignKey,
   type PageKey,
+  subscribeDesignChanges,
 } from "@/lib/designStore";
-import { joinChannel } from "@/lib/orchestrator";
 
 export const Route = createFileRoute("/view/$theme/$page")({
   head: () => ({ meta: [{ title: "Controlled Suite" }] }),
@@ -25,30 +25,35 @@ function SuiteView() {
   const emitInputRef = useRef(emitInput);
   emitInputRef.current = emitInput;
 
-  const [srcDoc, setSrcDoc] = useState<string>(() => buildSrcDoc(design, pageKey));
+  const [srcDoc, setSrcDoc] = useState<string>(() => buildSrcDocCached(design, pageKey));
   const [version, setVersion] = useState(0);
 
-  // Live updates from admin
+  // Pull latest from DB on mount / when route changes
   useEffect(() => {
-    const ch = joinChannel({
-      key: `viewer_${Math.random().toString(36).slice(2, 8)}`,
-      onDesignPublish: (p) => {
-        applyBundle({ design: p.design, page: p.page, html: p.html, css: p.css, js: p.js });
-        if (p.design === design && p.page === pageKey) {
-          setSrcDoc(buildSrcDoc(design, pageKey));
-          setVersion((v) => v + 1);
-        }
-      },
+    let cancelled = false;
+    setSrcDoc(buildSrcDocCached(design, pageKey));
+    void loadAll().then(() => {
+      if (cancelled) return;
+      setSrcDoc(buildSrcDocCached(design, pageKey));
+      setVersion((v) => v + 1);
     });
-    ch.subscribe();
     return () => {
-      void ch.unsubscribe();
+      cancelled = true;
     };
   }, [design, pageKey]);
 
-  // Rebuild when design/page changes
+  // Live updates: rebuild iframe when our design/page or shared files change
   useEffect(() => {
-    setSrcDoc(buildSrcDoc(design, pageKey));
+    const ch = subscribeDesignChanges(
+      (d, p) => d === design && (p === pageKey || p === "shared"),
+      () => {
+        setSrcDoc(buildSrcDocCached(design, pageKey));
+        setVersion((v) => v + 1);
+      },
+    );
+    return () => {
+      void ch.unsubscribe();
+    };
   }, [design, pageKey]);
 
   // Receive input events from iframe
