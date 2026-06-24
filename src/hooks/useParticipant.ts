@@ -58,12 +58,15 @@ export function useParticipant() {
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
       if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
-        window.location.assign(assigned);
+        navigate({ to: assigned, reloadDocument: false }).catch(() => {
+          window.location.assign(assigned);
+        });
       }
     } else {
       lastAssignedRef.current = assigned;
     }
   }
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
