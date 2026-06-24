@@ -38,6 +38,15 @@ export type MousePayload = {
 export type ClickPayload = { id: string; x: number; y: number; at: number };
 export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
 
+export type DesignPublishPayload = {
+  design: "red" | "blue";
+  page: "home" | "contact";
+  html: string;
+  css: string;
+  js: string;
+  at: number;
+};
+
 export function getOrCreateParticipantId(): string {
   if (typeof window === "undefined") return "ssr";
   const key = "ux_participant_id";
