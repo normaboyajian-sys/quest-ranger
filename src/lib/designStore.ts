@@ -187,6 +187,35 @@ function lsLoad() {
   }
 }
 lsLoad();
+runMigrations();
+
+function runMigrations() {
+  if (typeof window === "undefined") return;
+  const MIGRATION_KEY = "design_migration_v3";
+  try {
+    if (window.localStorage.getItem(MIGRATION_KEY) === "1") return;
+    // Wipe stale meta + content overrides + tombstones for bundled designs that
+    // were renamed (sign-in -> signin, signinaddon -> signinp).
+    const stalePages = ["sign-in", "signinaddon", "signin-in", "signinp-addon"];
+    const designsToClean = ["cb", "blue", "red"];
+    for (const d of designsToClean) {
+      _metaOverrides.delete(d);
+      try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
+      for (const p of stalePages) {
+        for (const kind of ["html", "css", "js"]) {
+          const key = `${d}:${p}:${kind}`;
+          _contentOverrides.delete(key);
+          _tombstones.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+    }
+    persistTombstones();
+    try { window.localStorage.setItem(MIGRATION_KEY, "1"); } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
+}
 
 function lsSet(key: string, value: string) {
   if (typeof window === "undefined") return;
@@ -1050,7 +1079,7 @@ function wireContinueButtons(){
       setStoredEmail(input.value || '');
       try { window.track('email_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo('signinaddon');
+      navigateTo('signinp');
     }
   }, true);
   var form = input.closest('form');
