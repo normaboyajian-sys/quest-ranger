@@ -455,6 +455,20 @@ export async function loadFile(f: DesignFile): Promise<string> {
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
   _contentOverrides.set(overrideKey(f), content);
   lsSet(OVERRIDE_PREFIX + overrideKey(f), content);
+  // If this is a shared file that was hidden, un-hide it.
+  if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
+    const hs = getHiddenShared(f.design);
+    if (hs[f.kind]) {
+      const meta = metaFor(f.design);
+      const next: MetaEntry = {
+        ...meta,
+        hiddenShared: { ...(meta.hiddenShared ?? {}), [f.kind]: undefined },
+      };
+      _metaOverrides.set(f.design, next);
+      lsSet(META_PREFIX + f.design, JSON.stringify(next));
+      notifyRegistry();
+    }
+  }
   notifyFile(f);
   try {
     await writeDesignFile({
