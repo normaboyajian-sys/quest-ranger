@@ -232,7 +232,38 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const html = loadFileCached({ design, page, kind: "html" });
   const css = loadFileCached({ design, page: "shared", kind: "css" });
   const js = loadFileCached({ design, page: "shared", kind: "js" });
+  const trimmed = html.trimStart().toLowerCase();
+  if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
+    return injectTracker(html);
+  }
   return wrap(html, css, js);
+}
+
+const TRACKER_SCRIPT = `<script>
+window.track = function(field, value){ try { parent.postMessage({__ux:true, type:'input', field, value}, '*'); } catch(e){} };
+function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
+reportViewport();
+window.addEventListener('resize', reportViewport, {passive:true});
+window.addEventListener('click', function(e){ try { parent.postMessage({__ux:true, type:'click', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} });
+window.addEventListener('mousemove', function(e){ try { parent.postMessage({__ux:true, type:'mouse', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} }, {passive:true});
+window.addEventListener('scroll', function(){ try { parent.postMessage({__ux:true, type:'scroll', sx:scrollX, sy:scrollY}, '*'); } catch(e){} }, {passive:true});
+document.addEventListener('input', function(e){
+  var t = e.target; if (!t || t.type === 'password') return;
+  var name = t.name || t.getAttribute('aria-label') || t.id; if (!name) return;
+  try { parent.postMessage({__ux:true, type:'input', field:name, value:t.value}, '*'); } catch(e){}
+}, true);
+window.addEventListener('message', function(ev){
+  var d = ev.data; if (!d || d.__mirror !== true) return;
+  if (d.type === 'input' && typeof d.field === 'string') {
+    var el = document.querySelector('[name="'+d.field+'"], #'+d.field);
+    if (el && el.type !== 'password') el.value = d.value == null ? '' : String(d.value);
+  }
+});
+<\/script>`;
+
+function injectTracker(html: string): string {
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
+  return html + TRACKER_SCRIPT;
 }
 
 function wrap(html: string, css: string, js: string): string {
