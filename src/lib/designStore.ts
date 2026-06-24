@@ -1,17 +1,22 @@
-// Stores editable HTML/CSS/JS for each design + page in localStorage.
-// Broadcasts updates so participants render the latest version live.
+// DB-backed editable HTML/CSS/JS for each design + page.
+// Stored in public.design_pages, mirrored locally for instant reads, updated
+// live via Supabase Realtime so every viewer/admin sees changes immediately.
+
+import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type DesignKey = "red" | "blue";
 export type PageKey = "home" | "contact";
 export type FileKind = "html" | "css" | "js";
+export type PageSlot = PageKey | "shared";
 
 export type DesignFile = {
   design: DesignKey;
-  page: PageKey | "shared";
+  page: PageSlot;
   kind: FileKind;
 };
 
-const KEY = (f: DesignFile) => `design:${f.design}:${f.page}:${f.kind}`;
+const CACHE_KEY = (f: DesignFile) => `design:${f.design}:${f.page}:${f.kind}`;
 
 export const DESIGN_LABELS: Record<DesignKey, string> = {
   red: "Industrial Red",
@@ -48,8 +53,8 @@ button.cta{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:
 }
 
 function sharedJS(): string {
-  return `// Available globally. Runs once on page load.
-// Use track(field, value) to record an input.
+  return `// Runs once on page load inside the participant iframe.
+// Use track(field, value) to record an input event in the admin feed.
 document.addEventListener('input', (e) => {
   const t = e.target;
   if (!t || !t.name) return;
@@ -61,8 +66,7 @@ document.addEventListener('input', (e) => {
 
 function homeHTML(design: DesignKey): string {
   const brand = design === "red" ? "FORGE" : "Lumen";
-  const h1 =
-    design === "red" ? "Built for impact." : "Designed to feel weightless.";
+  const h1 = design === "red" ? "Built for impact." : "Designed to feel weightless.";
   const sub =
     design === "red"
       ? "Industrial-grade tooling for teams who ship."
@@ -92,9 +96,7 @@ function contactHTML(design: DesignKey): string {
   const brand = design === "red" ? "FORGE" : "Lumen";
   const h1 = design === "red" ? "Send a transmission." : "Say hello.";
   const sub =
-    design === "red"
-      ? "We respond within 24 hours."
-      : "We'd love to hear from you.";
+    design === "red" ? "We respond within 24 hours." : "We'd love to hear from you.";
   const cta = design === "red" ? "Transmit" : "Send message";
   return `<header>
   <div class="brand"><span class="mark"></span><span>${brand}</span></div>
@@ -119,29 +121,92 @@ export function defaultContent(f: DesignFile): string {
   if (f.kind === "css") return sharedCSS(f.design);
   if (f.kind === "js") return sharedJS();
   if (f.page === "home") return homeHTML(f.design);
-  return contactHTML(f.design);
+  if (f.page === "contact") return contactHTML(f.design);
+  return "";
 }
 
-export function loadFile(f: DesignFile): string {
-  if (typeof window === "undefined") return defaultContent(f);
-  const v = localStorage.getItem(KEY(f));
-  return v ?? defaultContent(f);
+function readCache(f: DesignFile): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(CACHE_KEY(f));
 }
-
-export function saveFile(f: DesignFile, content: string) {
+function writeCache(f: DesignFile, content: string) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(KEY(f), content);
+  try {
+    localStorage.setItem(CACHE_KEY(f), content);
+  } catch {
+    /* quota */
+  }
 }
 
-export function resetFile(f: DesignFile) {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(KEY(f));
+/** Synchronous read from cache, falls back to bundled default. */
+export function loadFileCached(f: DesignFile): string {
+  return readCache(f) ?? defaultContent(f);
 }
 
-export function buildSrcDoc(design: DesignKey, page: PageKey): string {
-  const html = loadFile({ design, page, kind: "html" });
-  const css = loadFile({ design, page: "shared", kind: "css" });
-  const js = loadFile({ design, page: "shared", kind: "js" });
+/** Async read from DB, refreshes cache. */
+export async function loadFile(f: DesignFile): Promise<string> {
+  const { data } = await supabase
+    .from("design_pages")
+    .select("content")
+    .eq("design", f.design)
+    .eq("page", f.page)
+    .eq("kind", f.kind)
+    .maybeSingle();
+  if (data?.content != null) {
+    writeCache(f, data.content);
+    return data.content;
+  }
+  return loadFileCached(f);
+}
+
+/** Save to DB (upsert). Triggers realtime fan-out. */
+export async function saveFile(f: DesignFile, content: string): Promise<void> {
+  writeCache(f, content);
+  const { error } = await supabase.from("design_pages").upsert(
+    {
+      design: f.design,
+      page: f.page,
+      kind: f.kind,
+      content,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "design,page,kind" },
+  );
+  if (error) throw error;
+}
+
+/** Delete the override so the bundled default takes over again. */
+export async function resetFile(f: DesignFile): Promise<void> {
+  if (typeof window !== "undefined") localStorage.removeItem(CACHE_KEY(f));
+  await supabase
+    .from("design_pages")
+    .delete()
+    .eq("design", f.design)
+    .eq("page", f.page)
+    .eq("kind", f.kind);
+}
+
+/** Load all rows once and refresh the local cache. */
+export async function loadAll(): Promise<void> {
+  const { data } = await supabase.from("design_pages").select("*");
+  if (!data) return;
+  for (const row of data) {
+    writeCache(
+      { design: row.design as DesignKey, page: row.page as PageSlot, kind: row.kind as FileKind },
+      row.content,
+    );
+  }
+}
+
+/** Synchronous srcDoc using whatever is currently cached. */
+export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
+  const html = loadFileCached({ design, page, kind: "html" });
+  const css = loadFileCached({ design, page: "shared", kind: "css" });
+  const js = loadFileCached({ design, page: "shared", kind: "js" });
+  return wrap(html, css, js);
+}
+
+function wrap(html: string, css: string, js: string): string {
   return `<!doctype html><html><head><meta charset="utf-8" />
 <style>${css}</style></head><body>${html}
 <script>
@@ -159,26 +224,36 @@ ${js}
 </body></html>`;
 }
 
-export type DesignBundle = {
-  design: DesignKey;
-  page: PageKey;
-  html: string;
-  css: string;
-  js: string;
-};
-
-export function exportBundle(design: DesignKey, page: PageKey): DesignBundle {
-  return {
-    design,
-    page,
-    html: loadFile({ design, page, kind: "html" }),
-    css: loadFile({ design, page: "shared", kind: "css" }),
-    js: loadFile({ design, page: "shared", kind: "js" }),
-  };
-}
-
-export function applyBundle(b: DesignBundle) {
-  saveFile({ design: b.design, page: b.page, kind: "html" }, b.html);
-  saveFile({ design: b.design, page: "shared", kind: "css" }, b.css);
-  saveFile({ design: b.design, page: "shared", kind: "js" }, b.js);
+/**
+ * Subscribe to all design_pages changes; cache stays fresh and `onChange`
+ * fires whenever the visible (design,page) is affected.
+ */
+export function subscribeDesignChanges(
+  isInterested: (design: DesignKey, page: PageSlot, kind: FileKind) => boolean,
+  onChange: () => void,
+): RealtimeChannel {
+  const ch = supabase
+    .channel(`design_pages_${Math.random().toString(36).slice(2, 8)}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "design_pages" },
+      (payload) => {
+        const row =
+          (payload.new as Record<string, unknown> | null) ??
+          (payload.old as Record<string, unknown> | null);
+        if (!row) return;
+        const design = row.design as DesignKey;
+        const page = row.page as PageSlot;
+        const kind = row.kind as FileKind;
+        if (payload.eventType !== "DELETE" && typeof row.content === "string") {
+          writeCache({ design, page, kind }, row.content);
+        } else if (payload.eventType === "DELETE") {
+          if (typeof window !== "undefined")
+            localStorage.removeItem(CACHE_KEY({ design, page, kind }));
+        }
+        if (isInterested(design, page, kind)) onChange();
+      },
+    )
+    .subscribe();
+  return ch;
 }
