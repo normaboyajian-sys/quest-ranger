@@ -46,6 +46,7 @@ export function PagesEditor() {
   const [content, setContent] = useState<string>("");
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [openPanel, setOpenPanel] = useState<string | null>(null);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const activeRef = useRef<DesignFile | null>(null);
   activeRef.current = active;
@@ -53,6 +54,7 @@ export function PagesEditor() {
   dirtyRef.current = dirty;
   const contentRef = useRef(content);
   contentRef.current = content;
+
 
   // Initial sync — bundled designs are available synchronously.
   useEffect(() => {
