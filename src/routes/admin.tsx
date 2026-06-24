@@ -117,6 +117,7 @@ function Admin() {
     }, 5_000);
     return () => {
       subscribedRef.current = false;
+      window.clearInterval(sweeper);
       void ch.unsubscribe();
     };
   }, []);
