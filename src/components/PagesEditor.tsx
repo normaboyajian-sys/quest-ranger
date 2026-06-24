@@ -399,7 +399,7 @@ export function PagesEditor() {
             {dirty ? " ·" : ""}
             {active && (
               <a
-                href={`/view/${active.design}/${active.page === "shared" ? "home" : active.page}`}
+                href={`/${active.design}/${active.page === "shared" ? "home" : active.page}`}
                 target="_blank"
                 rel="noreferrer"
                 className="admin-pages-openlink"
