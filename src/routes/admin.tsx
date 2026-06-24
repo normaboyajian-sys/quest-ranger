@@ -135,9 +135,13 @@ function Admin() {
     void refreshRecords();
     const participantChannel = subscribeParticipants(() => void refreshRecords());
 
-    // Keep accepted participants forever; only flip stale online users red.
+    // Keep accepted participants forever; flip stale online users red and
+    // auto-purge unapproved queue entries that have gone quiet.
     const sweeper = window.setInterval(() => {
-      void markStaleParticipantsOffline().then(refreshRecords).catch(() => undefined);
+      void Promise.all([
+        markStaleParticipantsOffline().catch(() => undefined),
+        purgeStaleUnapproved().catch(() => undefined),
+      ]).then(() => refreshRecords()).catch(() => undefined);
     }, 5_000);
     // Safety: full refresh in case a realtime event was dropped.
     const safety = window.setInterval(() => {
