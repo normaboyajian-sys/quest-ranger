@@ -117,6 +117,7 @@ function lsLoad() {
               label: parsed.label ?? k.slice(META_PREFIX.length),
               pages: parsed.pages ?? {},
               pageMeta: parsed.pageMeta ?? {},
+              hiddenShared: parsed.hiddenShared ?? {},
             });
           } catch {
 
