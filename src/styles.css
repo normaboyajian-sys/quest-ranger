@@ -772,9 +772,10 @@
 .admin-pages-path { color: #d4d4d4; font-size: 13px; }
 .admin-pages-actions { display: flex; align-items: center; gap: 10px; }
 .admin-pages-status { color: #8a8a8a; font-size: 12px; }
-.admin-pages-code { flex: 1; min-height: 0; overflow: hidden; }
-.admin-pages-code .cm-editor { height: 100%; background: #050505; }
-.admin-pages-code .cm-scroller { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.admin-pages-code { flex: 1; min-height: 0; overflow: hidden; display: flex; }
+.admin-pages-code .cm-theme { flex: 1; min-height: 0; display: flex; }
+.admin-pages-code .cm-editor { height: 100%; width: 100%; background: #050505; }
+.admin-pages-code .cm-scroller { font-family: ui-monospace, "SF Mono", Menlo, monospace; overflow: auto !important; }
 
 /* Minimal gray scrollbars across admin + code editor (no arrows, no track bg) */
 .admin-noir *::-webkit-scrollbar,
