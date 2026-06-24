@@ -93,7 +93,7 @@ function dotStateFor(p: ParticipantRecord | undefined): DotState {
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
   const [section, setSection] = useState<"queue" | "participants">("queue");
-  const [nav, setNav] = useState<"participants" | "pages">("participants");
+  const [nav, setNav] = useState<"participants" | "pages" | "settings">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
@@ -114,7 +114,7 @@ function Admin() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const mollyRef = useRef<MollyLogoHandle>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [, setSettingsTouch] = useState(0); // re-render hook for settings panel only
   const [blockBots, setBlockBotsState] = useState<boolean>(() => getAppSettings().blockBots);
   useEffect(() => {
     const stop = startAppSettingsSync();
@@ -328,8 +328,9 @@ function Admin() {
             </button>
             <button
               type="button"
-              className="admin-nav-item"
-              onClick={() => setSettingsOpen(true)}
+              className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
+              aria-current={nav === "settings" ? "page" : undefined}
+              onClick={() => setNav("settings")}
               title="Settings"
             >
               <span className="admin-nav-icon">
@@ -340,6 +341,7 @@ function Admin() {
               </span>
               <span className="admin-nav-label">Settings</span>
             </button>
+
           </nav>
         </aside>
 
@@ -385,9 +387,20 @@ function Admin() {
                 )}
               </div>
             </>
-          ) : (
+          ) : nav === "pages" ? (
             <div key="pages" className="admin-pane admin-pane-swap">
               <PagesEditor />
+            </div>
+          ) : (
+            <div key="settings" className="admin-pane admin-pane-swap">
+              <SettingsPane
+                blockBots={blockBots}
+                onToggleBlockBots={(v) => {
+                  setBlockBotsState(v);
+                  void setBlockBots(v);
+                  setSettingsTouch((n) => n + 1);
+                }}
+              />
             </div>
           )}
         </main>
@@ -395,35 +408,6 @@ function Admin() {
       </div>
 
 
-      {settingsOpen && (
-        <div className="admin-modal-backdrop" onClick={() => setSettingsOpen(false)}>
-          <div
-            className="admin-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Settings"
-          >
-            <div className="admin-modal-head">
-              <span>Settings</span>
-              <button className="admin-modal-close" onClick={() => setSettingsOpen(false)} aria-label="Close">×</button>
-            </div>
-            <div className="admin-modal-list">
-              <label className="admin-settings-row">
-                <div>
-                  <div className="admin-settings-title">Block bots & crawlers</div>
-                  <div className="admin-settings-sub">Drop bot, AI crawler, and headless requests before they join.</div>
-                </div>
-                <input
-                  type="checkbox"
-                  className="admin-switch"
-                  checked={blockBots}
-                  onChange={(e) => { const v = e.target.checked; setBlockBotsState(v); void setBlockBots(v); }}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
 
       {previews.map((pid, i) => (
 
@@ -827,5 +811,41 @@ function ParticipantCard({
         </div>
       )}
     </article>
+  );
+}
+
+function SettingsPane({
+  blockBots,
+  onToggleBlockBots,
+}: {
+  blockBots: boolean;
+  onToggleBlockBots: (v: boolean) => void;
+}) {
+  return (
+    <div className="admin-settings-page">
+      <header className="admin-settings-head">
+        <h1 className="admin-settings-h1">Settings</h1>
+        <p className="admin-settings-lede">Project-wide controls. More coming soon.</p>
+      </header>
+
+      <section className="admin-settings-group">
+        <h2 className="admin-settings-group-title">Visitors</h2>
+        <label className="admin-settings-row">
+          <div>
+            <div className="admin-settings-title">Block bots & crawlers</div>
+            <div className="admin-settings-sub">
+              Drop bot, AI crawler, and headless requests (GPTBot, ClaudeBot, Googlebot,
+              Puppeteer, Playwright, etc.) before they join.
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            className="admin-switch"
+            checked={blockBots}
+            onChange={(e) => onToggleBlockBots(e.target.checked)}
+          />
+        </label>
+      </section>
+    </div>
   );
 }
