@@ -167,11 +167,12 @@ export function PagesEditor() {
     try {
       await createDesign(id, label.trim());
       setOpenFolders((s) => ({ ...s, [id]: true }));
-      void openFile({ design: id, page: "home", kind: "html" });
+      // Empty design — no files to open. User clicks + to add a page.
     } catch (e) {
       window.alert((e as Error).message);
     }
   }
+
 
   async function onRenameDesign(id: string, current: string) {
     const label = window.prompt("Rename design folder/link", current);
