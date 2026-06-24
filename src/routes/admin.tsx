@@ -8,11 +8,11 @@ import {
   type ParticipantPresence,
 } from "@/lib/orchestrator";
 import { StatusDot, type DotState } from "@/components/StatusDot";
+import { MollyLogo } from "@/components/MollyLogo";
+import { LivePreview } from "@/components/LivePreview";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({
-    meta: [{ title: "Management Dashboard — Orchestrator" }],
-  }),
+  head: () => ({ meta: [{ title: "Molly — Control" }] }),
   component: Admin,
 });
 
@@ -30,8 +30,6 @@ type Page = (typeof PAGES)[number]["value"];
 
 type LiveRecord = ParticipantPresence & { lastSeen: number; state: DotState };
 
-const LEFT_GRACE_MS = 20_000;
-
 function pageLabelFromUrl(url: string): string {
   const m = url.match(/^\/view\/(red|blue)\/(home|contact)/);
   if (!m) return url === "/" ? "Focus Room" : url;
@@ -40,17 +38,19 @@ function pageLabelFromUrl(url: string): string {
   return `${suite} · ${page}`;
 }
 
-function dotStateFor(p: ParticipantPresence | undefined, present: boolean): DotState {
-  if (!present) return "left";
-  if (p && p.currentUrl.startsWith("/view/")) return "on";
+function dotStateFor(p: ParticipantPresence | undefined): DotState {
+  if (!p) return "left";
+  if (p.currentUrl.startsWith("/view/")) return "on";
   return "off";
 }
 
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
-  const [tab, setTab] = useState<"queue" | "participants">("queue");
+  const [section, setSection] = useState<"queue" | "participants">("queue");
   const [events, setEvents] = useState<InputPayload[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscribedRef = useRef(false);
 
   useEffect(() => {
     const ch = joinChannel({
@@ -73,20 +73,15 @@ function Admin() {
           }
         }
         setRecords((prev) => {
-          const next = new Map(prev);
-          // upsert present
+          const next = new Map<string, LiveRecord>();
           for (const [id, p] of fresh) {
-            next.set(id, { ...p, lastSeen: now, state: dotStateFor(p, true) });
-          }
-          // mark missing as left
-          for (const [id, rec] of next) {
-            if (!seen.has(id)) {
-              if (now - rec.lastSeen > LEFT_GRACE_MS) {
-                next.delete(id);
-              } else {
-                next.set(id, { ...rec, state: "left" });
-              }
-            }
+            const old = prev.get(id);
+            next.set(id, {
+              ...p,
+              lastSeen: now,
+              state: dotStateFor(p),
+              joinedAt: old?.joinedAt ?? p.joinedAt,
+            });
           }
           return next;
         });
@@ -94,52 +89,76 @@ function Admin() {
       onInput: (p) => setEvents((prev) => [p, ...prev].slice(0, 200)),
     });
     ch.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") await ch.track({ admin: true });
+      if (status === "SUBSCRIBED") {
+        subscribedRef.current = true;
+        await ch.track({ admin: true });
+      }
     });
     channelRef.current = ch;
-
-    // periodic prune of left cards
-    const interval = setInterval(() => {
-      setRecords((prev) => {
-        const now = Date.now();
-        const next = new Map(prev);
-        for (const [id, rec] of next) {
-          if (rec.state === "left" && now - rec.lastSeen > LEFT_GRACE_MS) {
-            next.delete(id);
-          }
-        }
-        return next;
-      });
-    }, 3000);
-
     return () => {
-      clearInterval(interval);
+      subscribedRef.current = false;
       void ch.unsubscribe();
     };
   }, []);
 
-  function sendNavigate(id: string, suite: Suite, page: Page) {
+  async function broadcast(event: string, payload: unknown, retries = 3) {
     const ch = channelRef.current;
     if (!ch) return;
+    for (let i = 0; i < retries; i++) {
+      if (subscribedRef.current) {
+        try {
+          const res = await ch.send({ type: "broadcast", event, payload });
+          if (res === "ok") return;
+        } catch {
+          /* retry */
+        }
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+
+  function sendNavigate(id: string, suite: Suite, page: Page) {
     const payload: NavigatePayload = { targets: [id], url: `/view/${suite}/${page}` };
-    void ch.send({ type: "broadcast", event: "navigate", payload });
+    void broadcast("navigate", payload);
   }
 
   function approve(id: string, suite: Suite, page: Page) {
-    const ch = channelRef.current;
-    if (!ch) return;
-    void ch.send({ type: "broadcast", event: "approve", payload: { id } });
-    // small delay so client applies approval before navigating
-    setTimeout(() => sendNavigate(id, suite, page), 250);
+    void broadcast("approve", { id }).then(() => {
+      setTimeout(() => sendNavigate(id, suite, page), 200);
+    });
+    // optimistic local flag
+    setRecords((prev) => {
+      const r = prev.get(id);
+      if (!r) return prev;
+      const next = new Map(prev);
+      next.set(id, { ...r, approved: true });
+      return next;
+    });
   }
 
   function revoke(id: string) {
-    const ch = channelRef.current;
-    if (!ch) return;
-    void ch.send({ type: "broadcast", event: "revoke", payload: { id } });
+    void broadcast("revoke", { id });
+    setRecords((prev) => {
+      const r = prev.get(id);
+      if (!r) return prev;
+      const next = new Map(prev);
+      next.set(id, { ...r, approved: false, currentUrl: "/", state: "off" });
+      return next;
+    });
+    setPreviews((p) => p.filter((x) => x !== id));
   }
 
-  const list = useMemo(() => Array.from(records.values()).sort((a, b) => a.joinedAt - b.joinedAt), [records]);
+  function openPreview(id: string) {
+    setPreviews((p) => (p.includes(id) ? p : [...p, id]));
+  }
+  function closePreview(id: string) {
+    setPreviews((p) => p.filter((x) => x !== id));
+  }
+
+  const list = useMemo(
+    () => Array.from(records.values()).sort((a, b) => a.joinedAt - b.joinedAt),
+    [records],
+  );
   const queue = list.filter((r) => !r.approved);
   const approved = list.filter((r) => r.approved);
 
@@ -148,59 +167,55 @@ function Admin() {
       <div className="admin-shell">
         <aside className="admin-sidebar">
           <div className="admin-brand">
-            <div className="admin-brand-mark" />
-            <div>
-              <p className="admin-brand-eyebrow">Orchestrator</p>
-              <p className="admin-brand-name">Control</p>
-            </div>
+            <MollyLogo size={36} />
+            <div className="admin-brand-name">Molly</div>
           </div>
           <nav className="admin-nav">
             <button
-              className={`admin-nav-item ${tab === "queue" ? "is-active" : ""}`}
-              onClick={() => setTab("queue")}
+              className={`admin-nav-item ${section === "queue" ? "is-active" : ""}`}
+              onClick={() => setSection("queue")}
             >
               <span>Queue</span>
               <span className="admin-count">{queue.length}</span>
             </button>
             <button
-              className={`admin-nav-item ${tab === "participants" ? "is-active" : ""}`}
-              onClick={() => setTab("participants")}
+              className={`admin-nav-item ${section === "participants" ? "is-active" : ""}`}
+              onClick={() => setSection("participants")}
             >
               <span>Participants</span>
               <span className="admin-count">{approved.length}</span>
             </button>
           </nav>
-          <div className="admin-sidebar-foot">
-            <span className="admin-pulse" />
-            Live channel
-          </div>
         </aside>
 
         <main className="admin-main">
-          <header className="admin-header">
-            <div>
-              <p className="admin-eyebrow">Management Dashboard</p>
-              <h1 className="admin-title">{tab === "queue" ? "Approval Queue" : "Active Participants"}</h1>
-            </div>
-            <div className="admin-header-meta">
-              <span className="admin-count-pill">{list.length} live</span>
-            </div>
-          </header>
-
-          <div key={tab} className="admin-pane">
-            {tab === "queue" ? (
+          <div key={section} className="admin-pane">
+            {section === "queue" ? (
               <QueuePane items={queue} onApprove={approve} />
             ) : (
               <ParticipantsPane
                 items={approved}
                 onNavigate={sendNavigate}
                 onRevoke={revoke}
+                onOpenPreview={openPreview}
                 events={events}
               />
             )}
           </div>
         </main>
       </div>
+
+      {previews.map((pid, i) => (
+        <LivePreview
+          key={pid}
+          pid={pid}
+          onClose={() => closePreview(pid)}
+          initial={{
+            pos: { x: 80 + i * 40, y: 80 + i * 40 },
+            size: { w: 480, h: 360 },
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -236,7 +251,7 @@ function QueueCard({
   const [page, setPage] = useState<Page>("home");
 
   return (
-    <article className={`admin-card ${p.state === "left" ? "is-left" : ""}`}>
+    <article className="admin-card">
       <div className="admin-card-head">
         <div className="admin-card-id">
           <StatusDot state={p.state} />
@@ -278,10 +293,7 @@ function QueueCard({
       </div>
 
       <div className="admin-card-actions">
-        <button
-          className="admin-btn admin-btn-primary"
-          onClick={() => setOpen((v) => !v)}
-        >
+        <button className="admin-btn admin-btn-primary" onClick={() => setOpen((v) => !v)}>
           {open ? "Cancel" : "Accept"}
         </button>
       </div>
@@ -293,11 +305,13 @@ function ParticipantsPane({
   items,
   onNavigate,
   onRevoke,
+  onOpenPreview,
   events,
 }: {
   items: LiveRecord[];
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onOpenPreview: (id: string) => void;
   events: InputPayload[];
 }) {
   const ids = new Set(items.map((i) => i.id));
@@ -310,7 +324,13 @@ function ParticipantsPane({
         ) : (
           <div className="admin-grid">
             {items.map((p) => (
-              <ParticipantCard key={p.id} p={p} onNavigate={onNavigate} onRevoke={onRevoke} />
+              <ParticipantCard
+                key={p.id}
+                p={p}
+                onNavigate={onNavigate}
+                onRevoke={onRevoke}
+                onOpenPreview={onOpenPreview}
+              />
             ))}
           </div>
         )}
@@ -344,43 +364,41 @@ function ParticipantCard({
   p,
   onNavigate,
   onRevoke,
+  onOpenPreview,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
+  onOpenPreview: (id: string) => void;
 }) {
   const [suite, setSuite] = useState<Suite>("red");
   const [page, setPage] = useState<Page>("home");
 
-  const quick: Array<[Suite, Page, string]> = [
-    ["red", "home", "Red · Home"],
-    ["red", "contact", "Red · Contact"],
-    ["blue", "home", "Blue · Home"],
-    ["blue", "contact", "Blue · Contact"],
-  ];
-
   return (
-    <article className={`admin-card ${p.state === "left" ? "is-left" : ""}`}>
+    <article className="admin-card">
       <div className="admin-card-head">
         <div className="admin-card-id">
           <StatusDot state={p.state} />
           <span className="font-mono text-sm">{p.id}</span>
         </div>
-        <span className="admin-tag admin-tag-live">{p.state === "on" ? "On site" : p.state === "off" ? "Focus Room" : "Left"}</span>
+        <div className="flex items-center gap-2">
+          <span className="admin-tag admin-tag-live">
+            {p.state === "on" ? "On site" : p.state === "off" ? "Focus" : "Left"}
+          </span>
+          <button
+            className="admin-icon-btn"
+            title="Live preview"
+            onClick={() => onOpenPreview(p.id)}
+            aria-label="Open live preview"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
-
-      <div className="admin-quick">
-        {quick.map(([s, pg, label]) => (
-          <button
-            key={label}
-            className="admin-chip"
-            onClick={() => onNavigate(p.id, s, pg)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
 
       <div className="admin-row">
         <select value={suite} onChange={(e) => setSuite(e.target.value as Suite)} className="admin-select">
@@ -397,11 +415,8 @@ function ParticipantCard({
             </option>
           ))}
         </select>
-        <button
-          className="admin-btn admin-btn-primary"
-          onClick={() => onNavigate(p.id, suite, page)}
-        >
-          Send
+        <button className="admin-btn admin-btn-primary" onClick={() => onNavigate(p.id, suite, page)}>
+          Redirect
         </button>
       </div>
 

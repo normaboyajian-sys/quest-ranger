@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as ViewThemePageRouteImport } from './routes/view.$theme.$page'
 
 const AdminRoute = AdminRouteImport.update({
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObservePidRoute = ObservePidRouteImport.update({
+  id: '/observe/$pid',
+  path: '/observe/$pid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ViewThemePageRoute = ViewThemePageRouteImport.update({
   id: '/view/$theme/$page',
   path: '/view/$theme/$page',
@@ -32,30 +38,34 @@ const ViewThemePageRoute = ViewThemePageRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/observe/$pid': typeof ObservePidRoute
   '/view/$theme/$page': typeof ViewThemePageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/observe/$pid': typeof ObservePidRoute
   '/view/$theme/$page': typeof ViewThemePageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/observe/$pid': typeof ObservePidRoute
   '/view/$theme/$page': typeof ViewThemePageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/view/$theme/$page'
+  fullPaths: '/' | '/admin' | '/observe/$pid' | '/view/$theme/$page'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/view/$theme/$page'
-  id: '__root__' | '/' | '/admin' | '/view/$theme/$page'
+  to: '/' | '/admin' | '/observe/$pid' | '/view/$theme/$page'
+  id: '__root__' | '/' | '/admin' | '/observe/$pid' | '/view/$theme/$page'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ObservePidRoute: typeof ObservePidRoute
   ViewThemePageRoute: typeof ViewThemePageRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/observe/$pid': {
+      id: '/observe/$pid'
+      path: '/observe/$pid'
+      fullPath: '/observe/$pid'
+      preLoaderRoute: typeof ObservePidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/view/$theme/$page': {
       id: '/view/$theme/$page'
       path: '/view/$theme/$page'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ObservePidRoute: ObservePidRoute,
   ViewThemePageRoute: ViewThemePageRoute,
 }
 export const routeTree = rootRouteImport
