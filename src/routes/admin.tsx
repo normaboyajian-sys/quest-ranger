@@ -10,6 +10,7 @@ import {
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
+import { PagesEditor } from "@/components/PagesEditor";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
