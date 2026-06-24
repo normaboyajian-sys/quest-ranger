@@ -497,6 +497,9 @@ function ParticipantCard({
         <button className="admin-btn admin-btn-ghost" onClick={() => onRevoke(p.id)}>
           Revoke access
         </button>
+        <button className="admin-btn admin-btn-ghost" onClick={() => onKick(p.id)}>
+          Remove
+        </button>
       </div>
     </article>
   );
