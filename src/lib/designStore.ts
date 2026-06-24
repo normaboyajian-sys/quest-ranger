@@ -234,9 +234,41 @@ function metaFor(designId: string): MetaEntry {
     return {
       label: bundled.label ?? designId,
       pages: { ...bundled.pages },
+      pageMeta: { ...(bundled.pageMeta ?? {}) },
     };
-  return { label: designId, pages: {} };
+  return { label: designId, pages: {}, pageMeta: {} };
 }
+
+export function getPageMeta(design: string, page: string): PageMeta {
+  return metaFor(design).pageMeta[page] ?? {};
+}
+
+export async function setPageMeta(
+  design: string,
+  page: string,
+  patch: PageMeta,
+): Promise<void> {
+  const meta = metaFor(design);
+  const nextPageMeta = {
+    ...meta.pageMeta,
+    [page]: { ...(meta.pageMeta[page] ?? {}), ...patch },
+  };
+  // Drop empties so the meta file stays clean.
+  const cleaned: Record<string, PageMeta> = {};
+  for (const [k, v] of Object.entries(nextPageMeta)) {
+    const t = (v.title ?? "").trim();
+    const f = (v.favicon ?? "").trim();
+    if (t || f) cleaned[k] = { ...(t ? { title: t } : {}), ...(f ? { favicon: f } : {}) };
+  }
+  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned };
+  _metaOverrides.set(design, next);
+  lsSet(META_PREFIX + design, JSON.stringify(next));
+  notifyRegistry();
+  // Re-render any open iframe for this page.
+  notifyFile({ design, page, kind: "html" });
+  await persistMeta(design);
+}
+
 
 function currentIndex(): { order: string[] } {
   if (_indexOverride) return _indexOverride;
