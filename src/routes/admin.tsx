@@ -166,7 +166,7 @@ function Admin() {
   }
 
   async function sendNavigate(id: string, suite: Suite, page: Page) {
-    const url = `/view/${suite}/${page}`;
+    const url = `/${suite}/${page}`;
     await setParticipantAssignment(id, url);
     const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
@@ -181,7 +181,7 @@ function Admin() {
 
 
   function approve(id: string, suite: Suite, page: Page) {
-    const url = `/view/${suite}/${page}`;
+    const url = `/${suite}/${page}`;
     void setParticipantApproval(id, true, url).then(() => {
       void refreshRecords();
       void broadcast("approve", { id });
