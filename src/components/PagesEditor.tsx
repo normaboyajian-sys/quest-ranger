@@ -454,6 +454,22 @@ export function PagesEditor() {
                       kind,
                     };
                     const isActive = !!active && sameFile(f, active);
+                    const hidden = !!getHiddenShared(folder.id)[kind];
+                    const label = kind === "css" ? "styles.css" : "script.js";
+                    if (hidden) {
+                      return (
+                        <div key={kind} className="admin-pages-file-row is-muted">
+                          <button
+                            className="admin-pages-file"
+                            onClick={() => void onRestoreShared(folder.id, kind)}
+                            title={`Restore ${label}`}
+                          >
+                            <span className="admin-pages-file-icon">+</span>
+                            Add {label}
+                          </button>
+                        </div>
+                      );
+                    }
                     return (
                       <div
                         key={kind}
@@ -464,20 +480,19 @@ export function PagesEditor() {
                           onClick={() => void openFile(f)}
                         >
                           <span className="admin-pages-file-icon">·</span>
-                          {kind === "css" ? "styles.css" : "script.js"}
+                          {label}
                         </button>
                         <div className="admin-pages-file-actions">
                           <button
                             type="button"
                             className="admin-tree-btn admin-tree-btn-danger"
-                            title={`Delete ${kind === "css" ? "styles.css" : "script.js"}`}
+                            title={`Delete ${label}`}
                             onClick={() => void onDeleteShared(folder.id, kind)}
                           >
                             ×
                           </button>
                         </div>
                       </div>
-
                     );
                   })}
                 </div>
