@@ -255,9 +255,11 @@ function Admin() {
                     items={approved}
                     onNavigate={sendNavigate}
                     onRevoke={revoke}
+                    onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
                   />
+
                 )}
               </div>
             </>
