@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function MollyLogo({ size = 36 }: { size?: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const animRef = useRef<{ play: () => void; stop: () => void; goToAndStop: (n: number, b?: boolean) => void; destroy: () => void } | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let anim: { destroy: () => void } | null = null;
     let cancelled = false;
     Promise.all([
       import("lottie-web"),
@@ -13,24 +14,34 @@ export function MollyLogo({ size = 36 }: { size?: number }) {
       if (cancelled || !ref.current) return;
       const lottie = (lottieMod as any).default ?? lottieMod;
       const data = (dataMod as any).default ?? dataMod;
-      anim = lottie.loadAnimation({
+      const anim = lottie.loadAnimation({
         container: ref.current,
         renderer: "svg",
         loop: true,
-        autoplay: true,
+        autoplay: false,
         animationData: data,
       });
+      anim.goToAndStop(0, true);
+      animRef.current = anim;
+      setReady(true);
     });
     return () => {
       cancelled = true;
-      anim?.destroy();
+      animRef.current?.destroy();
+      animRef.current = null;
     };
   }, []);
 
   return (
     <div
       ref={ref}
-      style={{ width: size, height: size, flex: "none" }}
+      onMouseEnter={() => ready && animRef.current?.play()}
+      onMouseLeave={() => {
+        if (!ready) return;
+        animRef.current?.stop();
+        animRef.current?.goToAndStop(0, true);
+      }}
+      style={{ width: size, height: size, flex: "none", cursor: "pointer" }}
       aria-label="Molly"
     />
   );
