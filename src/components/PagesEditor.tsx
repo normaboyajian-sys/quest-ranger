@@ -11,14 +11,15 @@ import {
   deleteDesign,
   deletePage,
   getDesigns,
+  getPageMeta,
   getPagesFor,
-  
   loadFile,
   loadFileCached,
   renameDesign,
   renamePage,
   resetFile,
   saveFile,
+  setPageMeta,
   slugify,
   subscribeDesignChanges,
   subscribeRegistry,
@@ -26,6 +27,7 @@ import {
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
+
 
 function sameFile(a: DesignFile, b: DesignFile) {
   return a.design === b.design && a.page === b.page && a.kind === b.kind;
@@ -231,6 +233,31 @@ export function PagesEditor() {
     }
   }
 
+  async function onEditPageSettings(design: string, page: string) {
+    const current = getPageMeta(design, page);
+    const title = window.prompt(
+      "Browser tab title (leave blank to use the page's own <title>)",
+      current.title ?? "",
+    );
+    if (title === null) return;
+    const favicon = window.prompt(
+      "Favicon URL (https://… or data URI — leave blank for none)",
+      current.favicon ?? "",
+    );
+    if (favicon === null) return;
+    try {
+      await setPageMeta(design, page, {
+        title: title.trim(),
+        favicon: favicon.trim(),
+      });
+      setStatus("Page settings saved");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+
   async function onDeleteShared(design: string, kind: FileKind) {
     const label = kind === "css" ? "styles.css" : "script.js";
     if (!window.confirm(`Delete ${label}? This clears its contents.`)) return;
@@ -349,6 +376,17 @@ export function PagesEditor() {
                           {pg.label ?? pg.page}.html
                         </button>
                         <div className="admin-pages-file-actions">
+                          <button
+                            type="button"
+                            className="admin-tree-btn"
+                            title="Page settings (tab title & favicon)"
+                            onClick={() =>
+                              void onEditPageSettings(folder.id, pg.page)
+                            }
+                          >
+                            ⚙
+                          </button>
+
                           <button
                             type="button"
                             className="admin-tree-btn"

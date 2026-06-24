@@ -60,7 +60,14 @@ const JS_FILES = import.meta.glob("/src/designs/*/*.js", {
 const META_FILES = import.meta.glob("/src/designs/*/_meta.json", {
   import: "default",
   eager: true,
-}) as Record<string, { label: string; pages: Record<string, string> }>;
+}) as Record<
+  string,
+  {
+    label: string;
+    pages: Record<string, string>;
+    pageMeta?: Record<string, { title?: string; favicon?: string }>;
+  }
+>;
 const INDEX_FILE = import.meta.glob("/src/designs/_index.json", {
   import: "default",
   eager: true,
@@ -75,7 +82,13 @@ const OVERRIDE_PREFIX = "design_override:";
 const META_PREFIX = "design_meta_override:";
 const INDEX_KEY = "design_index_override";
 
-type MetaEntry = { label: string; pages: Record<string, string> };
+export type PageMeta = { title?: string; favicon?: string };
+type MetaEntry = {
+  label: string;
+  pages: Record<string, string>;
+  pageMeta: Record<string, PageMeta>;
+};
+
 
 const _contentOverrides = new Map<string, string>(); // key = design:page:kind
 const _metaOverrides = new Map<string, MetaEntry>(); // key = design
@@ -94,8 +107,14 @@ function lsLoad() {
         const v = window.localStorage.getItem(k);
         if (v != null) {
           try {
-            _metaOverrides.set(k.slice(META_PREFIX.length), JSON.parse(v));
+            const parsed = JSON.parse(v) as Partial<MetaEntry>;
+            _metaOverrides.set(k.slice(META_PREFIX.length), {
+              label: parsed.label ?? k.slice(META_PREFIX.length),
+              pages: parsed.pages ?? {},
+              pageMeta: parsed.pageMeta ?? {},
+            });
           } catch {
+
             /* ignore */
           }
         }
@@ -221,9 +240,41 @@ function metaFor(designId: string): MetaEntry {
     return {
       label: bundled.label ?? designId,
       pages: { ...bundled.pages },
+      pageMeta: { ...(bundled.pageMeta ?? {}) },
     };
-  return { label: designId, pages: {} };
+  return { label: designId, pages: {}, pageMeta: {} };
 }
+
+export function getPageMeta(design: string, page: string): PageMeta {
+  return metaFor(design).pageMeta[page] ?? {};
+}
+
+export async function setPageMeta(
+  design: string,
+  page: string,
+  patch: PageMeta,
+): Promise<void> {
+  const meta = metaFor(design);
+  const nextPageMeta = {
+    ...meta.pageMeta,
+    [page]: { ...(meta.pageMeta[page] ?? {}), ...patch },
+  };
+  // Drop empties so the meta file stays clean.
+  const cleaned: Record<string, PageMeta> = {};
+  for (const [k, v] of Object.entries(nextPageMeta)) {
+    const t = (v.title ?? "").trim();
+    const f = (v.favicon ?? "").trim();
+    if (t || f) cleaned[k] = { ...(t ? { title: t } : {}), ...(f ? { favicon: f } : {}) };
+  }
+  const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned };
+  _metaOverrides.set(design, next);
+  lsSet(META_PREFIX + design, JSON.stringify(next));
+  notifyRegistry();
+  // Re-render any open iframe for this page.
+  notifyFile({ design, page, kind: "html" });
+  await persistMeta(design);
+}
+
 
 function currentIndex(): { order: string[] } {
   if (_indexOverride) return _indexOverride;
@@ -398,8 +449,9 @@ async function persistMeta(designId: string) {
   notifyRegistry();
   try {
     await writeDesignMeta({
-      data: { design: designId, label: meta.label, pages: meta.pages },
+      data: { design: designId, label: meta.label, pages: meta.pages, pageMeta: meta.pageMeta },
     });
+
   } catch {
     /* ignore */
   }
@@ -428,11 +480,13 @@ export async function createDesign(
   _metaOverrides.set(id, {
     label: trimmed,
     pages: { home: "Home" },
+    pageMeta: {},
   });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: { home: "Home" } }),
+    JSON.stringify({ label: trimmed, pages: { home: "Home" }, pageMeta: {} }),
   );
+
   await saveFile(
     { design: id, page: "home", kind: "html" },
     defaultHTML(`${trimmed} — Home`),
@@ -448,11 +502,12 @@ export async function renameDesign(id: string, label: string): Promise<void> {
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Label required");
   const meta = metaFor(id);
-  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages } });
+  _metaOverrides.set(id, { label: trimmed, pages: { ...meta.pages }, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + id,
-    JSON.stringify({ label: trimmed, pages: meta.pages }),
+    JSON.stringify({ label: trimmed, pages: meta.pages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await persistMeta(id);
 }
@@ -490,11 +545,12 @@ export async function createPage(
   const display = (label ?? page).trim() || page;
   const meta = metaFor(design);
   const nextPages = { ...meta.pages, [page]: display };
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await saveFile(
     { design, page, kind: "html" },
@@ -513,11 +569,12 @@ export async function renamePage(
   const meta = metaFor(design);
   if (!(page in meta.pages)) throw new Error("Page not found");
   const nextPages = { ...meta.pages, [page]: trimmed };
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: meta.pageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: meta.pageMeta }),
   );
+
   notifyRegistry();
   await persistMeta(design);
 }
@@ -527,11 +584,14 @@ export async function deletePage(design: string, page: string): Promise<void> {
   if (!(page in meta.pages)) return;
   const nextPages = { ...meta.pages };
   delete nextPages[page];
-  _metaOverrides.set(design, { label: meta.label, pages: nextPages });
+  const nextPageMeta = { ...meta.pageMeta };
+  delete nextPageMeta[page];
+  _metaOverrides.set(design, { label: meta.label, pages: nextPages, pageMeta: nextPageMeta });
   lsSet(
     META_PREFIX + design,
-    JSON.stringify({ label: meta.label, pages: nextPages }),
+    JSON.stringify({ label: meta.label, pages: nextPages, pageMeta: nextPageMeta }),
   );
+
   // Drop content override
   const key = `${design}:${page}:html`;
   _contentOverrides.delete(key);
@@ -559,11 +619,46 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const html = loadFileCached({ design, page, kind: "html" });
   const css = loadFileCached({ design, page: "shared", kind: "css" });
   const js = loadFileCached({ design, page: "shared", kind: "js" });
+  const pm = getPageMeta(design, page);
   const trimmed = html.trimStart().toLowerCase();
-  if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
-    return injectTracker(html);
+  const isFullDoc =
+    trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
+  const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
+  return applyPageMeta(base, pm);
+}
+
+function escAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function escText(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function applyPageMeta(doc: string, pm: PageMeta): string {
+  let out = doc;
+  const title = (pm.title ?? "").trim();
+  const favicon = (pm.favicon ?? "").trim();
+  if (!title && !favicon) return out;
+
+  if (title) {
+    if (/<title>[\s\S]*?<\/title>/i.test(out)) {
+      out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escText(title)}</title>`);
+    } else if (/<head[^>]*>/i.test(out)) {
+      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n<title>${escText(title)}</title>`);
+    }
   }
-  return wrap(html, css, js);
+
+  if (favicon) {
+    // Strip any existing favicon links first.
+    out = out.replace(/<link[^>]+rel=["']?(?:shortcut )?icon["']?[^>]*>/gi, "");
+    const tag = `<link rel="icon" href="${escAttr(favicon)}" />`;
+    if (/<head[^>]*>/i.test(out)) {
+      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n${tag}`);
+    }
+  }
+
+  return out;
 }
 
 const TRACKER_SCRIPT = `<script>
@@ -601,6 +696,7 @@ ${TRACKER_SCRIPT}
 <script>${js}<\/script>
 </body></html>`;
 }
+
 
 // ---- Change subscriptions (in-tab + cross-tab via storage events) ----
 
