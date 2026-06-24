@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       design_pages: {
         Row: {
           content: string
@@ -69,32 +87,50 @@ export type Database = {
         Row: {
           approved: boolean
           assigned_url: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
           current_url: string
           id: string
+          ip: string | null
           joined_at: string
           last_seen: string
           online: boolean
+          region: string | null
           updated_at: string
+          user_agent: string | null
         }
         Insert: {
           approved?: boolean
           assigned_url?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
           current_url?: string
           id: string
+          ip?: string | null
           joined_at?: string
           last_seen?: string
           online?: boolean
+          region?: string | null
           updated_at?: string
+          user_agent?: string | null
         }
         Update: {
           approved?: boolean
           assigned_url?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
           current_url?: string
           id?: string
+          ip?: string | null
           joined_at?: string
           last_seen?: string
           online?: boolean
+          region?: string | null
           updated_at?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
