@@ -25,8 +25,23 @@ export function useParticipant() {
   const idRef = useRef<string>("");
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
+  const internalNavUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
   pathnameRef.current = pathname;
+
+  function internalNavActive() {
+    if (Date.now() < internalNavUntilRef.current) return true;
+    try {
+      const until = Number(window.sessionStorage.getItem("__ux_internal_nav_until") || "0");
+      if (Number.isFinite(until) && Date.now() < until) {
+        internalNavUntilRef.current = until;
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
 
   function applyParticipantRecord(record: ParticipantRecord | null) {
     if (!record) return;
@@ -42,7 +57,7 @@ export function useParticipant() {
     }
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
-      if (record.approved && pathnameRef.current !== assigned) {
+      if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
         window.location.assign(assigned);
       }
     } else {
@@ -191,6 +206,13 @@ export function useParticipant() {
     const onIframeMsg = (e: MessageEvent) => {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__ux !== true) return;
+      if (d.type === "internal_navigation") {
+        internalNavUntilRef.current = Date.now() + 15_000;
+        if (typeof d.url === "string") {
+          lastAssignedRef.current = d.url;
+        }
+        return;
+      }
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
       const now = Date.now();
