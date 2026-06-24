@@ -49,7 +49,7 @@ function pagesFromPagesFor(pages: PageRecord[]): PageOpt[] {
 type LiveRecord = ParticipantRecord & { state: DotState };
 
 function pageLabelFromUrl(url: string): string {
-  const m = url.match(/^\/view\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
+  const m = url.match(/^\/([a-z][a-z0-9_-]{0,30})\/([a-z][a-z0-9_-]{0,40})/);
   if (!m) return url === "/" ? "Focus Room" : url;
   const designs = getDesigns();
   const design = designs.find((d) => d.id === m[1]);
@@ -166,7 +166,7 @@ function Admin() {
   }
 
   async function sendNavigate(id: string, suite: Suite, page: Page) {
-    const url = `/view/${suite}/${page}`;
+    const url = `/${suite}/${page}`;
     await setParticipantAssignment(id, url);
     const payload: NavigatePayload = { targets: [id], url };
     void broadcast("navigate", payload);
@@ -181,7 +181,7 @@ function Admin() {
 
 
   function approve(id: string, suite: Suite, page: Page) {
-    const url = `/view/${suite}/${page}`;
+    const url = `/${suite}/${page}`;
     void setParticipantApproval(id, true, url).then(() => {
       void refreshRecords();
       void broadcast("approve", { id });

@@ -324,7 +324,7 @@ export function PagesEditor() {
                         <button
                           className="admin-pages-file"
                           onClick={() => void openFile(f)}
-                          title={`/view/${folder.id}/${pg.page}`}
+                          title={`/${folder.id}/${pg.page}`}
                         >
                           <span className="admin-pages-file-icon">·</span>
                           {pg.label ?? pg.page}.html
@@ -399,7 +399,7 @@ export function PagesEditor() {
             {dirty ? " ·" : ""}
             {active && (
               <a
-                href={`/view/${active.design}/${active.page === "shared" ? "home" : active.page}`}
+                href={`/${active.design}/${active.page === "shared" ? "home" : active.page}`}
                 target="_blank"
                 rel="noreferrer"
                 className="admin-pages-openlink"

@@ -10,7 +10,7 @@ import {
 
 const SLUG = /^[a-z][a-z0-9_-]{0,40}$/;
 
-export const Route = createFileRoute("/view/$theme/$page")({
+export const Route = createFileRoute("/$theme/$page")({
   head: () => ({ meta: [{ title: "Controlled Suite" }] }),
   component: SuiteView,
 });
