@@ -1,105 +1,248 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
 import { javascript as jsLang } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { StateEffect, StateField } from "@codemirror/state";
+import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
+import { diffLines } from "diff";
 import {
-  DESIGN_LABELS,
-  PAGE_LINKS,
-  PAGE_LABELS,
+  createDesign,
+  createPage,
   defaultContent,
-  ensureDefaultDesignPages,
+  deleteDesign,
+  deletePage,
+  getDesigns,
+  getPagesFor,
   loadAll,
   loadFile,
   loadFileCached,
+  renameDesign,
+  renamePage,
   resetFile,
   saveFile,
+  slugify,
   subscribeDesignChanges,
+  subscribeRegistry,
   type DesignFile,
-  type DesignKey,
   type FileKind,
   type PageSlot,
 } from "@/lib/designStore";
-
-type FileNode = { kind: "file"; file: DesignFile; label: string };
-type FolderNode = {
-  kind: "folder";
-  design: DesignKey;
-  label: string;
-  children: FileNode[];
-};
-
-function buildTree(): FolderNode[] {
-  const designs: DesignKey[] = ["red", "blue"];
-  return designs.map((d) => ({
-    kind: "folder",
-    design: d,
-    label: DESIGN_LABELS[d],
-    children: [
-      { kind: "file", file: { design: d, page: "home", kind: "html" }, label: "home.html" },
-      { kind: "file", file: { design: d, page: "contact", kind: "html" }, label: "contact.html" },
-      { kind: "file", file: { design: d, page: "shared", kind: "css" }, label: "styles.css" },
-      { kind: "file", file: { design: d, page: "shared", kind: "js" }, label: "script.js" },
-    ],
-  }));
-}
+import {
+  onAIEdit,
+  setActiveFile,
+  setEditorContent,
+  type ActiveFile,
+} from "@/lib/editorBus";
 
 function sameFile(a: DesignFile, b: DesignFile) {
   return a.design === b.design && a.page === b.page && a.kind === b.kind;
 }
 
+// ---- CodeMirror green-line decoration for AI edits ----
+
+const setEditDecos = StateEffect.define<DecorationSet>();
+const editedField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(set, tr) {
+    set = set.map(tr.changes);
+    for (const e of tr.effects) if (e.is(setEditDecos)) set = e.value;
+    return set;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const editedTheme = EditorView.baseTheme({
+  ".cm-ai-edit": {
+    backgroundColor: "rgba(34,197,94,0.18)",
+    transition: "background-color 800ms ease",
+  },
+});
+
+function changedLineIndicesInNewText(oldText: string, newText: string): number[] {
+  const parts = diffLines(oldText, newText);
+  let line = 0;
+  const out: number[] = [];
+  for (const p of parts) {
+    const count =
+      p.count ?? Math.max(0, p.value.split("\n").length - 1);
+    if (p.added) {
+      for (let i = 0; i < count; i++) out.push(line + i);
+      line += count;
+    } else if (p.removed) {
+      // not present in new text
+    } else {
+      line += count;
+    }
+  }
+  return out;
+}
+
 export function PagesEditor() {
-  const tree = useMemo(buildTree, []);
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    red: true,
-    blue: true,
-  });
-  const [active, setActive] = useState<DesignFile>({
-    design: "red",
-    page: "home",
-    kind: "html",
-  });
-  const [content, setContent] = useState<string>(() => loadFileCached(active));
+  const [designs, setDesigns] = useState(() => getDesigns());
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
+  const [active, setActive] = useState<DesignFile | null>(null);
+  const [content, setContent] = useState<string>("");
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<string>("");
-  const activeRef = useRef(active);
+  const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const activeRef = useRef<DesignFile | null>(null);
   activeRef.current = active;
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  const contentRef = useRef(content);
+  contentRef.current = content;
 
-  // Initial DB sync + realtime subscription so the cache stays fresh.
+  // Initial sync
   useEffect(() => {
     let cancelled = false;
-    void ensureDefaultDesignPages().then(loadAll).then(async () => {
+    void loadAll().then(() => {
       if (cancelled) return;
-      const fresh = await loadFile(activeRef.current);
-      if (!cancelled && !dirtyRef.current) setContent(fresh);
+      const list = getDesigns();
+      setDesigns(list);
+      setOpenFolders((s) => {
+        const next = { ...s };
+        for (const d of list) if (next[d.id] == null) next[d.id] = true;
+        return next;
+      });
+      // Open the first available file if nothing is active yet.
+      if (!activeRef.current) {
+        const firstDesign = list[0];
+        if (firstDesign) {
+          const pages = getPagesFor(firstDesign.id);
+          const first = pages[0];
+          const target: DesignFile = first
+            ? { design: firstDesign.id, page: first.page, kind: "html" }
+            : { design: firstDesign.id, page: "shared", kind: "css" };
+          void openFile(target);
+        }
+      } else {
+        // Refresh current
+        void loadFile(activeRef.current).then((c) => {
+          if (!dirtyRef.current && activeRef.current && sameFile(activeRef.current, activeRef.current)) {
+            setContent(c);
+            contentRef.current = c;
+            pushBus();
+          }
+        });
+      }
     });
+    const offReg = subscribeRegistry(() => setDesigns(getDesigns()));
+    return () => {
+      cancelled = true;
+      offReg();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime design_pages updates
+  useEffect(() => {
     const ch = subscribeDesignChanges(
-      (design, page, kind) =>
-        sameFile(activeRef.current, { design, page: page as PageSlot, kind: kind as FileKind }),
+      (d, p, k) => {
+        const a = activeRef.current;
+        return !!a && a.design === d && a.page === p && a.kind === k;
+      },
       () => {
-        if (dirtyRef.current) return; // don't clobber unsaved edits
-        setContent(loadFileCached(activeRef.current));
+        if (dirtyRef.current) return;
+        const a = activeRef.current;
+        if (!a) return;
+        const c = loadFileCached(a);
+        setContent(c);
+        contentRef.current = c;
+        pushBus();
       },
     );
     return () => {
-      cancelled = true;
       void ch.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update the editorBus whenever active/content changes so ChatSidebar sees them
+  const pushBus = useCallback(() => {
+    const a = activeRef.current;
+    if (!a) {
+      setActiveFile(null, "");
+      return;
+    }
+    const designLabel =
+      designs.find((d) => d.id === a.design)?.label ?? a.design;
+    const pageRow = getPagesFor(a.design).find((p) => p.page === a.page);
+    const af: ActiveFile = {
+      design: a.design,
+      designLabel,
+      page: a.page,
+      pageLabel: pageRow?.label ?? a.page,
+      kind: a.kind,
+    };
+    setActiveFile(af, contentRef.current);
+  }, [designs]);
+
+  useEffect(() => {
+    pushBus();
+  }, [active, content, pushBus]);
+
+  // Listen for AI edits and apply with green highlight for 20s
+  useEffect(() => {
+    const off = onAIEdit(async (e) => {
+      const a = activeRef.current;
+      if (!a) return;
+      if (a.design !== e.file.design || a.page !== e.file.page || a.kind !== e.file.kind)
+        return;
+      const oldText = contentRef.current;
+      const newText = e.newContent;
+      setContent(newText);
+      contentRef.current = newText;
+      setDirty(false);
+      setStatus("AI updated · published");
+      setTimeout(() => setStatus(""), 2000);
+      // Highlight changed lines
+      requestAnimationFrame(() => {
+        const view = editorRef.current?.view;
+        if (!view) return;
+        const changed = changedLineIndicesInNewText(oldText, newText);
+        const doc = view.state.doc;
+        const decos = changed
+          .filter((idx) => idx + 1 <= doc.lines)
+          .map((idx) => {
+            const info = doc.line(idx + 1);
+            return Decoration.line({ class: "cm-ai-edit" }).range(info.from);
+          });
+        view.dispatch({
+          effects: setEditDecos.of(Decoration.set(decos, true)),
+        });
+        window.setTimeout(() => {
+          const v = editorRef.current?.view;
+          if (v) v.dispatch({ effects: setEditDecos.of(Decoration.none) });
+        }, 20_000);
+      });
+    });
+    return off;
   }, []);
 
   async function openFile(f: DesignFile) {
     setActive(f);
-    setContent(loadFileCached(f));
+    activeRef.current = f;
+    const cached = loadFileCached(f);
+    setContent(cached);
+    contentRef.current = cached;
     setDirty(false);
     setStatus("");
     const fresh = await loadFile(f);
-    if (sameFile(activeRef.current, f) && !dirtyRef.current) setContent(fresh);
+    if (
+      activeRef.current &&
+      sameFile(activeRef.current, f) &&
+      !dirtyRef.current
+    ) {
+      setContent(fresh);
+      contentRef.current = fresh;
+      pushBus();
+    }
   }
 
   async function onSave() {
+    if (!active) return;
     setStatus("Saving…");
     try {
       await saveFile(active, content);
@@ -113,11 +256,13 @@ export function PagesEditor() {
   }
 
   async function onReset() {
+    if (!active) return;
     setStatus("Resetting…");
     try {
       await resetFile(active);
       const d = defaultContent(active);
       setContent(d);
+      contentRef.current = d;
       setDirty(false);
       setStatus("Reset to default");
       setTimeout(() => setStatus(""), 1500);
@@ -127,55 +272,239 @@ export function PagesEditor() {
     }
   }
 
-  const extension =
-    active.kind === "html" ? [htmlLang()] : active.kind === "css" ? [cssLang()] : [jsLang()];
+  // ---- Tree mutations ----
 
-  const pathLabel = `${DESIGN_LABELS[active.design]} / ${
-    active.page === "shared"
-      ? active.kind === "css"
-        ? "styles.css"
-        : "script.js"
-      : `${PAGE_LABELS[active.page]}.html`
-  }`;
+  async function onAddDesign() {
+    const label = window.prompt("New design name (e.g. \"Coinbase\")");
+    if (!label) return;
+    const id = slugify(label);
+    if (!id) return;
+    try {
+      await createDesign(id, label.trim());
+      setOpenFolders((s) => ({ ...s, [id]: true }));
+      void openFile({ design: id, page: "home", kind: "html" });
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onRenameDesign(id: string, current: string) {
+    const label = window.prompt("Rename design", current);
+    if (!label || label.trim() === current) return;
+    try {
+      await renameDesign(id, label.trim());
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onDeleteDesign(id: string, label: string) {
+    if (!window.confirm(`Delete design "${label}" and all of its pages?`))
+      return;
+    try {
+      await deleteDesign(id);
+      if (active && active.design === id) {
+        setActive(null);
+        setContent("");
+        contentRef.current = "";
+      }
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onAddPage(designId: string) {
+    const label = window.prompt("New page name (e.g. \"Signup\")");
+    if (!label) return;
+    const slug = slugify(label, 40);
+    try {
+      await createPage(designId, slug, label.trim());
+      void openFile({ design: designId, page: slug, kind: "html" });
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onRenamePage(
+    design: string,
+    page: string,
+    current: string,
+  ) {
+    const label = window.prompt("Rename page", current);
+    if (!label || label.trim() === current) return;
+    try {
+      await renamePage(design, page, label.trim());
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onDeletePage(design: string, page: string, label: string) {
+    if (!window.confirm(`Delete page "${label}"?`)) return;
+    try {
+      await deletePage(design, page);
+      if (active && active.design === design && active.page === page) {
+        setActive(null);
+        setContent("");
+        contentRef.current = "";
+      }
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  // ---- Render ----
+
+  const extension = useMemo(() => {
+    if (!active) return [editedField, editedTheme];
+    if (active.kind === "html") return [htmlLang(), editedField, editedTheme];
+    if (active.kind === "css") return [cssLang(), editedField, editedTheme];
+    return [jsLang(), editedField, editedTheme];
+  }, [active]);
+
+  const pathLabel = active
+    ? `${designs.find((d) => d.id === active.design)?.label ?? active.design} / ${fileLabel(active)}`
+    : "Select a file";
 
   return (
     <div className="admin-pages">
       <aside className="admin-pages-tree">
-        <div className="admin-pages-tree-head">Designs</div>
-        <div className="admin-pages-links">
-          {PAGE_LINKS.map((link) => (
-            <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-              {link.url}
-            </a>
-          ))}
+        <div className="admin-pages-tree-head">
+          <span>Designs</span>
+          <button
+            type="button"
+            className="admin-tree-btn"
+            title="Add design"
+            onClick={() => void onAddDesign()}
+          >
+            +
+          </button>
         </div>
-        {tree.map((folder) => {
-          const open = !!openFolders[folder.design];
+
+        {designs.length === 0 && (
+          <p className="admin-pages-empty">No designs yet — click + to create one.</p>
+        )}
+
+        {designs.map((folder) => {
+          const open = !!openFolders[folder.id];
+          const pages = getPagesFor(folder.id);
           return (
-            <div key={folder.design} className="admin-pages-folder">
-              <button
-                className="admin-pages-folder-row"
-                onClick={() =>
-                  setOpenFolders((s) => ({ ...s, [folder.design]: !s[folder.design] }))
-                }
-              >
-                <span className={`admin-pages-caret ${open ? "is-open" : ""}`}>▸</span>
-                <span className="admin-pages-folder-icon">▤</span>
-                <span>{folder.label}</span>
-              </button>
+            <div key={folder.id} className="admin-pages-folder">
+              <div className="admin-pages-folder-row">
+                <button
+                  className="admin-pages-folder-toggle"
+                  onClick={() =>
+                    setOpenFolders((s) => ({ ...s, [folder.id]: !s[folder.id] }))
+                  }
+                  title={open ? "Collapse" : "Expand"}
+                >
+                  <span className={`admin-pages-caret ${open ? "is-open" : ""}`}>▸</span>
+                  <span className="admin-pages-folder-icon">▤</span>
+                  <span className="admin-pages-folder-label">{folder.label}</span>
+                </button>
+                <div className="admin-pages-folder-actions">
+                  <button
+                    type="button"
+                    className="admin-tree-btn"
+                    title="Add page"
+                    onClick={() => void onAddPage(folder.id)}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-tree-btn"
+                    title="Rename design"
+                    onClick={() => void onRenameDesign(folder.id, folder.label)}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-tree-btn admin-tree-btn-danger"
+                    title="Delete design"
+                    onClick={() => void onDeleteDesign(folder.id, folder.label)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
               {open && (
                 <div className="admin-pages-files">
-                  {folder.children.map((c) => {
-                    const isActive = sameFile(c.file, active);
+                  {pages.map((pg) => {
+                    const f: DesignFile = {
+                      design: folder.id,
+                      page: pg.page,
+                      kind: "html",
+                    };
+                    const isActive = !!active && sameFile(f, active);
                     return (
-                      <button
-                        key={c.label}
-                        className={`admin-pages-file ${isActive ? "is-active" : ""}`}
-                        onClick={() => void openFile(c.file)}
+                      <div
+                        key={pg.page}
+                        className={`admin-pages-file-row ${isActive ? "is-active" : ""}`}
                       >
-                        <span className="admin-pages-file-icon">·</span>
-                        {c.label}
-                      </button>
+                        <button
+                          className="admin-pages-file"
+                          onClick={() => void openFile(f)}
+                          title={`/view/${folder.id}/${pg.page}`}
+                        >
+                          <span className="admin-pages-file-icon">·</span>
+                          {pg.label ?? pg.page}.html
+                        </button>
+                        <div className="admin-pages-file-actions">
+                          <button
+                            type="button"
+                            className="admin-tree-btn"
+                            title="Rename"
+                            onClick={() =>
+                              void onRenamePage(
+                                folder.id,
+                                pg.page,
+                                pg.label ?? pg.page,
+                              )
+                            }
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-tree-btn admin-tree-btn-danger"
+                            title="Delete page"
+                            onClick={() =>
+                              void onDeletePage(
+                                folder.id,
+                                pg.page,
+                                pg.label ?? pg.page,
+                              )
+                            }
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Shared CSS / JS */}
+                  {(["css", "js"] as FileKind[]).map((kind) => {
+                    const f: DesignFile = {
+                      design: folder.id,
+                      page: "shared",
+                      kind,
+                    };
+                    const isActive = !!active && sameFile(f, active);
+                    return (
+                      <div
+                        key={kind}
+                        className={`admin-pages-file-row ${isActive ? "is-active" : ""}`}
+                      >
+                        <button
+                          className="admin-pages-file"
+                          onClick={() => void openFile(f)}
+                        >
+                          <span className="admin-pages-file-icon">·</span>
+                          {kind === "css" ? "styles.css" : "script.js"}
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -190,26 +519,47 @@ export function PagesEditor() {
           <div className="admin-pages-path">
             {pathLabel}
             {dirty ? " ·" : ""}
+            {active && (
+              <a
+                href={`/view/${active.design}/${active.page === "shared" ? "home" : active.page}`}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-pages-openlink"
+              >
+                ↗ open
+              </a>
+            )}
           </div>
           <div className="admin-pages-actions">
             {status && <span className="admin-pages-status">{status}</span>}
-            <button className="admin-btn admin-btn-ghost" onClick={() => void onReset()}>
+            <button
+              className="admin-btn admin-btn-ghost"
+              onClick={() => void onReset()}
+              disabled={!active}
+            >
               Reset
             </button>
-            <button className="admin-btn admin-btn-primary" onClick={() => void onSave()}>
+            <button
+              className="admin-btn admin-btn-primary"
+              onClick={() => void onSave()}
+              disabled={!active}
+            >
               Save & publish
             </button>
           </div>
         </div>
         <div className="admin-pages-code">
           <CodeMirror
+            ref={editorRef}
             value={content}
             height="100%"
             theme={oneDark}
-            extensions={extension}
+            extensions={extension as ReturnType<typeof htmlLang>[]}
             onChange={(v) => {
               setContent(v);
+              contentRef.current = v;
               setDirty(true);
+              setEditorContent(v);
             }}
             basicSetup={{
               lineNumbers: true,
@@ -224,3 +574,13 @@ export function PagesEditor() {
     </div>
   );
 }
+
+function fileLabel(f: DesignFile): string {
+  if (f.page === "shared")
+    return f.kind === "css" ? "styles.css" : "script.js";
+  const pageRow = getPagesFor(f.design).find((p) => p.page === f.page);
+  return `${pageRow?.label ?? f.page}.html`;
+}
+
+// keep PageSlot referenced so unused-import lint doesn't strip it
+export type _PageSlot = PageSlot;
