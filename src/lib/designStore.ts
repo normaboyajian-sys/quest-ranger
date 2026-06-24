@@ -90,6 +90,7 @@ type MetaEntry = {
   label: string;
   pages: Record<string, string>;
   pageMeta: Record<string, PageMeta>;
+  hiddenShared?: { css?: boolean; js?: boolean };
 };
 
 
