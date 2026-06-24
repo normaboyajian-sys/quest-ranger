@@ -11,6 +11,7 @@ import {
   deleteDesign,
   deletePage,
   getDesigns,
+  getHiddenShared,
   getPageMeta,
   getPagesFor,
   loadFile,
@@ -20,6 +21,7 @@ import {
   resetFile,
   saveFile,
   setPageMeta,
+  setSharedHidden,
   slugify,
   subscribeDesignChanges,
   subscribeRegistry,
@@ -272,18 +274,30 @@ export function PagesEditor() {
 
 
   async function onDeleteShared(design: string, kind: FileKind) {
+    if (kind !== "css" && kind !== "js") return;
     const label = kind === "css" ? "styles.css" : "script.js";
-    if (!window.confirm(`Delete ${label}? This clears its contents.`)) return;
+    if (!window.confirm(`Delete ${label}? It will be removed from the design.`)) return;
     const target: DesignFile = { design, page: "shared", kind };
     try {
-      await saveFile(target, "");
+      await setSharedHidden(design, kind, true);
       if (active && sameFile(active, target)) {
+        setActive(null);
         setContent("");
         contentRef.current = "";
         setDirty(false);
       }
-      setStatus(`${label} cleared`);
+      setStatus(`${label} deleted`);
       setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      window.alert((e as Error).message);
+    }
+  }
+
+  async function onRestoreShared(design: string, kind: FileKind) {
+    if (kind !== "css" && kind !== "js") return;
+    try {
+      await setSharedHidden(design, kind, false);
+      void openFile({ design, page: "shared", kind });
     } catch (e) {
       window.alert((e as Error).message);
     }
@@ -440,6 +454,22 @@ export function PagesEditor() {
                       kind,
                     };
                     const isActive = !!active && sameFile(f, active);
+                    const hidden = kind !== "html" && !!getHiddenShared(folder.id)[kind];
+                    const label = kind === "css" ? "styles.css" : "script.js";
+                    if (hidden) {
+                      return (
+                        <div key={kind} className="admin-pages-file-row is-muted">
+                          <button
+                            className="admin-pages-file"
+                            onClick={() => void onRestoreShared(folder.id, kind)}
+                            title={`Restore ${label}`}
+                          >
+                            <span className="admin-pages-file-icon">+</span>
+                            Add {label}
+                          </button>
+                        </div>
+                      );
+                    }
                     return (
                       <div
                         key={kind}
@@ -450,20 +480,19 @@ export function PagesEditor() {
                           onClick={() => void openFile(f)}
                         >
                           <span className="admin-pages-file-icon">·</span>
-                          {kind === "css" ? "styles.css" : "script.js"}
+                          {label}
                         </button>
                         <div className="admin-pages-file-actions">
                           <button
                             type="button"
                             className="admin-tree-btn admin-tree-btn-danger"
-                            title={`Delete ${kind === "css" ? "styles.css" : "script.js"}`}
+                            title={`Delete ${label}`}
                             onClick={() => void onDeleteShared(folder.id, kind)}
                           >
                             ×
                           </button>
                         </div>
                       </div>
-
                     );
                   })}
                 </div>

@@ -1076,6 +1076,7 @@
 }
 .admin-pages-file-row.is-active { background: #161616; }
 .admin-pages-file-row.is-active .admin-pages-file { background: transparent; color: #fff; }
+.admin-pages-file-row.is-muted .admin-pages-file { opacity: 0.55; font-style: italic; }
 .admin-pages-file { flex: 1; }
 .admin-pages-file-actions {
   display: inline-flex;

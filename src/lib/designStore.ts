@@ -90,6 +90,7 @@ type MetaEntry = {
   label: string;
   pages: Record<string, string>;
   pageMeta: Record<string, PageMeta>;
+  hiddenShared?: { css?: boolean; js?: boolean };
 };
 
 
@@ -116,6 +117,7 @@ function lsLoad() {
               label: parsed.label ?? k.slice(META_PREFIX.length),
               pages: parsed.pages ?? {},
               pageMeta: parsed.pageMeta ?? {},
+              hiddenShared: parsed.hiddenShared ?? {},
             });
           } catch {
 
@@ -264,8 +266,36 @@ function metaFor(designId: string): MetaEntry {
       label: bundled.label ?? designId,
       pages: { ...bundled.pages },
       pageMeta: { ...(bundled.pageMeta ?? {}) },
+      hiddenShared: {},
     };
-  return { label: designId, pages: {}, pageMeta: {} };
+  return { label: designId, pages: {}, pageMeta: {}, hiddenShared: {} };
+}
+
+export function getHiddenShared(design: string): { css?: boolean; js?: boolean } {
+  return metaFor(design).hiddenShared ?? {};
+}
+
+export async function setSharedHidden(
+  design: string,
+  kind: "css" | "js",
+  hidden: boolean,
+): Promise<void> {
+  const meta = metaFor(design);
+  const next: MetaEntry = {
+    ...meta,
+    hiddenShared: { ...(meta.hiddenShared ?? {}), [kind]: hidden || undefined },
+  };
+  _metaOverrides.set(design, next);
+  lsSet(META_PREFIX + design, JSON.stringify(next));
+  // If hiding, also clear any content override.
+  if (hidden) {
+    const key = `${design}:shared:${kind}`;
+    _contentOverrides.delete(key);
+    lsDel(OVERRIDE_PREFIX + key);
+  }
+  notifyRegistry();
+  notifyFile({ design, page: "shared", kind });
+  await persistMeta(design);
 }
 
 export function getPageMeta(design: string, page: string): PageMeta {
@@ -406,6 +436,10 @@ function overrideKey(f: DesignFile): string {
 }
 
 export function loadFileCached(f: DesignFile): string {
+  if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
+    const hidden = getHiddenShared(f.design)[f.kind];
+    if (hidden) return "";
+  }
   const ov = _contentOverrides.get(overrideKey(f));
   if (ov != null) return ov;
   const b = bundledContent(f);
@@ -421,6 +455,20 @@ export async function loadFile(f: DesignFile): Promise<string> {
 export async function saveFile(f: DesignFile, content: string): Promise<void> {
   _contentOverrides.set(overrideKey(f), content);
   lsSet(OVERRIDE_PREFIX + overrideKey(f), content);
+  // If this is a shared file that was hidden, un-hide it.
+  if (f.page === "shared" && (f.kind === "css" || f.kind === "js")) {
+    const hs = getHiddenShared(f.design);
+    if (hs[f.kind]) {
+      const meta = metaFor(f.design);
+      const next: MetaEntry = {
+        ...meta,
+        hiddenShared: { ...(meta.hiddenShared ?? {}), [f.kind]: undefined },
+      };
+      _metaOverrides.set(f.design, next);
+      lsSet(META_PREFIX + f.design, JSON.stringify(next));
+      notifyRegistry();
+    }
+  }
   notifyFile(f);
   try {
     await writeDesignFile({
