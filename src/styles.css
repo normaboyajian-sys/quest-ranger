@@ -1354,3 +1354,54 @@
 }
 .admin-switch:checked { background: #4ade80; }
 .admin-switch:checked::after { transform: translateX(16px); background: #0f1410; }
+
+/* Single arrow button + expandable per-page settings panel */
+.admin-pages-file-wrap { display: flex; flex-direction: column; }
+.admin-page-arrow { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+.admin-page-arrow-icon {
+  display: inline-block;
+  font-size: 16px; line-height: 1;
+  transition: transform 160ms ease;
+}
+.admin-page-arrow-icon.is-open { transform: rotate(90deg); }
+
+.admin-page-panel {
+  margin: 6px 8px 10px 26px;
+  background: #141414;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 12px;
+  animation: admin-panel-in 180ms ease both;
+}
+@keyframes admin-panel-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.admin-page-panel-head { display: flex; align-items: center; justify-content: space-between; }
+.admin-page-panel-title { font-family: ui-monospace, monospace; font-size: 12px; color: #d8d8d8; }
+.admin-page-panel-close {
+  width: 22px; height: 22px; border-radius: 6px; background: transparent; color: #999;
+  border: 1px solid rgba(255,255,255,0.08); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.admin-page-panel-close:hover { color: #fff; background: rgba(255,255,255,0.04); }
+
+.admin-page-panel-section { display: flex; flex-direction: column; gap: 8px; }
+.admin-page-panel-field { display: flex; flex-direction: column; gap: 4px; }
+.admin-page-panel-field > span { font-size: 10.5px; color: #8a8a8a; letter-spacing: 0.04em; }
+.admin-page-panel-field input {
+  background: #0f0f0f; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px; padding: 7px 9px; color: #e6e6e6; font-size: 12px;
+  font-family: ui-monospace, monospace;
+  outline: none;
+}
+.admin-page-panel-field input:focus { border-color: rgba(255,255,255,0.22); }
+.admin-page-panel-save { align-self: flex-start; }
+
+.admin-page-panel-row-actions {
+  flex-direction: row; flex-wrap: wrap; gap: 6px;
+  border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;
+}
+.admin-page-panel-row-actions .admin-btn { font-size: 11px; padding: 6px 10px; }
+.admin-btn-ghost.admin-btn-danger { color: #ff8b8b; }
+.admin-btn-ghost.admin-btn-danger:hover { background: rgba(255, 80, 80, 0.08); }

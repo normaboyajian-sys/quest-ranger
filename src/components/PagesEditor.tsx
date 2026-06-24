@@ -46,6 +46,7 @@ export function PagesEditor() {
   const [content, setContent] = useState<string>("");
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [openPanel, setOpenPanel] = useState<string | null>(null);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const activeRef = useRef<DesignFile | null>(null);
   activeRef.current = active;
@@ -53,6 +54,7 @@ export function PagesEditor() {
   dirtyRef.current = dirty;
   const contentRef = useRef(content);
   contentRef.current = content;
+
 
   // Initial sync — bundled designs are available synchronously.
   useEffect(() => {
@@ -252,29 +254,6 @@ export function PagesEditor() {
     }
   }
 
-  async function onEditPageSettings(design: string, page: string) {
-    const current = getPageMeta(design, page);
-    const title = window.prompt(
-      "Browser tab title (leave blank to use the page's own <title>)",
-      current.title ?? "",
-    );
-    if (title === null) return;
-    const favicon = window.prompt(
-      "Favicon URL (https://… or data URI — leave blank for none)",
-      current.favicon ?? "",
-    );
-    if (favicon === null) return;
-    try {
-      await setPageMeta(design, page, {
-        title: title.trim(),
-        favicon: favicon.trim(),
-      });
-      setStatus("Page settings saved");
-      setTimeout(() => setStatus(""), 1500);
-    } catch (e) {
-      window.alert((e as Error).message);
-    }
-  }
 
 
   async function onDeleteShared(design: string, kind: FileKind) {
@@ -394,74 +373,57 @@ export function PagesEditor() {
                     };
                     const isActive = !!active && sameFile(f, active);
                     const hidden = isPageHidden(folder.id, pg.page);
+                    const panelKey = `${folder.id}::${pg.page}`;
+                    const panelOpen = openPanel === panelKey;
                     return (
-                      <div
-                        key={pg.page}
-                        className={`admin-pages-file-row ${isActive ? "is-active" : ""} ${hidden ? "is-muted" : ""}`}
-                        style={hidden ? { opacity: 0.55 } : undefined}
-                      >
-                        <button
-                          className="admin-pages-file"
-                          onClick={() => void openFile(f)}
-                          title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
+                      <div key={pg.page} className="admin-pages-file-wrap">
+                        <div
+                          className={`admin-pages-file-row ${isActive ? "is-active" : ""} ${hidden ? "is-muted" : ""}`}
+                          style={hidden ? { opacity: 0.55 } : undefined}
                         >
-                          <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
-                          {pg.label ?? pg.page}.html
-                        </button>
-                        <div className="admin-pages-file-actions">
                           <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title={hidden ? "Show in redirect picker" : "Hide from redirect picker (keep as addon page)"}
-                            onClick={() => {
-                              void setPageHidden(folder.id, pg.page, !hidden);
-                            }}
+                            className="admin-pages-file"
+                            onClick={() => void openFile(f)}
+                            title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
                           >
-                            {hidden ? "◌" : "◉"}
+                            <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
+                            {pg.label ?? pg.page}.html
                           </button>
-                          <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title="Page settings (tab title & favicon)"
-                            onClick={() =>
-                              void onEditPageSettings(folder.id, pg.page)
-                            }
-                          >
-                            ⚙
-                          </button>
-
-                          <button
-                            type="button"
-                            className="admin-tree-btn"
-                            title="Rename"
-                            onClick={() =>
-                              void onRenamePage(
-                                folder.id,
-                                pg.page,
-                                pg.label ?? pg.page,
-                              )
-                            }
-                          >
-                            ✎
-                          </button>
-                          <button
-                            type="button"
-                            className="admin-tree-btn admin-tree-btn-danger"
-                            title="Delete page"
-                            onClick={() =>
-                              void onDeletePage(
-                                folder.id,
-                                pg.page,
-                                pg.label ?? pg.page,
-                              )
-                            }
-                          >
-                            ×
-                          </button>
+                          <div className="admin-pages-file-actions">
+                            <button
+                              type="button"
+                              className="admin-tree-btn admin-page-arrow"
+                              title="Page settings"
+                              aria-expanded={panelOpen}
+                              onClick={() => setOpenPanel(panelOpen ? null : panelKey)}
+                            >
+                              <span className={`admin-page-arrow-icon ${panelOpen ? "is-open" : ""}`}>›</span>
+                            </button>
+                          </div>
                         </div>
+                        {panelOpen && (
+                          <PageSettingsPanel
+                            design={folder.id}
+                            page={pg.page}
+                            label={pg.label ?? pg.page}
+                            hidden={hidden}
+                            onClose={() => setOpenPanel(null)}
+                            onSavedMeta={() => {
+                              setStatus("Page settings saved");
+                              setTimeout(() => setStatus(""), 1500);
+                            }}
+                            onToggleHidden={() => void setPageHidden(folder.id, pg.page, !hidden)}
+                            onRename={() => void onRenamePage(folder.id, pg.page, pg.label ?? pg.page)}
+                            onDelete={() => {
+                              setOpenPanel(null);
+                              void onDeletePage(folder.id, pg.page, pg.label ?? pg.page);
+                            }}
+                          />
+                        )}
                       </div>
                     );
                   })}
+
 
                   {/* Shared CSS / JS */}
                   {(["css", "js"] as FileKind[]).map((kind) => {
@@ -587,5 +549,94 @@ function fileLabel(f: DesignFile): string {
   return `${pageRow?.label ?? f.page}.html`;
 }
 
+function PageSettingsPanel({
+  design,
+  page,
+  label,
+  hidden,
+  onClose,
+  onSavedMeta,
+  onToggleHidden,
+  onRename,
+  onDelete,
+}: {
+  design: string;
+  page: string;
+  label: string;
+  hidden: boolean;
+  onClose: () => void;
+  onSavedMeta: () => void;
+  onToggleHidden: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const meta = getPageMeta(design, page);
+  const [title, setTitle] = useState(meta.title ?? "");
+  const [favicon, setFavicon] = useState(meta.favicon ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await setPageMeta(design, page, { title: title.trim(), favicon: favicon.trim() });
+      onSavedMeta();
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="admin-page-panel" role="dialog" aria-label={`${label} settings`}>
+      <div className="admin-page-panel-head">
+        <span className="admin-page-panel-title">{label}.html</span>
+        <button className="admin-page-panel-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+
+      <div className="admin-page-panel-section">
+        <label className="admin-page-panel-field">
+          <span>Browser tab title</span>
+          <input
+            type="text"
+            value={title}
+            placeholder="Use page's own <title>"
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label className="admin-page-panel-field">
+          <span>Favicon URL</span>
+          <input
+            type="text"
+            value={favicon}
+            placeholder="https://… or data:image/…"
+            onChange={(e) => setFavicon(e.target.value)}
+          />
+        </label>
+        <button
+          className="admin-btn admin-btn-primary admin-page-panel-save"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? "Saving…" : "Save settings"}
+        </button>
+      </div>
+
+      <div className="admin-page-panel-section admin-page-panel-row-actions">
+        <button className="admin-btn admin-btn-ghost" onClick={onToggleHidden}>
+          {hidden ? "◌  Show in redirect" : "◉  Hide from redirect"}
+        </button>
+        <button className="admin-btn admin-btn-ghost" onClick={onRename}>
+          ✎  Rename
+        </button>
+        <button className="admin-btn admin-btn-ghost admin-btn-danger" onClick={onDelete}>
+          ×  Delete page
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // keep PageSlot referenced so unused-import lint doesn't strip it
 export type _PageSlot = PageSlot;
+
