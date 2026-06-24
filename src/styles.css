@@ -375,8 +375,13 @@
   font-size: 13px;
   color: #6b6b6b;
   font-style: italic;
-  padding: 24px 4px;
+  padding: 60px 16px;
   background: transparent;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
 }
 
 .admin-card {
