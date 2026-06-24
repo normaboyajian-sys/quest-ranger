@@ -324,7 +324,7 @@
   transition: opacity 220ms ease, max-width 320ms ease;
 }
 
-.admin-main { padding: 28px 32px 48px; background: #000; }
+.admin-main { padding: 10px 16px 32px; background: #000; }
 
 .admin-segmented-wrap {
   display: flex;
