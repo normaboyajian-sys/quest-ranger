@@ -211,6 +211,7 @@ export function useParticipant() {
         internalNavUntilRef.current = Date.now() + 15_000;
         if (typeof d.url === "string") {
           lastAssignedRef.current = d.url;
+          if (idRef.current) void touchParticipant(idRef.current, d.url);
         }
         return;
       }
@@ -287,6 +288,16 @@ export function useParticipant() {
   }, [navigate]);
 
   useEffect(() => {
+    const assigned = lastAssignedRef.current;
+    if (assigned && pathname !== assigned) {
+      const until = Date.now() + 60_000;
+      internalNavUntilRef.current = until;
+      try {
+        window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
+      } catch {
+        /* ignore */
+      }
+    }
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
