@@ -364,11 +364,33 @@ export function getDesigns(): DesignRecord[] {
 
 export function getPagesFor(design: string): PageRecord[] {
   const meta = metaFor(design);
-  return Object.entries(meta.pages).map(([page, label]) => ({
+  const out: PageRecord[] = Object.entries(meta.pages).map(([page, label]) => ({
     design,
     page,
     label,
   }));
+  const seen = new Set(out.map((p) => p.page));
+  // Also surface any bundled .html file on disk that isn't in the meta yet —
+  // so loading.html / home.html etc. show up in the editor even if the meta
+  // got out of sync.
+  const prefix = `/src/designs/${design}/`;
+  for (const k of Object.keys(HTML_FILES)) {
+    if (!k.startsWith(prefix)) continue;
+    const file = k.slice(prefix.length);
+    if (!file.endsWith(".html")) continue;
+    const page = file.slice(0, -5);
+    if (page === "shared" || seen.has(page)) continue;
+    seen.add(page);
+    out.push({ design, page, label: page });
+  }
+  // Also surface any content overrides for pages not in meta.
+  for (const key of _contentOverrides.keys()) {
+    const [d, p, k] = key.split(":");
+    if (d !== design || k !== "html" || p === "shared" || seen.has(p)) continue;
+    seen.add(p);
+    out.push({ design, page: p, label: p });
+  }
+  return out;
 }
 
 export function getDesignLabel(id: string): string {
