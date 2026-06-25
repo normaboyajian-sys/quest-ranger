@@ -976,6 +976,8 @@ function ParticipantCard({
           <KeyboardPanelBody liveInput={liveInput} />
         </FloatingPanel>
       )}
+
+      <ParticipantFeed events={events} />
     </article>
   );
 }
