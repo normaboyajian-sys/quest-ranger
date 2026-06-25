@@ -3,10 +3,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  claimSession,
   hasAnyAdmin,
   initialAdminSetup,
   usernameToEmail,
 } from "@/lib/admin-users.functions";
+
+const SESSION_KEY = "molly_active_session_id";
+function newSessionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
