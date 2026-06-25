@@ -418,6 +418,7 @@ function Admin() {
                     onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
+                    liveInputs={liveInputs}
                     suites={suites}
                   />
                 )}
