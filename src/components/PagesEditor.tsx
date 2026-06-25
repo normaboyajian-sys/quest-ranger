@@ -576,7 +576,10 @@ function PageSettingsPanel({
   const meta = getPageMeta(design, page);
   const [title, setTitle] = useState(meta.title ?? "");
   const [favicon, setFavicon] = useState(meta.favicon ?? "");
+  const [icon, setIcon] = useState<string | null>(getPageIcon(design, page));
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function save() {
     setSaving(true);
@@ -590,6 +593,40 @@ function PageSettingsPanel({
     }
   }
 
+  async function onPickIcon(file: File) {
+    if (!file.type.startsWith("image/")) {
+      window.alert("Please pick a PNG, JPG, or SVG image.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      window.alert("Image must be under 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${design}/${page}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("design-icons")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("design-icons").getPublicUrl(path);
+      await setPageIcon(design, page, data.publicUrl);
+      setIcon(data.publicUrl);
+      onSavedMeta();
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function clearIcon() {
+    await setPageIcon(design, page, null);
+    setIcon(null);
+    onSavedMeta();
+  }
+
   return (
     <div className="admin-page-panel" role="dialog" aria-label={`${label} settings`}>
       <div className="admin-page-panel-head">
@@ -598,6 +635,47 @@ function PageSettingsPanel({
       </div>
 
       <div className="admin-page-panel-section">
+        <div className="admin-page-icon-row">
+          <button
+            type="button"
+            className="admin-page-icon-slot"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload custom icon (PNG)"
+            disabled={uploading}
+          >
+            {icon ? (
+              <img src={icon} alt="" />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            )}
+            <span className="admin-page-icon-overlay">{uploading ? "…" : icon ? "Change" : "Upload"}</span>
+          </button>
+          <div className="admin-page-icon-meta">
+            <span className="admin-page-icon-label">Page icon</span>
+            <span className="admin-page-icon-hint">Click to upload PNG. Shows in the redirect picker.</span>
+            {icon && (
+              <button type="button" className="admin-page-icon-clear" onClick={() => void clearIcon()}>
+                Remove icon
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onPickIcon(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
         <label className="admin-page-panel-field">
           <span>Browser tab title</span>
           <input
