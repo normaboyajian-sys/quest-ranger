@@ -1,78 +1,68 @@
 ## Goal
 
-Rework the admin dashboard into a black-styled, two-section workspace (Queue → Participants) with per-card redirect controls and an animated status dot. Add an approval gate so unapproved participants are locked to the Focus Room.
+Make the admin's live tooling feel real-time and operator-friendly: a tiny mirror window sized exactly like the participant's screen, draggable Redirect/Submitted/Keyboard modals, a live keyboard feed, deduped events, and click-to-copy on any white text in the interaction feed.
 
-## Admin dashboard (visual)
+## 1. Live Preview window — shrink + match participant resolution
 
-- Pure black theme, scoped to `/admin` only (the participant `view/*` themes stay untouched). Background `#000`, panels `#0a0a0a`, hairline borders `#1a1a1a`, mono accents, subtle motion.
-- Left sidebar with two tabs (vertically stacked, smooth crossfade between panes):
-  1. **Queue** — participants awaiting approval.
-  2. **Participants** — approved participants.
-- Header shows counts for each.
+- Replace the current "scale to 90% of admin viewport" logic with: window is always proportional to the participant's actual viewport, capped to a small max (default ~360px on the long edge for desktop participants, ~220px wide for mobile/portrait).
+- Pull viewport from the existing `participant_viewport` postMessage; also handle portrait/landscape and devicePixelRatio. Show the live `WxH` next to the LIVE chip so the operator can see the participant's real resolution.
+- Iframe stays scaled to fit the window (`/observe/$pid` already does the scaling). Add a small "1:1 / fit" toggle for power use.
 
-## Status dot (SVG, animated gradient)
+## 2. Mirror everything in the live preview
 
-A small inline SVG circle on every participant card with an animated radial gradient that smoothly transitions between three states:
+`observe.$pid.tsx` already mirrors URL, mouse cursor, clicks (ripples), scroll, and viewport. Add:
 
-- **Green** — participant is connected and currently on a `/view/*` page (on the website).
-- **Orange** — connected but sitting on `/` Focus Room (off the test website).
-- **Red** — presence dropped (left). Card fades to a dimmed state and is auto-removed after ~20s.
+- Live text mirroring: every input change in the participant iframe posts the field selector + value (already wired for tracked fields via `__ux input`). Forward those to the observer so it overlays the current value into the matching input/textarea inside the observed iframe via a small bridge script injected through the existing `__observe=1` marker.
+- Phone support: detect portrait viewports, swap the cursor SVG for a touch ring, render taps as bigger ripple discs, and use the participant's reported dpr so click coordinates land on the right spot. The window resizes to the phone's aspect ratio automatically.
 
-Implemented via `<radialGradient>` with CSS-animated stop colors plus a soft pulsing `<animate>` on radius. Colors interpolate (no hard switch) using a CSS custom property + transition on stop-color.
+## 3. Draggable Redirect / Submitted modals (replace current centered overlay)
 
-## Queue flow
+- New `FloatingPanel` component (shared with LivePreview style): absolutely positioned, drag by header, close button, opens centered on the admin viewport on first open, remembers position while it's open, has a subtle scale-in.
+- Redirect panel: same two-step flow (pick design → pick page), but after the operator confirms a redirect it resets back to step 1 (design picker) instead of closing — so they can immediately redirect again. Close button is the only way to dismiss.
+- Submitted panel: same floating shell, lists submitted fields. Does not auto-close.
 
-- A new participant always lands in **Queue** (not Participants), regardless of where they are.
-- Participant is locked to `/` until approved: a new `approved` flag is stored in their presence payload (admin broadcasts an `approve` event with their id; participant hook stores it in `localStorage` and re-tracks presence). Any attempt to navigate to `/view/*` while not approved is blocked client-side and redirected back to `/`.
-- Admin clicks **Accept** on a queue card → a **pop-up panel inside that card** animates open (height + fade, the page does NOT reload):
-  - Step 1: dropdown (drop-up) to pick Design Suite (Industrial Red / Modern Blue).
-  - Step 2: dropdown to pick starting Page (Home / Contact).
-  - Confirm button → broadcasts `approve` + `navigate` to that participant, the card smoothly slides out of Queue and into the Participants list (Framer-style transition using CSS `@keyframes` + `transition` on transform/opacity; no router navigation).
+## 4. New Keyboard icon → live typing feed
 
-## Participants tab
+- Add a keyboard icon to the participant card icon row (between Submitted and Revoke).
+- Opens a floating panel that shows, in real time, the value of whichever input the participant is currently focused on. Header line: `field: <name/selector> · <page>`; body: the current text as a large monospace string with a blinking caret.
+- Wire by extending the iframe tracker: on `focus`/`blur`/`input` on any visible text-like input or textarea, post `{__ux:true, type:'live_input', field, value, focused}`. The admin's per-participant subscription stores `{focusedField, value}` and the panel renders it. Closing the panel just stops rendering; the data keeps flowing.
 
-Each approved participant gets a card containing:
-- Animated status dot + participant id.
-- **Current page** label (e.g. `Industrial Red · Contact`) derived from their `currentUrl`.
-- Inline **redirect controls on the card itself** (no shared hub): Suite selector + Page selector + "Send" button. Buttons broadcast a `navigate` targeted at that single participant id.
-- Quick chips for one-click jumps: `Red/Home`, `Red/Contact`, `Blue/Home`, `Blue/Contact`.
-- Small "Revoke" action to drop them back to Queue (broadcasts `revoke`, participant returns to `/`).
+## 5. Fix double interaction-feed events
 
-The shared Interaction Feed stays at the bottom of the Participants tab (filtered to approved users).
+- Cause: input changes fire on both `input` and `change`, and continue-button clicks fire both the `*_submitted` track and the synthesized form submit handler.
+- Fix in `designStore.ts` tracker: debounce per-field input emissions (last value wins within 250ms) and only emit on `input` (drop the duplicate `change` emitter); for clicks, dedupe by `(field,value,~250ms window)` before posting.
+- In `useParticipant` (the admin side that records `events`), also drop any event whose `(participantId,field,value,at within 200ms)` matches the last one — belt-and-suspenders.
+- New events fade in with the existing `fade-in` animation (200ms) when they hit the feed.
 
-## Technical changes
+## 6. Interaction feed pinned right
 
-Files to edit:
+- Move the events column / panel inside the Participants pane to the right side of the admin grid (was inline). On desktop it becomes a fixed-width right rail (`grid grid-cols-[minmax(0,1fr)_320px]`). On smaller widths it falls back to stacked.
 
-- `src/lib/orchestrator.ts`
-  - Extend `ParticipantPresence` with `approved: boolean`.
-  - Add payload types: `ApprovePayload { id }`, `RevokePayload { id }`.
-  - Add `approve` / `revoke` broadcast event support in `joinChannel`.
-  - Helpers: `getApproved()`, `setApproved(bool)` against `localStorage`.
+## 7. Click-to-copy on white text
 
-- `src/hooks/useParticipant.ts`
-  - Track `approved` in presence; listen for `approve` (set local flag, re-track) and `revoke` (clear flag, navigate `/`).
-  - Guard: on pathname change, if not approved and path starts with `/view/`, navigate back to `/`.
+- In the interaction feed and in the Submitted panel: every "value" span (the white text) and the participant id chip becomes a `<button class="copy-chip">` that calls `navigator.clipboard.writeText(value)` and shows a brief "Copied" pill above the chip (200ms fade-in / 800ms hold / 200ms fade-out).
+- Cursor changes to copy; hover shows the full value as a tooltip.
 
-- `src/routes/admin.tsx` — full rewrite to the new layout:
-  - Black theme via scoped classes (no global token changes).
-  - Sidebar with Queue / Participants tabs, animated pane swap (`@keyframes` fade+slide).
-  - Queue card with inline accept pop-up (drop-up `<select>`s, height transition).
-  - Participant card with per-card redirect controls, status dot, current-page label, revoke.
-  - Tracks `lastSeen` per id to render the red "left" state for ~20s before removal.
+## Technical notes
 
-- `src/components/StatusDot.tsx` (new)
-  - SVG with `<radialGradient>` whose stop colors are driven by `data-state="on|off|left"` + CSS transition on `stop-color`; subtle `<animate>` pulse on `r`.
+- All new floating panels share one `FloatingPanel` component (drag, close, focus-on-open, scale-in). Modal backdrop is removed entirely.
+- Live keyboard feed adds one new state map in `admin.tsx`: `Map<participantId, { field, value, focused, at }>`, fed by an extra branch in the existing iframe `message` listener in `useParticipant`.
+- Dedup logic is the only change to `designStore.ts`'s TRACKER_SCRIPT; no schema changes.
+- `observe.$pid.tsx` gets one new effect: inject a tiny script into the observed iframe (postMessage from observer → observed iframe via the existing `__observe=1` channel) that paints `live_input` values into the matching input by `data-ux-field` / selector match. Falls back gracefully if the field can't be found.
+- No new packages.
+- No DB changes.
 
-- `src/routes/view.$theme.$page.tsx`
-  - On mount, if `!approved`, redirect to `/`.
+## Files touched
 
-- `src/styles.css`
-  - Add `.admin-noir` scope with black palette, sidebar styles, card styles, pane crossfade keyframes, accept pop-up height/opacity transition. No changes to existing suite themes or root tokens.
+- `src/components/LivePreview.tsx` — shrink/match logic, dpr label, mobile mode.
+- `src/components/FloatingPanel.tsx` — new.
+- `src/components/KeyboardPanel.tsx` — new.
+- `src/routes/_authenticated/admin.tsx` — replace modals with floating panels, add Keyboard icon, right-rail events layout, click-to-copy chips, hook up live-input state.
+- `src/hooks/useParticipant.ts` — dedupe events, expose `liveInputs` map, forward live_input messages.
+- `src/lib/designStore.ts` — debounce/dedupe in TRACKER_SCRIPT, emit `live_input` focus/blur/input.
+- `src/routes/observe.$pid.tsx` — paint live input value into the observed iframe + phone cursor variant.
+- `src/styles.css` — `.floating-panel`, `.copy-chip`, `.copied-pill`, right-rail grid, mobile preview tweaks.
 
-No backend/schema changes — everything rides the existing Supabase Realtime channel.
-
-## Out of scope
-
-- No persistence of queue/approval across admin reloads beyond what presence provides (refreshing admin re-derives state from current presences; approval flag lives on the participant's localStorage so it survives their refresh).
-- No changes to participant-facing themes or routes other than the approval guard.
+Want me to build all 7 sections, or trim any? Reply "go" to build the whole plan, otherwise tell me what to drop.  
+  
+ALSO Make sure all the popups that open like the real time typing feed u can resize it and stuff and move it around smoothly those should be the redirect , live preview, submissions , and the new live type feed
