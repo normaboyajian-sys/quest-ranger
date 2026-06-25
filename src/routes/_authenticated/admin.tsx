@@ -36,6 +36,7 @@ import { PagesEditor } from "@/components/PagesEditor";
 import {
   getDesigns,
   getDesignLogo,
+  getPageIcon,
   getPagesFor,
   getRedirectPages,
   subscribeRegistry,
