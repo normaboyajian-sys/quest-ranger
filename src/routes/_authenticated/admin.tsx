@@ -633,6 +633,42 @@ function QueueCard({
 }
 
 
+function CopyChip({
+  text,
+  className,
+  title,
+  children,
+}: {
+  text: string;
+  className?: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  const [copied, setCopied] = useState(false);
+  function copy(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!text) return;
+    try {
+      void navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 900);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <button
+      type="button"
+      className={`copy-chip ${className ?? ""}`}
+      onClick={copy}
+      title={title ?? "Copy"}
+    >
+      {children}
+      {copied && <span className="copy-chip-pill">Copied</span>}
+    </button>
+  );
+}
+
 function ParticipantsPane({
   items,
   onNavigate,
@@ -640,6 +676,7 @@ function ParticipantsPane({
   onKick,
   onOpenPreview,
   events,
+  liveInputs,
   suites,
 }: {
   items: LiveRecord[];
@@ -648,6 +685,7 @@ function ParticipantsPane({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
+  liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
   const ids = new Set(items.map((i) => i.id));
@@ -669,6 +707,7 @@ function ParticipantsPane({
                 onOpenPreview={onOpenPreview}
                 suites={suites}
                 events={events.filter((e) => e.participantId === p.id)}
+                liveInput={liveInputs.get(p.id) ?? null}
               />
             ))}
           </div>
@@ -682,14 +721,18 @@ function ParticipantsPane({
             <p className="admin-empty">Waiting for input events. Password fields are excluded.</p>
           )}
           {filteredEvents.map((e, i) => (
-            <div key={i} className="admin-feed-item">
+            <div key={i} className="admin-feed-item admin-feed-item-in">
               <div className="admin-feed-row">
-                <span className="font-mono text-xs">{e.participantId}</span>
+                <CopyChip text={e.participantId} title="Copy participant id" className="copy-chip-inline">
+                  <span className="font-mono text-xs">{e.participantId}</span>
+                </CopyChip>
                 <span className="admin-feed-time">{new Date(e.at).toLocaleTimeString()}</span>
               </div>
               <div className="admin-feed-body">
                 <span className="text-zinc-500">{e.field}:</span>{" "}
-                <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
+                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
+                  <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
+                </CopyChip>
               </div>
               <div className="admin-feed-url">{e.url}</div>
             </div>
