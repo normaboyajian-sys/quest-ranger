@@ -8,6 +8,7 @@ export function FloatingPanel({
   onClose,
   initialPos,
   initialSize,
+  syncSize,
   minSize = { w: 260, h: 180 },
   resizable = true,
   children,
@@ -18,10 +19,11 @@ export function FloatingPanel({
   onClose: () => void;
   initialPos?: Pos;
   initialSize?: Size;
+  syncSize?: Size;
   minSize?: Size;
   resizable?: boolean;
   children: ReactNode;
-  accentDot?: string; // CSS color
+  accentDot?: string;
   className?: string;
 }) {
   const [pos, setPos] = useState<Pos>(() => {
@@ -35,8 +37,17 @@ export function FloatingPanel({
     };
   });
   const [size, setSize] = useState<Size>(initialSize ?? { w: 360, h: 280 });
+  const userResizedRef = useRef(false);
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const resizeRef = useRef<{ ow: number; oh: number; sx: number; sy: number } | null>(null);
+
+  // External size sync (e.g. live preview auto-matching participant viewport).
+  // Only applies until the user manually resizes.
+  useEffect(() => {
+    if (!syncSize) return;
+    if (userResizedRef.current) return;
+    setSize(syncSize);
+  }, [syncSize?.w, syncSize?.h]);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -47,6 +58,7 @@ export function FloatingPanel({
         });
       }
       if (resizeRef.current) {
+        userResizedRef.current = true;
         setSize({
           w: Math.max(minSize.w, resizeRef.current.ow + e.clientX - resizeRef.current.sx),
           h: Math.max(minSize.h, resizeRef.current.oh + e.clientY - resizeRef.current.sy),
