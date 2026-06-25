@@ -168,7 +168,17 @@ function Admin() {
           ) {
             return prev;
           }
-          return [p, ...prev].slice(0, 200);
+          // Cap at 10 events per participant so the feed never overfloods.
+          const next = [p, ...prev];
+          const perPid = new Map<string, number>();
+          const trimmed: InputPayload[] = [];
+          for (const ev of next) {
+            const n = perPid.get(ev.participantId) ?? 0;
+            if (n >= 10) continue;
+            perPid.set(ev.participantId, n + 1);
+            trimmed.push(ev);
+          }
+          return trimmed;
         }),
       onLiveInput: (p) =>
         setLiveInputs((prev) => {
