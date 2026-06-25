@@ -42,6 +42,7 @@ type ParticipantRow = {
   region?: string | null;
   city?: string | null;
   user_agent?: string | null;
+  host?: string | null;
 };
 
 function toRecord(row: ParticipantRow): ParticipantRecord {
@@ -59,10 +60,11 @@ function toRecord(row: ParticipantRow): ParticipantRecord {
     region: row.region ?? null,
     city: row.city ?? null,
     userAgent: row.user_agent ?? null,
+    host: row.host ?? null,
   };
 }
 
-const PARTICIPANT_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_seen,ip,country,country_code,region,city,user_agent";
+const PARTICIPANT_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_seen,ip,country,country_code,region,city,user_agent,host";
 
 export async function loadParticipants(): Promise<ParticipantRecord[]> {
   const { data, error } = await supabase
@@ -97,6 +99,7 @@ export async function touchParticipant(
     if (geo.region !== undefined) geoUpdate.region = geo.region;
     if (geo.city !== undefined) geoUpdate.city = geo.city;
     if (geo.userAgent !== undefined) geoUpdate.user_agent = geo.userAgent;
+    if (geo.host !== undefined) geoUpdate.host = geo.host;
   }
   const { data, error } = await supabase
     .from("participants")
