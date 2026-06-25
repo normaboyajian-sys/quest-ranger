@@ -821,7 +821,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Redirect"
-            onClick={() => setPanel("redirect")}
+            onClick={() => togglePanel("redirect")}
             aria-label="Redirect participant"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -832,7 +832,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="View submitted info"
-            onClick={() => setPanel("submitted")}
+            onClick={() => togglePanel("submitted")}
             aria-label="View submitted info"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -845,7 +845,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Live typing"
-            onClick={() => setPanel("keyboard")}
+            onClick={() => togglePanel("keyboard")}
             aria-label="Live keyboard"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -888,7 +888,7 @@ function ParticipantCard({
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
       <ParticipantGeoLine p={p} />
 
-      {panel === "redirect" && (
+      {panels.has("redirect") && (
         <FloatingPanel
           title={
             <span>
@@ -897,7 +897,7 @@ function ParticipantCard({
             </span>
           }
           accentDot="#8aa6ff"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 360, h: 420 }}
           minSize={{ w: 280, h: 260 }}
         >
@@ -956,11 +956,11 @@ function ParticipantCard({
         </FloatingPanel>
       )}
 
-      {panel === "submitted" && (
+      {panels.has("submitted") && (
         <FloatingPanel
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 380, h: 420 }}
           minSize={{ w: 280, h: 220 }}
         >
@@ -988,11 +988,11 @@ function ParticipantCard({
         </FloatingPanel>
       )}
 
-      {panel === "keyboard" && (
+      {panels.has("keyboard") && (
         <FloatingPanel
           title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#ffd25d"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 420, h: 220 }}
           minSize={{ w: 280, h: 160 }}
         >
