@@ -794,9 +794,8 @@ function ParticipantCard({
     const map = new Map<string, InputPayload>();
     for (const e of events) {
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
-      const key = e.field + "@" + (e.url || "");
-      const prev = map.get(key);
-      if (!prev || prev.at < e.at) map.set(key, e);
+      const prev = map.get(e.field);
+      if (!prev || prev.at <= e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
