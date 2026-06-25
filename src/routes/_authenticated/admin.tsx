@@ -969,7 +969,7 @@ function ParticipantCard({
         <FloatingPanel
           title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#ffd25d"
-          onClose={() => closePanelKey("redirect")}
+          onClose={() => closePanelKey("keyboard")}
           initialSize={{ w: 420, h: 220 }}
           minSize={{ w: 280, h: 160 }}
         >
