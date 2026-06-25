@@ -698,6 +698,7 @@ function ParticipantsPane({
   liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
+  return (
     <div>
       {items.length === 0 ? (
         <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
