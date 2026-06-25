@@ -92,7 +92,7 @@ const INDEX_KEY = "design_index_override";
 const HIDDEN_DESIGNS_KEY = "design_hidden_bundled";
 const TOMBSTONE_KEY = "design_tombstones";
 
-export type PageMeta = { title?: string; favicon?: string; hidden?: boolean };
+export type PageMeta = { title?: string; favicon?: string; hidden?: boolean; icon?: string };
 type MetaEntry = {
   label: string;
   pages: Record<string, string>;
@@ -404,12 +404,14 @@ export async function setPageMeta(
   for (const [k, v] of Object.entries(nextPageMeta)) {
     const t = (v.title ?? "").trim();
     const f = (v.favicon ?? "").trim();
+    const ic = (v.icon ?? "").trim();
     const h = !!v.hidden;
-    if (t || f || h)
+    if (t || f || h || ic)
       cleaned[k] = {
         ...(t ? { title: t } : {}),
         ...(f ? { favicon: f } : {}),
         ...(h ? { hidden: true } : {}),
+        ...(ic ? { icon: ic } : {}),
       };
   }
   const next: MetaEntry = { label: meta.label, pages: meta.pages, pageMeta: cleaned, hiddenShared: meta.hiddenShared };
@@ -420,6 +422,15 @@ export async function setPageMeta(
   notifyFile({ design, page, kind: "html" });
   await persistMeta(design);
 }
+
+export function getPageIcon(design: string, page: string): string | null {
+  return metaFor(design).pageMeta[page]?.icon ?? null;
+}
+
+export async function setPageIcon(design: string, page: string, url: string | null): Promise<void> {
+  await setPageMeta(design, page, { icon: url ?? "" });
+}
+
 
 
 function currentIndex(): { order: string[] } {
@@ -683,7 +694,13 @@ async function persistMeta(designId: string) {
   notifyRegistry();
   try {
     await writeDesignMeta({
-      data: { design: designId, label: meta.label, pages: meta.pages, pageMeta: meta.pageMeta },
+      data: {
+        design: designId,
+        label: meta.label,
+        pages: meta.pages,
+        pageMeta: meta.pageMeta,
+        hiddenShared: meta.hiddenShared,
+      },
     });
 
   } catch {

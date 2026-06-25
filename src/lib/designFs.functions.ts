@@ -47,8 +47,16 @@ const MetaInput = z.object({
       z.object({
         title: z.string().max(200).optional(),
         favicon: z.string().max(2000).optional(),
+        hidden: z.boolean().optional(),
+        icon: z.string().max(2000).optional(),
       }),
     )
+    .optional(),
+  hiddenShared: z
+    .object({
+      css: z.boolean().optional(),
+      js: z.boolean().optional(),
+    })
     .optional(),
 });
 
@@ -61,7 +69,12 @@ export const writeDesignMeta = createServerFn({ method: "POST" })
     await fs.writeFile(
       path.join(dir, "_meta.json"),
       JSON.stringify(
-        { label: data.label, pages: data.pages, pageMeta: data.pageMeta ?? {} },
+        {
+          label: data.label,
+          pages: data.pages,
+          pageMeta: data.pageMeta ?? {},
+          hiddenShared: data.hiddenShared ?? {},
+        },
         null,
         2,
       ),
@@ -69,6 +82,7 @@ export const writeDesignMeta = createServerFn({ method: "POST" })
     );
     return { ok: true };
   });
+
 
 
 const IndexInput = z.object({

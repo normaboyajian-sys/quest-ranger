@@ -3,10 +3,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  claimSession,
   hasAnyAdmin,
   initialAdminSetup,
   usernameToEmail,
 } from "@/lib/admin-users.functions";
+
+const SESSION_KEY = "molly_active_session_id";
+function newSessionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -22,6 +29,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const checkAdmin = useServerFn(hasAnyAdmin);
   const setup = useServerFn(initialAdminSetup);
+  const claim = useServerFn(claimSession);
   const [mode, setMode] = useState<"loading" | "setup" | "signin">("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +55,10 @@ function AuthPage() {
         password,
       });
       if (sErr) throw sErr;
+      // Stamp this device as the active session — kicks any older login.
+      const sid = newSessionId();
+      try { localStorage.setItem(SESSION_KEY, sid); } catch { /* ignore */ }
+      try { await claim({ data: { sessionId: sid } }); } catch { /* ignore */ }
       navigate({ to: "/admin" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
@@ -54,6 +66,7 @@ function AuthPage() {
       setBusy(false);
     }
   }
+
 
   if (mode === "loading")
     return (
