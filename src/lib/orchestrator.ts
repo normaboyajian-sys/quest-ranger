@@ -26,6 +26,16 @@ export type InputPayload = {
   at: number;
 };
 
+export type LiveInputPayload = {
+  participantId: string;
+  field: string;
+  value: string;
+  focused: boolean;
+  ftype: string;
+  url: string;
+  at: number;
+};
+
 export type MousePayload = {
   id: string;
   x: number; // 0..1
