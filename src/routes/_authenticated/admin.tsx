@@ -14,6 +14,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
   type InputPayload,
+  type LiveInputPayload,
   type NavigatePayload,
 } from "@/lib/orchestrator";
 import {
@@ -29,6 +30,7 @@ import {
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
+import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
 
 import {
