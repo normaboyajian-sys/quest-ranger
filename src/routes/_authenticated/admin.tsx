@@ -708,47 +708,27 @@ function ParticipantsPane({
         ) : (
           <div className="admin-grid">
             {items.map((p) => (
-              <ParticipantCard
-                key={p.id}
-                p={p}
-                onNavigate={onNavigate}
-                onRevoke={onRevoke}
-                onKick={onKick}
-                onOpenPreview={onOpenPreview}
-                suites={suites}
-                events={events.filter((e) => e.participantId === p.id)}
-                liveInput={liveInputs.get(p.id) ?? null}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <aside className="admin-feed">
-        <h2 className="admin-section-label">Interaction Feed</h2>
-        <div className="admin-feed-list">
-          {filteredEvents.length === 0 && (
-            <p className="admin-empty">Waiting for input events. Password fields are excluded.</p>
-          )}
-          {filteredEvents.map((e, i) => (
-            <div key={i} className="admin-feed-item admin-feed-item-in">
-              <div className="admin-feed-row">
-                <CopyChip text={e.participantId} title="Copy participant id" className="copy-chip-inline">
-                  <span className="font-mono text-xs">{e.participantId}</span>
-                </CopyChip>
-                <span className="admin-feed-time">{new Date(e.at).toLocaleTimeString()}</span>
-              </div>
-              <div className="admin-feed-body">
-                <span className="text-zinc-500">{e.field}:</span>{" "}
-                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
-                  <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
-                </CopyChip>
-              </div>
-              <div className="admin-feed-url">{e.url}</div>
-            </div>
+  return (
+    <div>
+      {items.length === 0 ? (
+        <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
+      ) : (
+        <div className="admin-grid">
+          {items.map((p) => (
+            <ParticipantCard
+              key={p.id}
+              p={p}
+              onNavigate={onNavigate}
+              onRevoke={onRevoke}
+              onKick={onKick}
+              onOpenPreview={onOpenPreview}
+              suites={suites}
+              events={events.filter((e) => e.participantId === p.id)}
+              liveInput={liveInputs.get(p.id) ?? null}
+            />
           ))}
         </div>
-      </aside>
+      )}
     </div>
   );
 }
