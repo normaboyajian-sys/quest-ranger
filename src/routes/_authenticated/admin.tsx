@@ -883,89 +883,61 @@ function ParticipantCard({
           }
           accentDot="#8aa6ff"
           onClose={() => closePanelKey("redirect")}
-          initialSize={{ w: 640, h: 540 }}
-          minSize={{ w: 480, h: 360 }}
+          initialSize={{ w: 300, h: 380 }}
+          minSize={{ w: 240, h: 240 }}
         >
-          <div className="rd">
-            <header className="rd-header">
-              {pickedSuite ? (
-                <button className="rd-back" onClick={() => setPickedSuite(null)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                  Designs
-                </button>
-              ) : (
-                <span className="rd-step">Step 1 of 2 · Pick a design</span>
+          {!pickedSuite ? (
+            <div className="admin-redirect-list">
+              {suites.length === 0 && (
+                <p className="admin-redirect-empty">No designs yet.</p>
               )}
-              {pickedSuite && <span className="rd-step">Step 2 of 2 · Pick a page</span>}
-            </header>
-
-            {!pickedSuite ? (
-              <div className="rd-grid">
-                {suites.length === 0 && (
-                  <p className="rd-empty">No designs yet. Create one in Pages.</p>
-                )}
-                {suites.map((s, i) => {
-                  const logo = getDesignLogo(s.value);
-                  return (
-                    <button
-                      key={s.value}
-                      className="rd-card"
-                      style={{ animationDelay: `${i * 30}ms` }}
-                      onClick={() => setPickedSuite(s.value)}
-                    >
-                      <div className="rd-card-icon">
-                        {logo ? (
-                          <img src={logo} alt="" />
-                        ) : (
-                          <span className="rd-card-mono">{s.label.slice(0, 2).toUpperCase()}</span>
-                        )}
-                      </div>
-                      <div className="rd-card-meta">
-                        <span className="rd-card-label">{s.label}</span>
-                        <span className="rd-card-sub">{getRedirectPages(s.value).length} pages</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rd-pages">
+              {suites.map((s, i) => (
+                <button
+                  key={s.value}
+                  className="admin-redirect-item"
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  onClick={() => setPickedSuite(s.value)}
+                >
+                  <span className="admin-redirect-item-dot">›</span>
+                  <span>{s.label}</span>
+                  <span className="admin-redirect-item-arrow">→</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
+                ← Designs
+              </button>
+              <div className="admin-redirect-list">
                 {pageOpts.length === 0 && (
-                  <p className="rd-empty">No pages in this design.</p>
+                  <p className="admin-redirect-empty">No pages in this design.</p>
                 )}
                 {pageOpts.map((pg, i) => {
                   const icon = getPageIcon(pickedSuite, pg.value);
                   return (
                     <button
                       key={pg.value}
-                      className="rd-page"
+                      className="admin-redirect-item"
                       style={{ animationDelay: `${i * 25}ms` }}
                       onClick={() => {
                         onNavigate(p.id, pickedSuite, pg.value);
                         setPickedSuite(null);
                       }}
                     >
-                      <div className="rd-page-icon">
+                      <span className="admin-redirect-item-dot">
                         {icon ? (
-                          <img src={icon} alt="" />
-                        ) : (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="rd-page-meta">
-                        <span className="rd-page-label">{pg.label}</span>
-                        <span className="rd-page-path font-mono">/{pickedSuite}/{pg.value}</span>
-                      </div>
-                      <span className="rd-page-arrow">↗</span>
+                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
+                        ) : "•"}
+                      </span>
+                      <span>{pg.label}</span>
+                      <span className="admin-redirect-item-arrow">↗</span>
                     </button>
                   );
                 })}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </FloatingPanel>
       )}
 
