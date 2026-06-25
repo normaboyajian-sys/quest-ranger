@@ -12,6 +12,7 @@ import {
   deleteDesign,
   deletePage,
   getDesigns,
+  getDesignLogo,
   getHiddenShared,
   getPageIcon,
   getPageMeta,
@@ -336,7 +337,16 @@ export function PagesEditor() {
                   title={open ? "Collapse" : "Expand"}
                 >
                   <span className={`admin-pages-caret ${open ? "is-open" : ""}`}>▸</span>
-                  <span className="admin-pages-folder-icon">▤</span>
+                  {(() => {
+                    const logo = getDesignLogo(folder.id);
+                    return logo ? (
+                      <span className="admin-pages-folder-icon admin-pages-folder-icon-img">
+                        <img src={logo} alt="" />
+                      </span>
+                    ) : (
+                      <span className="admin-pages-folder-icon">▤</span>
+                    );
+                  })()}
                   <span className="admin-pages-folder-label">{folder.label}</span>
                 </button>
                 <div className="admin-pages-folder-actions">
@@ -389,7 +399,16 @@ export function PagesEditor() {
                             onClick={() => void openFile(f)}
                             title={`/${folder.id}/${pg.page}${hidden ? " · hidden from redirect" : ""}`}
                           >
-                            <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
+                            {(() => {
+                              const pIcon = getPageIcon(folder.id, pg.page) ?? getDesignLogo(folder.id);
+                              return pIcon ? (
+                                <span className="admin-pages-file-icon admin-pages-file-icon-img">
+                                  <img src={pIcon} alt="" />
+                                </span>
+                              ) : (
+                                <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
+                              );
+                            })()}
                             {pg.label ?? pg.page}.html
                           </button>
                           <div className="admin-pages-file-actions">
