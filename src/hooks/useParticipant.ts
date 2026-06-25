@@ -7,6 +7,7 @@ import {
   joinChannel,
   setApproved,
   type InputPayload,
+  type LiveInputPayload,
   type ParticipantPresence,
 } from "@/lib/orchestrator";
 import {
