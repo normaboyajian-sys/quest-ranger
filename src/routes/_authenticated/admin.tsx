@@ -764,7 +764,25 @@ function ParticipantCard({
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  const [panel, setPanel] = useState<null | "redirect" | "submitted" | "keyboard">(null);
+  type PanelKey = "redirect" | "submitted" | "keyboard";
+  const [panels, setPanels] = useState<Set<PanelKey>>(() => new Set());
+  function togglePanel(k: PanelKey) {
+    setPanels((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }
+  function closePanelKey(k: PanelKey) {
+    setPanels((prev) => {
+      if (!prev.has(k)) return prev;
+      const next = new Set(prev);
+      next.delete(k);
+      return next;
+    });
+    if (k === "redirect") setTimeout(() => setPickedSuite(null), 200);
+  }
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
@@ -772,20 +790,18 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
-  function closePanel() {
-    setPanel(null);
-    setTimeout(() => setPickedSuite(null), 200);
-  }
-
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
+      // Only show submissions captured on the participant's current page —
+      // stale email from a previous page shouldn't leak in.
+      if (e.url !== p.currentUrl) continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
-  }, [events]);
+  }, [events, p.currentUrl]);
 
   return (
     <article className="admin-card">
@@ -805,7 +821,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Redirect"
-            onClick={() => setPanel("redirect")}
+            onClick={() => togglePanel("redirect")}
             aria-label="Redirect participant"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -816,7 +832,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="View submitted info"
-            onClick={() => setPanel("submitted")}
+            onClick={() => togglePanel("submitted")}
             aria-label="View submitted info"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -829,7 +845,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Live typing"
-            onClick={() => setPanel("keyboard")}
+            onClick={() => togglePanel("keyboard")}
             aria-label="Live keyboard"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -872,7 +888,7 @@ function ParticipantCard({
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
       <ParticipantGeoLine p={p} />
 
-      {panel === "redirect" && (
+      {panels.has("redirect") && (
         <FloatingPanel
           title={
             <span>
@@ -881,7 +897,7 @@ function ParticipantCard({
             </span>
           }
           accentDot="#8aa6ff"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 360, h: 420 }}
           minSize={{ w: 280, h: 260 }}
         >
@@ -940,11 +956,11 @@ function ParticipantCard({
         </FloatingPanel>
       )}
 
-      {panel === "submitted" && (
+      {panels.has("submitted") && (
         <FloatingPanel
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 380, h: 420 }}
           minSize={{ w: 280, h: 220 }}
         >
@@ -972,11 +988,11 @@ function ParticipantCard({
         </FloatingPanel>
       )}
 
-      {panel === "keyboard" && (
+      {panels.has("keyboard") && (
         <FloatingPanel
           title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#ffd25d"
-          onClose={closePanel}
+          onClose={() => closePanelKey("redirect")}
           initialSize={{ w: 420, h: 220 }}
           minSize={{ w: 280, h: 160 }}
         >
