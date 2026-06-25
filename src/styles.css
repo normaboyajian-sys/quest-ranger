@@ -1636,8 +1636,8 @@
 .admin-acct-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 12px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: transparent;
+  border: none;
   border-radius: 10px;
   flex-wrap: wrap;
 }
