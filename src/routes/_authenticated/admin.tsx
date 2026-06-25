@@ -645,7 +645,7 @@ function CopyChip({
   children: ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
-  function copy(e: React.MouseEvent) {
+  function copy(e: ReactMouseEvent) {
     e.stopPropagation();
     if (!text) return;
     try {
