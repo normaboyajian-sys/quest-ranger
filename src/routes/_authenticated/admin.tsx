@@ -698,17 +698,6 @@ function ParticipantsPane({
   liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
-  const ids = new Set(items.map((i) => i.id));
-  const filteredEvents = events.filter((e) => ids.has(e.participantId));
-  return (
-    <div className="admin-pane-split">
-      <div>
-        {items.length === 0 ? (
-          <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
-        ) : (
-          <div className="admin-grid">
-            {items.map((p) => (
-  return (
     <div>
       {items.length === 0 ? (
         <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
