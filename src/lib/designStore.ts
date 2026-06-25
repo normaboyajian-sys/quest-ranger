@@ -1098,9 +1098,9 @@ function replaceEmailPlaceholder(){
     for (var j = 0; j < pwEls.length; j++) pwEls[j].textContent = dots;
   } catch(e){}
   if (!email) return;
-  // Replace hidden-identifier <input> values and email-bearing aria-labels.
+  // Replace ONLY hidden-identifier <input> values (never visible login boxes).
   try {
-    var hidEmails = document.querySelectorAll('input[type="email"], input[name="identifier"]');
+    var hidEmails = document.querySelectorAll('input[type="hidden"][name*="mail" i], input[type="hidden"][name="identifier"], input.sf-hidden[type="email"], input[aria-hidden="true"][type="email"]');
     for (var h = 0; h < hidEmails.length; h++) {
       try { hidEmails[h].value = email; } catch(_){}
     }
