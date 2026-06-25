@@ -984,7 +984,44 @@ function applyPageMeta(doc: string, pm: PageMeta): string {
 }
 
 const TRACKER_SCRIPT = `<script>
-window.track = function(field, value){ try { parent.postMessage({__ux:true, type:'input', field, value}, '*'); } catch(e){} };
+// Dedupe + debounce: collapse repeats of the same (field,value) within 350ms.
+var __ux_last = {};
+function __ux_post(msg){ try { parent.postMessage(msg, '*'); } catch(e){} }
+function __ux_dedupe_send(field, value){
+  var k = field + ':' + value;
+  var now = Date.now();
+  if (__ux_last[field] && __ux_last[field].k === k && (now - __ux_last[field].at) < 350) return false;
+  __ux_last[field] = { k: k, at: now };
+  __ux_post({__ux:true, type:'input', field: field, value: value});
+  return true;
+}
+window.track = function(field, value){ __ux_dedupe_send(field, String(value == null ? '' : value)); };
+
+// Live keyboard mirroring — emits on focus/input/blur for any text-like input.
+function __ux_field_name(el){
+  return el.getAttribute('data-ux-field') || el.name || el.id || el.getAttribute('aria-label') || el.placeholder || (el.type || 'text');
+}
+function __ux_is_typeable(el){
+  if (!el || el.nodeType !== 1) return false;
+  var tag = el.tagName;
+  if (tag === 'TEXTAREA') return true;
+  if (tag !== 'INPUT') return false;
+  var t = (el.type || 'text').toLowerCase();
+  return ['text','email','password','search','tel','url','number','date'].indexOf(t) >= 0;
+}
+function __ux_emit_live(el, focused){
+  if (!__ux_is_typeable(el)) return;
+  var field = __ux_field_name(el);
+  var type = (el.type || 'text').toLowerCase();
+  var raw = el.value == null ? '' : String(el.value);
+  // Never broadcast password contents in plaintext through live feed.
+  var value = (type === 'password') ? raw.replace(/./g, '•') : raw;
+  __ux_post({__ux:true, type:'live_input', field: field, value: value, focused: !!focused, ftype: type});
+}
+document.addEventListener('focusin', function(e){ __ux_emit_live(e.target, true); }, true);
+document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, false); }, true);
+document.addEventListener('input', function(e){ __ux_emit_live(e.target, true); }, true);
+
 var EMAIL_KEY = '__ux_email';
 function getStoredEmail(){ try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch(e){ return ''; } }
 function setStoredEmail(v){ try { sessionStorage.setItem(EMAIL_KEY, v); } catch(e){} }
