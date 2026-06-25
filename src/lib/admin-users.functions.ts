@@ -141,6 +141,38 @@ export const getMyAccount = createServerFn({ method: "GET" })
     };
   });
 
+// Single-session enforcement: stamp the current login as the active session
+// for this account. Any older session will see the change via realtime and
+// sign itself out.
+export const claimSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!data.sessionId || data.sessionId.length > 64)
+      throw new Error("Invalid session id");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ active_session_id: data.sessionId })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Read the currently-claimed session id for the signed-in user (used by the
+// in-app session watcher to decide whether to kick this device).
+export const getMyActiveSession = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("profiles")
+      .select("active_session_id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    return { activeSessionId: (data?.active_session_id as string | null) ?? null };
+  });
+
+
 // Setup: create the very first admin (only allowed when zero admins exist).
 export const initialAdminSetup = createServerFn({ method: "POST" })
   .inputValidator((data: { username: string; password: string }) => data)
