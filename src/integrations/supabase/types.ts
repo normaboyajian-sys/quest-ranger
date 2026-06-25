@@ -36,6 +36,7 @@ export type Database = {
         Row: {
           content: string
           design: string
+          icon_url: string | null
           kind: string
           label: string | null
           page: string
@@ -44,6 +45,7 @@ export type Database = {
         Insert: {
           content: string
           design: string
+          icon_url?: string | null
           kind: string
           label?: string | null
           page: string
@@ -52,6 +54,7 @@ export type Database = {
         Update: {
           content?: string
           design?: string
+          icon_url?: string | null
           kind?: string
           label?: string | null
           page?: string
@@ -91,6 +94,7 @@ export type Database = {
           country: string | null
           country_code: string | null
           current_url: string
+          host: string | null
           id: string
           ip: string | null
           joined_at: string
@@ -107,6 +111,7 @@ export type Database = {
           country?: string | null
           country_code?: string | null
           current_url?: string
+          host?: string | null
           id: string
           ip?: string | null
           joined_at?: string
@@ -123,6 +128,7 @@ export type Database = {
           country?: string | null
           country_code?: string | null
           current_url?: string
+          host?: string | null
           id?: string
           ip?: string | null
           joined_at?: string
@@ -136,6 +142,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_session_id: string | null
           created_at: string
           id: string
           subscription_until: string | null
@@ -143,6 +150,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          active_session_id?: string | null
           created_at?: string
           id: string
           subscription_until?: string | null
@@ -150,6 +158,7 @@ export type Database = {
           username: string
         }
         Update: {
+          active_session_id?: string | null
           created_at?: string
           id?: string
           subscription_until?: string | null
