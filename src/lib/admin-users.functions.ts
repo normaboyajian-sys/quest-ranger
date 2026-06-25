@@ -1,13 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function assertAdmin(ctx: { supabase: any; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
+async function isAdminUser(userId: string): Promise<boolean> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  return !!data;
+}
+
+async function assertAdmin(ctx: { userId: string }) {
+  if (!(await isAdminUser(ctx.userId))) throw new Error("Forbidden");
 }
 
 function syntheticEmail(username: string) {
@@ -129,15 +136,12 @@ export const getMyAccount = createServerFn({ method: "GET" })
       .select("username, subscription_until")
       .eq("id", context.userId)
       .maybeSingle();
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    const isAdmin = await isAdminUser(context.userId);
     return {
       userId: context.userId,
       username: prof?.username ?? null,
       subscription_until: prof?.subscription_until ?? null,
-      isAdmin: !!isAdmin,
+      isAdmin,
     };
   });
 

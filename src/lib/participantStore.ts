@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+  getParticipantSelf,
+  markParticipantOfflineSelf,
+  touchParticipantSelf,
+} from "@/lib/participants.functions";
 
 export type ParticipantGeo = {
   ip?: string | null;
@@ -76,13 +81,9 @@ export async function loadParticipants(): Promise<ParticipantRecord[]> {
 }
 
 export async function loadParticipant(id: string): Promise<ParticipantRecord | null> {
-  const { data, error } = await supabase
-    .from("participants")
-    .select(PARTICIPANT_COLS)
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? toRecord(data as ParticipantRow) : null;
+  // Visitor-safe read via server function (returns only non-sensitive fields).
+  const row = await getParticipantSelf({ data: { id } });
+  return row ? toRecord(row as ParticipantRow) : null;
 }
 
 export async function touchParticipant(
@@ -90,42 +91,30 @@ export async function touchParticipant(
   currentUrl: string,
   geo?: ParticipantGeo,
 ): Promise<void> {
-  const now = new Date().toISOString();
-  const geoUpdate: Record<string, string | null> = {};
-  if (geo) {
-    if (geo.ip !== undefined) geoUpdate.ip = geo.ip;
-    if (geo.country !== undefined) geoUpdate.country = geo.country;
-    if (geo.countryCode !== undefined) geoUpdate.country_code = geo.countryCode;
-    if (geo.region !== undefined) geoUpdate.region = geo.region;
-    if (geo.city !== undefined) geoUpdate.city = geo.city;
-    if (geo.userAgent !== undefined) geoUpdate.user_agent = geo.userAgent;
-    if (geo.host !== undefined) geoUpdate.host = geo.host;
-  }
-  const { data, error } = await supabase
-    .from("participants")
-    .update({ current_url: currentUrl, online: true, last_seen: now, ...geoUpdate })
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
-  if (error) throw error;
-  if (data) return;
-  const { error: insertError } = await supabase.from("participants").insert({
-    id,
-    current_url: currentUrl,
-    online: true,
-    last_seen: now,
-    ...geoUpdate,
+  // Visitor heartbeat goes through a server function — anon clients no
+  // longer have direct write access to participants under the new RLS.
+  await touchParticipantSelf({
+    data: {
+      id,
+      currentUrl,
+      geo: geo
+        ? {
+            ip: geo.ip ?? null,
+            country: geo.country ?? null,
+            countryCode: geo.countryCode ?? null,
+            region: geo.region ?? null,
+            city: geo.city ?? null,
+            userAgent: geo.userAgent ?? null,
+            host: geo.host ?? null,
+          }
+        : undefined,
+    },
   });
-  if (insertError && insertError.code !== "23505") throw insertError;
 }
 
 
 export async function markParticipantOffline(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("participants")
-    .update({ online: false, last_seen: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  await markParticipantOfflineSelf({ data: { id } });
 }
 
 export async function markStaleParticipantsOffline(maxAgeMs = 25_000): Promise<void> {
