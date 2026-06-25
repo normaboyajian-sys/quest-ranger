@@ -53,13 +53,20 @@ import {
 
 function ParticipantGeoLine({ p }: { p: LiveRecord }) {
   const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
-  if (!p.ip && !place) return null;
+  if (!p.ip && !place && !p.host) return null;
   return (
-    <p className="admin-card-geo">
-      <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
-      {place && <span className="admin-card-place">{place}</span>}
-      {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
-    </p>
+    <>
+      <p className="admin-card-geo">
+        <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+        {place && <span className="admin-card-place">{place}</span>}
+        {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
+      </p>
+      {p.host && (
+        <p className="admin-card-host font-mono" title="Site domain the participant connected to">
+          <span className="admin-card-host-label">via</span> {p.host}
+        </p>
+      )}
+    </>
   );
 }
 
