@@ -132,6 +132,10 @@ export function joinChannel(opts: {
     channel.on("broadcast", { event: "input" }, ({ payload }) =>
       opts.onInput!(payload as InputPayload),
     );
+  if (opts.onLiveInput)
+    channel.on("broadcast", { event: "live_input" }, ({ payload }) =>
+      opts.onLiveInput!(payload as LiveInputPayload),
+    );
   if (opts.onApprove)
     channel.on("broadcast", { event: "approve" }, ({ payload }) =>
       opts.onApprove!(payload as ApprovePayload),
