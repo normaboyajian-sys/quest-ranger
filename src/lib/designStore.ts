@@ -694,7 +694,13 @@ async function persistMeta(designId: string) {
   notifyRegistry();
   try {
     await writeDesignMeta({
-      data: { design: designId, label: meta.label, pages: meta.pages, pageMeta: meta.pageMeta },
+      data: {
+        design: designId,
+        label: meta.label,
+        pages: meta.pages,
+        pageMeta: meta.pageMeta,
+        hiddenShared: meta.hiddenShared,
+      },
     });
 
   } catch {
