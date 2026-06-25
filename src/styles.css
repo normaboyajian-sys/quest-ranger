@@ -1757,3 +1757,20 @@
 @keyframes kb-blink {
   to { background: transparent; }
 }
+
+/* Touch cursor variant for phone participants */
+.mirror-cursor.is-touch {
+  transform: translate(-18px, -18px);
+}
+.mirror-touch-ring {
+  display: block;
+  width: 36px; height: 36px;
+  border-radius: 999px;
+  background: rgba(93, 255, 163, 0.18);
+  box-shadow: 0 0 0 2px rgba(93, 255, 163, 0.55), 0 0 18px rgba(93,255,163,0.4);
+}
+.mirror-ripple.is-touch {
+  width: 28px; height: 28px;
+  margin-left: -14px; margin-top: -14px;
+  background: rgba(93, 255, 163, 0.45);
+}
