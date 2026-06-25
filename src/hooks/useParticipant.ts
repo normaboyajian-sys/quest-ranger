@@ -132,7 +132,10 @@ export function useParticipant() {
       key: id,
       onNavigate: (p) => {
         if (p.targets === "all" || p.targets.includes(id)) {
-          if (p.url !== pathnameRef.current && internalNavActive()) return;
+          // Admin-issued navigate ALWAYS wins — clear the internal-nav guard
+          // so subsequent redirects (e.g. loading → next) aren't blocked.
+          internalNavUntilRef.current = 0;
+          try { window.sessionStorage.removeItem("__ux_internal_nav_until"); } catch { /* ignore */ }
           setApproved(true);
           setApprovedState(true);
           lastAssignedRef.current = p.url;
