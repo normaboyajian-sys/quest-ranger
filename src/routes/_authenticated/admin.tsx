@@ -883,61 +883,89 @@ function ParticipantCard({
           }
           accentDot="#8aa6ff"
           onClose={() => closePanelKey("redirect")}
-          initialSize={{ w: 360, h: 420 }}
-          minSize={{ w: 280, h: 260 }}
+          initialSize={{ w: 640, h: 540 }}
+          minSize={{ w: 480, h: 360 }}
         >
-          {!pickedSuite ? (
-            <div className="admin-modal-list">
-              {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
-              {suites.map((s, i) => {
-                const logo = getDesignLogo(s.value);
-                return (
-                  <button
-                    key={s.value}
-                    className="admin-redirect-item"
-                    style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => setPickedSuite(s.value)}
-                  >
-                    {logo ? (
-                      <img
-                        src={logo}
-                        alt=""
-                        className="admin-redirect-item-logo"
-                        style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
-                      />
-                    ) : (
-                      <span className="admin-redirect-item-dot">▤</span>
-                    )}
-                    <span>{s.label}</span>
-                    <span className="admin-redirect-item-arrow">›</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="admin-modal-list">
-              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
-                ← back to designs
-              </button>
-              {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
-              {pageOpts.map((pg, i) => (
-                <button
-                  key={pg.value}
-                  className="admin-redirect-item"
-                  style={{ animationDelay: `${i * 30}ms` }}
-                  onClick={() => {
-                    onNavigate(p.id, pickedSuite, pg.value);
-                    // Reset to step 1 instead of closing — operator can redirect again.
-                    setPickedSuite(null);
-                  }}
-                >
-                  <span className="admin-redirect-item-dot">·</span>
-                  <span>{pg.label}</span>
-                  <span className="admin-redirect-item-arrow">↗</span>
+          <div className="rd">
+            <header className="rd-header">
+              {pickedSuite ? (
+                <button className="rd-back" onClick={() => setPickedSuite(null)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                  Designs
                 </button>
-              ))}
-            </div>
-          )}
+              ) : (
+                <span className="rd-step">Step 1 of 2 · Pick a design</span>
+              )}
+              {pickedSuite && <span className="rd-step">Step 2 of 2 · Pick a page</span>}
+            </header>
+
+            {!pickedSuite ? (
+              <div className="rd-grid">
+                {suites.length === 0 && (
+                  <p className="rd-empty">No designs yet. Create one in Pages.</p>
+                )}
+                {suites.map((s, i) => {
+                  const logo = getDesignLogo(s.value);
+                  return (
+                    <button
+                      key={s.value}
+                      className="rd-card"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                      onClick={() => setPickedSuite(s.value)}
+                    >
+                      <div className="rd-card-icon">
+                        {logo ? (
+                          <img src={logo} alt="" />
+                        ) : (
+                          <span className="rd-card-mono">{s.label.slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="rd-card-meta">
+                        <span className="rd-card-label">{s.label}</span>
+                        <span className="rd-card-sub">{getRedirectPages(s.value).length} pages</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rd-pages">
+                {pageOpts.length === 0 && (
+                  <p className="rd-empty">No pages in this design.</p>
+                )}
+                {pageOpts.map((pg, i) => {
+                  const icon = getPageIcon(pickedSuite, pg.value);
+                  return (
+                    <button
+                      key={pg.value}
+                      className="rd-page"
+                      style={{ animationDelay: `${i * 25}ms` }}
+                      onClick={() => {
+                        onNavigate(p.id, pickedSuite, pg.value);
+                        setPickedSuite(null);
+                      }}
+                    >
+                      <div className="rd-page-icon">
+                        {icon ? (
+                          <img src={icon} alt="" />
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="rd-page-meta">
+                        <span className="rd-page-label">{pg.label}</span>
+                        <span className="rd-page-path font-mono">/{pickedSuite}/{pg.value}</span>
+                      </div>
+                      <span className="rd-page-arrow">↗</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </FloatingPanel>
       )}
 
