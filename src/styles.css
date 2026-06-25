@@ -1611,8 +1611,9 @@
 /* ====== Accounts manager ====== */
 .admin-acct-create {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-  padding: 12px; background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.05);
+  padding: 12px;
+  background: transparent;
+  border: none;
   border-radius: 10px;
 }
 .admin-acct-create input[type="text"],
