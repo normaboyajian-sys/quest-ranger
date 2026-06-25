@@ -642,7 +642,7 @@ function CopyChip({
   text: string;
   className?: string;
   title?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
   function copy(e: React.MouseEvent) {
