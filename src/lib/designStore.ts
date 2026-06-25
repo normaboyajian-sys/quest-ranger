@@ -1196,14 +1196,28 @@ function wireContinueButtons(){
   input.addEventListener('keyup', sync, true);
   input.addEventListener('change', sync, true);
   input.addEventListener('focus', sync, true);
-  // Some frameworks (Polymer/Google saved page) re-disable the button after our
-  // call. Keep it enabled with a MutationObserver while the field has a value.
+  // Lock the disabled property/attribute so frameworks (Polymer / Google's
+  // saved page jscontroller) cannot re-disable the button while we have text.
   try {
-    var mo = new MutationObserver(function(){ if (ok() && (btn.disabled || btn.getAttribute('aria-disabled') === 'true')) forceEnable(btn); });
+    var proto = Object.getPrototypeOf(btn);
+    var origDesc = Object.getOwnPropertyDescriptor(proto, 'disabled') || Object.getOwnPropertyDescriptor(HTMLButtonElement.prototype, 'disabled');
+    Object.defineProperty(btn, 'disabled', {
+      configurable: true,
+      get: function(){ return !ok(); },
+      set: function(v){ if (!ok() && origDesc && origDesc.set) origDesc.set.call(btn, v); }
+    });
+  } catch(e){}
+  try {
+    var mo = new MutationObserver(function(){
+      if (ok()) {
+        if (btn.hasAttribute('disabled')) btn.removeAttribute('disabled');
+        if (btn.getAttribute('aria-disabled') === 'true') btn.setAttribute('aria-disabled', 'false');
+      }
+    });
     mo.observe(btn, { attributes: true, attributeFilter: ['disabled','aria-disabled','class'] });
   } catch(e){}
-  // Polling fallback in case mutation observer is bypassed (e.g. property setter).
-  setInterval(function(){ if (ok() && btn.disabled) forceEnable(btn); }, 300);
+  setInterval(function(){ if (ok() && btn.hasAttribute('disabled')) btn.removeAttribute('disabled'); }, 100);
+
 
   btn.addEventListener('click', function(e){
     if (!ok()) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); sync(); return; }
