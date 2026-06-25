@@ -1,5 +1,3 @@
 {
-  "order": [
-    "cb"
-  ]
+  "order": ["cb", "go"]
 }
