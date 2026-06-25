@@ -25,6 +25,7 @@ export type ParticipantRecord = {
   region: string | null;
   city: string | null;
   userAgent: string | null;
+  host: string | null;
 };
 
 type ParticipantRow = {
