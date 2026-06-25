@@ -751,6 +751,7 @@ function ParticipantCard({
   onOpenPreview,
   suites,
   events,
+  liveInput,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -759,10 +760,11 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
   events: InputPayload[];
+  liveInput: LiveInputPayload | null;
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  const [modal, setModal] = useState<null | "redirect" | "submitted">(null);
+  const [panel, setPanel] = useState<null | "redirect" | "submitted" | "keyboard">(null);
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
@@ -770,24 +772,20 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
-  function close() {
-    setModal(null);
-    setTimeout(() => setPickedSuite(null), 220);
+  function closePanel() {
+    setPanel(null);
+    setTimeout(() => setPickedSuite(null), 200);
   }
 
-
-  // Latest value per field for this participant (no passwords — already filtered at source).
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
-      // Exclude button-click signals from submitted info; keep real inputs.
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
-
 
   return (
     <article className="admin-card">
@@ -807,7 +805,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Redirect"
-            onClick={() => setModal("redirect")}
+            onClick={() => setPanel("redirect")}
             aria-label="Redirect participant"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -818,7 +816,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="View submitted info"
-            onClick={() => setModal("submitted")}
+            onClick={() => setPanel("submitted")}
             aria-label="View submitted info"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -827,6 +825,17 @@ function ParticipantCard({
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
+          </button>
+          <button
+            className="admin-icon-btn"
+            title="Live typing"
+            onClick={() => setPanel("keyboard")}
+            aria-label="Live keyboard"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
           </button>
           <button
             className="admin-icon-btn admin-icon-btn-danger"
@@ -855,114 +864,157 @@ function ParticipantCard({
         </div>
         <div className="admin-card-id admin-card-id-bottom">
           <StatusDot state={p.state} />
-          <span className="font-mono text-xs">{p.id}</span>
+          <CopyChip text={p.id} title="Copy participant id" className="copy-chip-inline">
+            <span className="font-mono text-xs">{p.id}</span>
+          </CopyChip>
         </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
       <ParticipantGeoLine p={p} />
 
-
-      {modal && (
-        <div className="admin-modal-backdrop" onClick={close}>
-          <div
-            className="admin-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label={modal === "redirect" ? "Redirect participant" : "Submitted info"}
-          >
-            <div className="admin-modal-head">
-              <span>
-                {modal === "redirect"
-                  ? (pickedSuite ? "Choose page" : "Choose design")
-                  : `Submitted by ${p.id}`}
-              </span>
-              <button className="admin-modal-close" onClick={close} aria-label="Close">×</button>
-            </div>
-
-            {modal === "redirect" && !pickedSuite && (
-              <div className="admin-modal-list">
-                {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
-                {suites.map((s, i) => {
-                  const logo = getDesignLogo(s.value);
-                  return (
-                    <button
-                      key={s.value}
-                      className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 30}ms` }}
-                      onClick={() => setPickedSuite(s.value)}
-                    >
-                      {logo ? (
-                        <img
-                          src={logo}
-                          alt=""
-                          className="admin-redirect-item-logo"
-                          style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
-                        />
-                      ) : (
-                        <span className="admin-redirect-item-dot">▤</span>
-                      )}
-                      <span>{s.label}</span>
-                      <span className="admin-redirect-item-arrow">›</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-
-            {modal === "redirect" && pickedSuite && (
-              <div className="admin-modal-list">
-                <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
-                  ← back to designs
-                </button>
-                {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
-                {pageOpts.map((pg, i) => (
+      {panel === "redirect" && (
+        <FloatingPanel
+          title={
+            <span>
+              Redirect <span className="font-mono text-[11px] opacity-60">{p.id}</span>
+              {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
+            </span>
+          }
+          accentDot="#8aa6ff"
+          onClose={closePanel}
+          initialSize={{ w: 360, h: 420 }}
+          minSize={{ w: 280, h: 260 }}
+        >
+          {!pickedSuite ? (
+            <div className="admin-modal-list">
+              {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
+              {suites.map((s, i) => {
+                const logo = getDesignLogo(s.value);
+                return (
                   <button
-                    key={pg.value}
+                    key={s.value}
                     className="admin-redirect-item"
                     style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => {
-                      onNavigate(p.id, pickedSuite, pg.value);
-                      close();
-                    }}
+                    onClick={() => setPickedSuite(s.value)}
                   >
-                    <span className="admin-redirect-item-dot">·</span>
-                    <span>{pg.label}</span>
-                    <span className="admin-redirect-item-arrow">↗</span>
+                    {logo ? (
+                      <img
+                        src={logo}
+                        alt=""
+                        className="admin-redirect-item-logo"
+                        style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
+                      />
+                    ) : (
+                      <span className="admin-redirect-item-dot">▤</span>
+                    )}
+                    <span>{s.label}</span>
+                    <span className="admin-redirect-item-arrow">›</span>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="admin-modal-list">
+              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
+                ← back to designs
+              </button>
+              {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
+              {pageOpts.map((pg, i) => (
+                <button
+                  key={pg.value}
+                  className="admin-redirect-item"
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  onClick={() => {
+                    onNavigate(p.id, pickedSuite, pg.value);
+                    // Reset to step 1 instead of closing — operator can redirect again.
+                    setPickedSuite(null);
+                  }}
+                >
+                  <span className="admin-redirect-item-dot">·</span>
+                  <span>{pg.label}</span>
+                  <span className="admin-redirect-item-arrow">↗</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </FloatingPanel>
+      )}
 
-            {modal === "submitted" && (
-              <div className="admin-modal-list">
-                {submitted.length === 0 ? (
-                  <p className="admin-redirect-empty">Nothing submitted yet.</p>
-                ) : (
-                  submitted.map((e, i) => (
-                    <div
-                      key={e.field}
-                      className="admin-submitted-item"
-                      style={{ animationDelay: `${i * 40}ms` }}
-                    >
-                      <div className="admin-submitted-field">{e.field}</div>
-                      <div className="admin-submitted-value">
-                        {e.value || <em style={{ color: "#555" }}>(empty)</em>}
-                      </div>
-                      <div className="admin-submitted-meta">
-                        {new Date(e.at).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+      {panel === "submitted" && (
+        <FloatingPanel
+          title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
+          accentDot="#5dffa3"
+          onClose={closePanel}
+          initialSize={{ w: 380, h: 420 }}
+          minSize={{ w: 280, h: 220 }}
+        >
+          <div className="admin-modal-list">
+            {submitted.length === 0 ? (
+              <p className="admin-redirect-empty">Nothing submitted yet.</p>
+            ) : (
+              submitted.map((e, i) => (
+                <div
+                  key={e.field}
+                  className="admin-submitted-item"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  <div className="admin-submitted-field">{e.field}</div>
+                  <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
+                    {e.value || <em style={{ color: "#555" }}>(empty)</em>}
+                  </CopyChip>
+                  <div className="admin-submitted-meta">
+                    {new Date(e.at).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        </FloatingPanel>
+      )}
+
+      {panel === "keyboard" && (
+        <FloatingPanel
+          title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
+          accentDot="#ffd25d"
+          onClose={closePanel}
+          initialSize={{ w: 420, h: 220 }}
+          minSize={{ w: 280, h: 160 }}
+        >
+          <KeyboardPanelBody liveInput={liveInput} />
+        </FloatingPanel>
       )}
     </article>
   );
 }
+
+function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }) {
+  if (!liveInput) {
+    return (
+      <div className="kb-panel-empty">
+        <p>Waiting for the participant to focus a field.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="kb-panel">
+      <div className="kb-panel-meta">
+        <span className={`kb-focus-dot ${liveInput.focused ? "is-on" : ""}`} />
+        <span className="kb-panel-field">{liveInput.field}</span>
+        <span className="kb-panel-type">{liveInput.ftype}</span>
+        <span className="kb-panel-time">{new Date(liveInput.at).toLocaleTimeString()}</span>
+      </div>
+      <CopyChip text={liveInput.value} className="kb-panel-value copy-chip-block" title="Copy current value">
+        {liveInput.value ? (
+          <span className="kb-panel-text">{liveInput.value}</span>
+        ) : (
+          <em className="kb-panel-empty-text">(empty)</em>
+        )}
+        <span className="kb-caret" aria-hidden />
+      </CopyChip>
+    </div>
+  );
+}
+
 
 function SettingsPane({
   blockBots,
