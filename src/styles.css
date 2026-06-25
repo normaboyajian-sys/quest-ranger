@@ -843,7 +843,10 @@
   color: #6b6b6b; font-size: 10px;
 }
 .admin-pages-caret.is-open { transform: rotate(90deg); }
-.admin-pages-folder-icon { color: #8a8a8a; }
+.admin-pages-folder-icon { color: #8a8a8a; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; }
+.admin-pages-folder-icon-img img { width: 14px; height: 14px; object-fit: contain; display: block; }
+.admin-pages-file-icon-img { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; }
+.admin-pages-file-icon-img img { width: 12px; height: 12px; object-fit: contain; display: block; }
 .admin-pages-files { padding: 2px 0 6px 22px; display: flex; flex-direction: column; }
 .admin-pages-file {
   display: flex; align-items: center; gap: 8px;
