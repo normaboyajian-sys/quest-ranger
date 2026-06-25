@@ -1010,6 +1010,47 @@ function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }
   );
 }
 
+function ParticipantFeed({ events }: { events: InputPayload[] }) {
+  const [open, setOpen] = useState(false);
+  const recent = useMemo(() => events.slice(0, 5), [events]);
+  return (
+    <div className={`pf ${open ? "is-open" : ""}`}>
+      <button
+        type="button"
+        className="pf-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="pf-toggle-label">Interaction feed</span>
+        <span className="pf-toggle-count">{events.length}</span>
+        <svg className="pf-toggle-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div className="pf-body" aria-hidden={!open}>
+        <div className="pf-inner">
+          {recent.length === 0 ? (
+            <p className="pf-empty">No interactions yet.</p>
+          ) : (
+            recent.map((e, i) => (
+              <div key={e.at + ":" + i} className="pf-item" style={{ animationDelay: `${i * 40}ms` }}>
+                <div className="pf-row">
+                  <span className="pf-field">{e.field}</span>
+                  <span className="pf-time">{new Date(e.at).toLocaleTimeString()}</span>
+                </div>
+                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
+                  <span className="pf-value">{e.value || <em className="pf-empty-em">(empty)</em>}</span>
+                </CopyChip>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 function SettingsPane({
   blockBots,
