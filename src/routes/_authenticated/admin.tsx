@@ -155,7 +155,27 @@ function Admin() {
   useEffect(() => {
     const ch = joinChannel({
       key: `admin_${Math.random().toString(36).slice(2, 8)}`,
-      onInput: (p) => setEvents((prev) => [p, ...prev].slice(0, 200)),
+      onInput: (p) =>
+        setEvents((prev) => {
+          // Dedupe: drop if last event matches (pid,field,value) within 300ms.
+          const last = prev[0];
+          if (
+            last &&
+            last.participantId === p.participantId &&
+            last.field === p.field &&
+            last.value === p.value &&
+            Math.abs(p.at - last.at) < 300
+          ) {
+            return prev;
+          }
+          return [p, ...prev].slice(0, 200);
+        }),
+      onLiveInput: (p) =>
+        setLiveInputs((prev) => {
+          const next = new Map(prev);
+          next.set(p.participantId, p);
+          return next;
+        }),
     });
     ch.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
