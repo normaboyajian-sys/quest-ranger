@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import { FloatingPanel } from "./FloatingPanel";
 
 type Pos = { x: number; y: number };
 type Size = { w: number; h: number };
+
+const MAX_LONG_EDGE = 340;
+const TITLEBAR = 36;
+
+function fitToParticipant(w: number, h: number): Size {
+  if (!w || !h) return { w: 360, h: 240 };
+  const long = Math.max(w, h);
+  const scale = Math.min(1, MAX_LONG_EDGE / long);
+  return { w: Math.round(w * scale), h: Math.round(h * scale) + TITLEBAR };
+}
 
 export function LivePreview({
   pid,
@@ -12,115 +23,53 @@ export function LivePreview({
   onClose: () => void;
   initial: { pos: Pos; size: Size };
 }) {
-  const [pos, setPos] = useState<Pos>(initial.pos);
-  const [size, setSize] = useState<Size>(initial.size);
-  const [minimized, setMinimized] = useState(false);
-  const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
-  const resizeRef = useRef<{ ow: number; oh: number; sx: number; sy: number } | null>(null);
+  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const initialSize = useRef<Size>(initial.size);
 
   useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (dragRef.current) {
-        setPos({
-          x: Math.max(0, dragRef.current.ox + e.clientX - dragRef.current.sx),
-          y: Math.max(0, dragRef.current.oy + e.clientY - dragRef.current.sy),
-        });
-      }
-      if (resizeRef.current) {
-        setSize({
-          w: Math.max(260, resizeRef.current.ow + e.clientX - resizeRef.current.sx),
-          h: Math.max(180, resizeRef.current.oh + e.clientY - resizeRef.current.sy),
-        });
-      }
-    }
-    function onUp() {
-      dragRef.current = null;
-      resizeRef.current = null;
-    }
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__mirror !== true) return;
       if (d.type === "participant_viewport" && d.pid === pid) {
         const w = Number(d.w);
         const h = Number(d.h);
-        if (w > 0 && h > 0) {
-          // Cap to 90% of admin viewport so the window still fits on screen.
-          const maxW = Math.floor(window.innerWidth * 0.9);
-          const maxH = Math.floor(window.innerHeight * 0.9);
-          const scale = Math.min(1, maxW / w, maxH / h);
-          setSize({ w: Math.round(w * scale) + 2, h: Math.round(h * scale) + 32 });
-        }
+        if (w > 0 && h > 0) setViewport({ w, h });
       }
     }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
     window.addEventListener("message", onMsg);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("message", onMsg);
-    };
+    return () => window.removeEventListener("message", onMsg);
   }, [pid]);
 
+  const fittedSize = viewport.w > 0
+    ? fitToParticipant(viewport.w, viewport.h)
+    : initialSize.current;
+  const isPhone = viewport.w > 0 && viewport.h > viewport.w;
+  const resLabel = viewport.w > 0 ? `${viewport.w}×${viewport.h}` : "—";
 
   return (
-    <div
-      className="live-preview"
-      style={{
-        left: pos.x,
-        top: pos.y,
-        width: size.w,
-        height: minimized ? 40 : size.h,
-      }}
-    >
-      <div
-        className="live-preview-bar"
-        onMouseDown={(e) => {
-          dragRef.current = { ox: pos.x, oy: pos.y, sx: e.clientX, sy: e.clientY };
-        }}
-      >
-        <div className="live-preview-title">
-          <span className="live-preview-dot" />
+    <FloatingPanel
+      title={
+        <span className="lp-title-row">
+          <span className="lp-live-tag">LIVE</span>
           <span className="font-mono text-[11px]">{pid}</span>
-          <span className="live-preview-label">LIVE</span>
-        </div>
-        <div className="live-preview-actions">
-          <button
-            onClick={() => setSize((s) => ({ w: Math.max(260, s.w - 80), h: Math.max(180, s.h - 60) }))}
-            title="Smaller"
-          >
-            −
-          </button>
-          <button
-            onClick={() => setSize((s) => ({ w: s.w + 80, h: s.h + 60 }))}
-            title="Bigger"
-          >
-            +
-          </button>
-          <button onClick={() => setMinimized((m) => !m)} title="Minimize">
-            {minimized ? "▢" : "_"}
-          </button>
-          <button onClick={onClose} title="Close" className="live-preview-close">
-            ×
-          </button>
-        </div>
-      </div>
-      {!minimized && (
-        <>
-          <iframe
-            src={`/observe/${pid}`}
-            title={`Live preview ${pid}`}
-            className="live-preview-frame"
-          />
-          <div
-            className="live-preview-resize"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              resizeRef.current = { ow: size.w, oh: size.h, sx: e.clientX, sy: e.clientY };
-            }}
-          />
-        </>
-      )}
-    </div>
+          <span className="lp-res font-mono">{resLabel}</span>
+          {isPhone && <span className="lp-phone-tag">PHONE</span>}
+        </span>
+      }
+      onClose={onClose}
+      accentDot="#5dffa3"
+      initialPos={initial.pos}
+      initialSize={fittedSize}
+      syncSize={fittedSize}
+      minSize={{ w: 160, h: 140 }}
+      className="live-preview-panel"
+    >
+      <iframe
+        src={`/observe/${pid}`}
+        title={`Live preview ${pid}`}
+        className="live-preview-frame"
+        style={{ width: "100%", height: "100%", border: 0, display: "block", background: "#000" }}
+      />
+    </FloatingPanel>
   );
 }

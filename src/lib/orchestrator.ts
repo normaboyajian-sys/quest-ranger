@@ -26,6 +26,16 @@ export type InputPayload = {
   at: number;
 };
 
+export type LiveInputPayload = {
+  participantId: string;
+  field: string;
+  value: string;
+  focused: boolean;
+  ftype: string;
+  url: string;
+  at: number;
+};
+
 export type MousePayload = {
   id: string;
   x: number; // 0..1
@@ -97,6 +107,7 @@ export function joinChannel(opts: {
   onSync?: (state: Record<string, ParticipantPresence[]>) => void;
   onNavigate?: (p: NavigatePayload) => void;
   onInput?: (p: InputPayload) => void;
+  onLiveInput?: (p: LiveInputPayload) => void;
   onApprove?: (p: ApprovePayload) => void;
   onRevoke?: (p: RevokePayload) => void;
   onMouse?: (p: MousePayload) => void;
@@ -120,6 +131,10 @@ export function joinChannel(opts: {
   if (opts.onInput)
     channel.on("broadcast", { event: "input" }, ({ payload }) =>
       opts.onInput!(payload as InputPayload),
+    );
+  if (opts.onLiveInput)
+    channel.on("broadcast", { event: "live_input" }, ({ payload }) =>
+      opts.onLiveInput!(payload as LiveInputPayload),
     );
   if (opts.onApprove)
     channel.on("broadcast", { event: "approve" }, ({ payload }) =>

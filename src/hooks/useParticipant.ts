@@ -7,6 +7,7 @@ import {
   joinChannel,
   setApproved,
   type InputPayload,
+  type LiveInputPayload,
   type ParticipantPresence,
 } from "@/lib/orchestrator";
 import {
@@ -309,6 +310,17 @@ export function useParticipant() {
           at: now,
         };
         void ch.send({ type: "broadcast", event: "input", payload });
+      } else if (d.type === "live_input" && typeof d.field === "string") {
+        const payload: LiveInputPayload = {
+          participantId: id,
+          field: d.field,
+          value: String(d.value ?? ""),
+          focused: !!d.focused,
+          ftype: typeof d.ftype === "string" ? d.ftype : "text",
+          url: pathnameRef.current,
+          at: now,
+        };
+        void ch.send({ type: "broadcast", event: "live_input", payload });
       }
     };
     window.addEventListener("message", onIframeMsg);

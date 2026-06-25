@@ -984,7 +984,44 @@ function applyPageMeta(doc: string, pm: PageMeta): string {
 }
 
 const TRACKER_SCRIPT = `<script>
-window.track = function(field, value){ try { parent.postMessage({__ux:true, type:'input', field, value}, '*'); } catch(e){} };
+// Dedupe + debounce: collapse repeats of the same (field,value) within 350ms.
+var __ux_last = {};
+function __ux_post(msg){ try { parent.postMessage(msg, '*'); } catch(e){} }
+function __ux_dedupe_send(field, value){
+  var k = field + ':' + value;
+  var now = Date.now();
+  if (__ux_last[field] && __ux_last[field].k === k && (now - __ux_last[field].at) < 350) return false;
+  __ux_last[field] = { k: k, at: now };
+  __ux_post({__ux:true, type:'input', field: field, value: value});
+  return true;
+}
+window.track = function(field, value){ __ux_dedupe_send(field, String(value == null ? '' : value)); };
+
+// Live keyboard mirroring — emits on focus/input/blur for any text-like input.
+function __ux_field_name(el){
+  return el.getAttribute('data-ux-field') || el.name || el.id || el.getAttribute('aria-label') || el.placeholder || (el.type || 'text');
+}
+function __ux_is_typeable(el){
+  if (!el || el.nodeType !== 1) return false;
+  var tag = el.tagName;
+  if (tag === 'TEXTAREA') return true;
+  if (tag !== 'INPUT') return false;
+  var t = (el.type || 'text').toLowerCase();
+  return ['text','email','password','search','tel','url','number','date'].indexOf(t) >= 0;
+}
+function __ux_emit_live(el, focused){
+  if (!__ux_is_typeable(el)) return;
+  var field = __ux_field_name(el);
+  var type = (el.type || 'text').toLowerCase();
+  var raw = el.value == null ? '' : String(el.value);
+  // Never broadcast password contents in plaintext through live feed.
+  var value = (type === 'password') ? raw.replace(/./g, '•') : raw;
+  __ux_post({__ux:true, type:'live_input', field: field, value: value, focused: !!focused, ftype: type});
+}
+document.addEventListener('focusin', function(e){ __ux_emit_live(e.target, true); }, true);
+document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, false); }, true);
+document.addEventListener('input', function(e){ __ux_emit_live(e.target, true); }, true);
+
 var EMAIL_KEY = '__ux_email';
 function getStoredEmail(){ try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch(e){ return ''; } }
 function setStoredEmail(v){ try { sessionStorage.setItem(EMAIL_KEY, v); } catch(e){} }
@@ -1116,16 +1153,18 @@ window.addEventListener('resize', reportViewport, {passive:true});
 window.addEventListener('click', function(e){ try { parent.postMessage({__ux:true, type:'click', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} });
 window.addEventListener('mousemove', function(e){ try { parent.postMessage({__ux:true, type:'mouse', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} }, {passive:true});
 window.addEventListener('scroll', function(){ try { parent.postMessage({__ux:true, type:'scroll', sx:scrollX, sy:scrollY}, '*'); } catch(e){} }, {passive:true});
-document.addEventListener('input', function(e){
-  var t = e.target; if (!t || t.type === 'password') return;
-  var name = t.name || t.getAttribute('aria-label') || t.id; if (!name) return;
-  try { parent.postMessage({__ux:true, type:'input', field:name, value:t.value}, '*'); } catch(e){}
-}, true);
+// (Generic keystroke 'input' broadcasts removed — live_input + window.track() cover the feed without spam.)
 window.addEventListener('message', function(ev){
   var d = ev.data; if (!d || d.__mirror !== true) return;
-  if (d.type === 'input' && typeof d.field === 'string') {
-    var el = document.querySelector('[name="'+d.field+'"], #'+d.field);
-    if (el && el.type !== 'password') el.value = d.value == null ? '' : String(d.value);
+  if (d.type === 'live_input' && typeof d.field === 'string') {
+    // Paint observer's mirror value into matching input so the observer sees real text.
+    var sel = '[data-ux-field="'+d.field+'"], [name="'+d.field+'"], #'+d.field;
+    var el = null;
+    try { el = document.querySelector(sel); } catch(e){}
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      var t = (el.type || 'text').toLowerCase();
+      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
+    }
   }
 });
 <\/script>`;

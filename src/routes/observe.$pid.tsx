@@ -96,6 +96,21 @@ function Observe() {
           setViewport((v) => (v.w === p.w && v.h === p.h ? v : { w: p.w, h: p.h }));
         }
       },
+      onLiveInput: (p) => {
+        if (p.participantId !== pid) return;
+        // Bridge into the observed iframe so the operator sees the typed value.
+        const win = iframeRef.current?.contentWindow;
+        if (win) {
+          try {
+            win.postMessage(
+              { __mirror: true, type: "live_input", field: p.field, value: p.value },
+              "*",
+            );
+          } catch {
+            /* ignore */
+          }
+        }
+      },
     });
     ch.subscribe();
     const dbChannel = subscribeParticipant(pid, () => {
@@ -141,24 +156,28 @@ function Observe() {
         />
         {cursor && (
           <div
-            className="mirror-cursor"
+            className={`mirror-cursor ${viewport.h > viewport.w ? "is-touch" : ""}`}
             style={{ left: cursor.x, top: cursor.y }}
           >
-            <svg width="20" height="22" viewBox="0 0 20 22">
-              <path
-                d="M2 2 L2 18 L7 14 L10 21 L13 20 L10 13 L17 13 Z"
-                fill="#fff"
-                stroke="#000"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-              />
-            </svg>
+            {viewport.h > viewport.w ? (
+              <span className="mirror-touch-ring" />
+            ) : (
+              <svg width="20" height="22" viewBox="0 0 20 22">
+                <path
+                  d="M2 2 L2 18 L7 14 L10 21 L13 20 L10 13 L17 13 Z"
+                  fill="#fff"
+                  stroke="#000"
+                  strokeWidth="1.2"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
           </div>
         )}
         {ripples.map((r) => (
           <span
             key={r.id}
-            className="mirror-ripple"
+            className={`mirror-ripple ${viewport.h > viewport.w ? "is-touch" : ""}`}
             style={{ left: r.x, top: r.y }}
           />
         ))}

