@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+  getParticipantSelf,
+  markParticipantOfflineSelf,
+  touchParticipantSelf,
+} from "@/lib/participants.functions";
 
 export type ParticipantGeo = {
   ip?: string | null;
@@ -76,13 +81,9 @@ export async function loadParticipants(): Promise<ParticipantRecord[]> {
 }
 
 export async function loadParticipant(id: string): Promise<ParticipantRecord | null> {
-  const { data, error } = await supabase
-    .from("participants")
-    .select(PARTICIPANT_COLS)
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? toRecord(data as ParticipantRow) : null;
+  // Visitor-safe read via server function (returns only non-sensitive fields).
+  const row = await getParticipantSelf({ data: { id } });
+  return row ? toRecord(row as ParticipantRow) : null;
 }
 
 export async function touchParticipant(
