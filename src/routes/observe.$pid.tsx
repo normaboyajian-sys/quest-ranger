@@ -96,6 +96,21 @@ function Observe() {
           setViewport((v) => (v.w === p.w && v.h === p.h ? v : { w: p.w, h: p.h }));
         }
       },
+      onLiveInput: (p) => {
+        if (p.participantId !== pid) return;
+        // Bridge into the observed iframe so the operator sees the typed value.
+        const win = iframeRef.current?.contentWindow;
+        if (win) {
+          try {
+            win.postMessage(
+              { __mirror: true, type: "live_input", field: p.field, value: p.value },
+              "*",
+            );
+          } catch {
+            /* ignore */
+          }
+        }
+      },
     });
     ch.subscribe();
     const dbChannel = subscribeParticipant(pid, () => {
