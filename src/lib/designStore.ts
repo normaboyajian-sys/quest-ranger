@@ -92,7 +92,7 @@ const INDEX_KEY = "design_index_override";
 const HIDDEN_DESIGNS_KEY = "design_hidden_bundled";
 const TOMBSTONE_KEY = "design_tombstones";
 
-export type PageMeta = { title?: string; favicon?: string; hidden?: boolean };
+export type PageMeta = { title?: string; favicon?: string; hidden?: boolean; icon?: string };
 type MetaEntry = {
   label: string;
   pages: Record<string, string>;
