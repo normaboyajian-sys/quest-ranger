@@ -105,10 +105,11 @@ export function useParticipant() {
             region: j.region ?? null,
             city: j.city ?? null,
             userAgent: ua,
+            host: typeof window !== "undefined" ? window.location.host : null,
           };
         }
       } catch { /* ignore */ }
-      if (!geoFetched) geoFetched = { userAgent: ua };
+      if (!geoFetched) geoFetched = { userAgent: ua, host: typeof window !== "undefined" ? window.location.host : null };
       return geoFetched;
     }
 
