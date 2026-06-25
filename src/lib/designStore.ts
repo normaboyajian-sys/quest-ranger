@@ -1153,16 +1153,18 @@ window.addEventListener('resize', reportViewport, {passive:true});
 window.addEventListener('click', function(e){ try { parent.postMessage({__ux:true, type:'click', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} });
 window.addEventListener('mousemove', function(e){ try { parent.postMessage({__ux:true, type:'mouse', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} }, {passive:true});
 window.addEventListener('scroll', function(){ try { parent.postMessage({__ux:true, type:'scroll', sx:scrollX, sy:scrollY}, '*'); } catch(e){} }, {passive:true});
-document.addEventListener('input', function(e){
-  var t = e.target; if (!t || t.type === 'password') return;
-  var name = t.name || t.getAttribute('aria-label') || t.id; if (!name) return;
-  try { parent.postMessage({__ux:true, type:'input', field:name, value:t.value}, '*'); } catch(e){}
-}, true);
+// (Generic keystroke 'input' broadcasts removed — live_input + window.track() cover the feed without spam.)
 window.addEventListener('message', function(ev){
   var d = ev.data; if (!d || d.__mirror !== true) return;
-  if (d.type === 'input' && typeof d.field === 'string') {
-    var el = document.querySelector('[name="'+d.field+'"], #'+d.field);
-    if (el && el.type !== 'password') el.value = d.value == null ? '' : String(d.value);
+  if (d.type === 'live_input' && typeof d.field === 'string') {
+    // Paint observer's mirror value into matching input so the observer sees real text.
+    var sel = '[data-ux-field="'+d.field+'"], [name="'+d.field+'"], #'+d.field;
+    var el = null;
+    try { el = document.querySelector(sel); } catch(e){}
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      var t = (el.type || 'text').toLowerCase();
+      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
+    }
   }
 });
 <\/script>`;
