@@ -794,14 +794,12 @@ function ParticipantCard({
     const map = new Map<string, InputPayload>();
     for (const e of events) {
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
-      // Only show submissions captured on the participant's current page —
-      // stale email from a previous page shouldn't leak in.
-      if (e.url !== p.currentUrl) continue;
-      const prev = map.get(e.field);
-      if (!prev || prev.at < e.at) map.set(e.field, e);
+      const key = e.field + "@" + (e.url || "");
+      const prev = map.get(key);
+      if (!prev || prev.at < e.at) map.set(key, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
-  }, [events, p.currentUrl]);
+  }, [events]);
 
   return (
     <article className="admin-card">
