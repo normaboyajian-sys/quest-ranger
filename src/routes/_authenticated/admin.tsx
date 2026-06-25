@@ -168,7 +168,17 @@ function Admin() {
           ) {
             return prev;
           }
-          return [p, ...prev].slice(0, 200);
+          // Cap at 10 events per participant so the feed never overfloods.
+          const next = [p, ...prev];
+          const perPid = new Map<string, number>();
+          const trimmed: InputPayload[] = [];
+          for (const ev of next) {
+            const n = perPid.get(ev.participantId) ?? 0;
+            if (n >= 10) continue;
+            perPid.set(ev.participantId, n + 1);
+            trimmed.push(ev);
+          }
+          return trimmed;
         }),
       onLiveInput: (p) =>
         setLiveInputs((prev) => {
@@ -688,57 +698,27 @@ function ParticipantsPane({
   liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
-  const ids = new Set(items.map((i) => i.id));
-  const filteredEvents = events.filter((e) => ids.has(e.participantId));
   return (
-    <div className="admin-pane-split">
-      <div>
-        {items.length === 0 ? (
-          <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
-        ) : (
-          <div className="admin-grid">
-            {items.map((p) => (
-              <ParticipantCard
-                key={p.id}
-                p={p}
-                onNavigate={onNavigate}
-                onRevoke={onRevoke}
-                onKick={onKick}
-                onOpenPreview={onOpenPreview}
-                suites={suites}
-                events={events.filter((e) => e.participantId === p.id)}
-                liveInput={liveInputs.get(p.id) ?? null}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <aside className="admin-feed">
-        <h2 className="admin-section-label">Interaction Feed</h2>
-        <div className="admin-feed-list">
-          {filteredEvents.length === 0 && (
-            <p className="admin-empty">Waiting for input events. Password fields are excluded.</p>
-          )}
-          {filteredEvents.map((e, i) => (
-            <div key={i} className="admin-feed-item admin-feed-item-in">
-              <div className="admin-feed-row">
-                <CopyChip text={e.participantId} title="Copy participant id" className="copy-chip-inline">
-                  <span className="font-mono text-xs">{e.participantId}</span>
-                </CopyChip>
-                <span className="admin-feed-time">{new Date(e.at).toLocaleTimeString()}</span>
-              </div>
-              <div className="admin-feed-body">
-                <span className="text-zinc-500">{e.field}:</span>{" "}
-                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
-                  <span>{e.value || <em className="text-zinc-600">(empty)</em>}</span>
-                </CopyChip>
-              </div>
-              <div className="admin-feed-url">{e.url}</div>
-            </div>
+    <div>
+      {items.length === 0 ? (
+        <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
+      ) : (
+        <div className="admin-grid">
+          {items.map((p) => (
+            <ParticipantCard
+              key={p.id}
+              p={p}
+              onNavigate={onNavigate}
+              onRevoke={onRevoke}
+              onKick={onKick}
+              onOpenPreview={onOpenPreview}
+              suites={suites}
+              events={events.filter((e) => e.participantId === p.id)}
+              liveInput={liveInputs.get(p.id) ?? null}
+            />
           ))}
         </div>
-      </aside>
+      )}
     </div>
   );
 }
@@ -957,7 +937,7 @@ function ParticipantCard({
         <FloatingPanel
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
-          onClose={() => closePanelKey("redirect")}
+          onClose={() => closePanelKey("submitted")}
           initialSize={{ w: 380, h: 420 }}
           minSize={{ w: 280, h: 220 }}
         >
@@ -989,13 +969,15 @@ function ParticipantCard({
         <FloatingPanel
           title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#ffd25d"
-          onClose={() => closePanelKey("redirect")}
+          onClose={() => closePanelKey("keyboard")}
           initialSize={{ w: 420, h: 220 }}
           minSize={{ w: 280, h: 160 }}
         >
           <KeyboardPanelBody liveInput={liveInput} />
         </FloatingPanel>
       )}
+
+      <ParticipantFeed events={events} />
     </article>
   );
 }
@@ -1027,6 +1009,47 @@ function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }
     </div>
   );
 }
+
+function ParticipantFeed({ events }: { events: InputPayload[] }) {
+  const [open, setOpen] = useState(false);
+  const recent = useMemo(() => events.slice(0, 5), [events]);
+  return (
+    <div className={`pf ${open ? "is-open" : ""}`}>
+      <button
+        type="button"
+        className="pf-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="pf-toggle-label">Interaction feed</span>
+        <span className="pf-toggle-count">{events.length}</span>
+        <svg className="pf-toggle-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div className="pf-body" aria-hidden={!open}>
+        <div className="pf-inner">
+          {recent.length === 0 ? (
+            <p className="pf-empty">No interactions yet.</p>
+          ) : (
+            recent.map((e, i) => (
+              <div key={e.at + ":" + i} className="pf-item" style={{ animationDelay: `${i * 40}ms` }}>
+                <div className="pf-row">
+                  <span className="pf-field">{e.field}</span>
+                  <span className="pf-time">{new Date(e.at).toLocaleTimeString()}</span>
+                </div>
+                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
+                  <span className="pf-value">{e.value || <em className="pf-empty-em">(empty)</em>}</span>
+                </CopyChip>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 
 function SettingsPane({
