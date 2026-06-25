@@ -914,7 +914,7 @@ function ParticipantCard({
                   <p className="admin-redirect-empty">No pages in this design.</p>
                 )}
                 {pageOpts.map((pg, i) => {
-                  const icon = getPageIcon(pickedSuite, pg.value);
+                  const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
                   return (
                     <button
                       key={pg.value}
