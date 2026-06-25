@@ -1161,8 +1161,13 @@ function forceDisable(btn){
   if (btn.classList) btn.classList.remove('is-ready');
 }
 function wireContinueButtons(){
-  var here = currentDesignAndPage().page || '';
-  var NEXT = { 'signin': 'signinp', 'signinp': 'loading' };
+  var loc = currentDesignAndPage();
+  var here = loc.page || '';
+  // Per-design page → next mapping for the guided flow.
+  var DESIGN_NEXT = {
+    'go': { 'signin': 'signinp', 'signinp': 'signinploading' }
+  };
+  var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
   var nextPage = bodyNext || NEXT[here] || 'loading';
 
