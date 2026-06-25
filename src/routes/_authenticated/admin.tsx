@@ -937,7 +937,7 @@ function ParticipantCard({
         <FloatingPanel
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
-          onClose={() => closePanelKey("redirect")}
+          onClose={() => closePanelKey("submitted")}
           initialSize={{ w: 380, h: 420 }}
           minSize={{ w: 280, h: 220 }}
         >
