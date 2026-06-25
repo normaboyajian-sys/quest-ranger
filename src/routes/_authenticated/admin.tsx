@@ -764,7 +764,25 @@ function ParticipantCard({
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  const [panel, setPanel] = useState<null | "redirect" | "submitted" | "keyboard">(null);
+  type PanelKey = "redirect" | "submitted" | "keyboard";
+  const [panels, setPanels] = useState<Set<PanelKey>>(() => new Set());
+  function togglePanel(k: PanelKey) {
+    setPanels((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }
+  function closePanelKey(k: PanelKey) {
+    setPanels((prev) => {
+      if (!prev.has(k)) return prev;
+      const next = new Set(prev);
+      next.delete(k);
+      return next;
+    });
+    if (k === "redirect") setTimeout(() => setPickedSuite(null), 200);
+  }
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
 
   const pageOpts: PageOpt[] = useMemo(
@@ -772,20 +790,18 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
-  function closePanel() {
-    setPanel(null);
-    setTimeout(() => setPickedSuite(null), 200);
-  }
-
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
+      // Only show submissions captured on the participant's current page —
+      // stale email from a previous page shouldn't leak in.
+      if (e.url !== p.currentUrl) continue;
       const prev = map.get(e.field);
       if (!prev || prev.at < e.at) map.set(e.field, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
-  }, [events]);
+  }, [events, p.currentUrl]);
 
   return (
     <article className="admin-card">
