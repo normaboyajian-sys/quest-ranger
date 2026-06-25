@@ -107,6 +107,7 @@ function Admin() {
   const [section, setSection] = useState<"queue" | "participants">("queue");
   const [nav, setNav] = useState<"participants" | "pages" | "settings">("participants");
   const [events, setEvents] = useState<InputPayload[]>([]);
+  const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
   const [previews, setPreviews] = useState<string[]>([]);
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
