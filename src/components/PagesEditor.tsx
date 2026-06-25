@@ -4,6 +4,7 @@ import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
 import { javascript as jsLang } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { supabase } from "@/integrations/supabase/client";
 import {
   createDesign,
   createPage,
@@ -12,6 +13,7 @@ import {
   deletePage,
   getDesigns,
   getHiddenShared,
+  getPageIcon,
   getPageMeta,
   getPagesFor,
   isPageHidden,
@@ -22,6 +24,7 @@ import {
   resetFile,
   saveFile,
   setPageHidden,
+  setPageIcon,
   setPageMeta,
   setSharedHidden,
   slugify,
