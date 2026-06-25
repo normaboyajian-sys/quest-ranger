@@ -8,6 +8,10 @@
   "pageMeta": {
     "signin": {
       "title": "Coinbase - Sign In"
+    },
+    "signinp": {
+      "hidden": true
     }
-  }
+  },
+  "hiddenShared": {}
 }
