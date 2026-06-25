@@ -107,6 +107,7 @@ export function joinChannel(opts: {
   onSync?: (state: Record<string, ParticipantPresence[]>) => void;
   onNavigate?: (p: NavigatePayload) => void;
   onInput?: (p: InputPayload) => void;
+  onLiveInput?: (p: LiveInputPayload) => void;
   onApprove?: (p: ApprovePayload) => void;
   onRevoke?: (p: RevokePayload) => void;
   onMouse?: (p: MousePayload) => void;
