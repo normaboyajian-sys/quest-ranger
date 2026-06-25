@@ -8,6 +8,7 @@ export type ParticipantGeo = {
   region?: string | null;
   city?: string | null;
   userAgent?: string | null;
+  host?: string | null;
 };
 
 export type ParticipantRecord = {
