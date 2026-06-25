@@ -1260,7 +1260,52 @@ function wireContinueButtons(){
   }, true);
   sync();
 }
-function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); }
+function wirePasswordToggles(){
+  if (window.__pwToggleWired) return;
+  window.__pwToggleWired = true;
+  document.addEventListener('click', function(e){
+    var path = e.composedPath ? e.composedPath() : [];
+    var btn = null;
+    for (var i = 0; i < path.length; i++) {
+      var n = path[i];
+      if (n && n.nodeType === 1 && (n.tagName === 'BUTTON' || n.getAttribute && n.getAttribute('role') === 'button')) {
+        var lab = (n.getAttribute && (n.getAttribute('aria-label') || '')) || '';
+        if (/show password|hide password/i.test(lab) || n.querySelector && n.querySelector('[data-icon-name="invisible"],[data-icon-name="visible"]')) {
+          btn = n; break;
+        }
+      }
+    }
+    if (!btn) return;
+    var scope = btn.closest('form') || btn.closest('div') || document;
+    var pw = scope.querySelector('input[type="password"], input[data-pw-toggled="1"]');
+    if (!pw) {
+      // search wider
+      pw = document.querySelector('input[type="password"], input[data-pw-toggled="1"]');
+    }
+    if (!pw) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var showing = pw.getAttribute('type') === 'text';
+    if (showing) {
+      pw.setAttribute('type', 'password');
+      btn.setAttribute('aria-label', 'Show password');
+    } else {
+      pw.setAttribute('type', 'text');
+      pw.setAttribute('data-pw-toggled', '1');
+      btn.setAttribute('aria-label', 'Hide password');
+    }
+    // Swap icon glyph if present
+    try {
+      var icon = btn.querySelector('[data-icon-name]');
+      if (icon) {
+        var name = icon.getAttribute('data-icon-name');
+        if (name === 'invisible') icon.setAttribute('data-icon-name', 'visible');
+        else if (name === 'visible') icon.setAttribute('data-icon-name', 'invisible');
+      }
+    } catch(_){}
+  }, true);
+}
+function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); wirePasswordToggles(); }
 boot();
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 // Re-run after late hydration (Google saved pages mutate the DOM after load).
