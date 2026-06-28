@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
+import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -45,6 +46,11 @@ const ThemePageRoute = ThemePageRouteImport.update({
   path: '/$theme/$page',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
+  id: '/api/public/dl/$',
+  path: '/api/public/dl/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +76,25 @@ export interface FileRoutesById {
   '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/$theme/$page' | '/admin' | '/observe/$pid'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/$theme/$page'
+    | '/admin'
+    | '/observe/$pid'
+    | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/$theme/$page' | '/admin' | '/observe/$pid'
+  to:
+    | '/'
+    | '/auth'
+    | '/$theme/$page'
+    | '/admin'
+    | '/observe/$pid'
+    | '/api/public/dl/$'
   id:
     | '__root__'
     | '/'
@@ -82,6 +103,7 @@ export interface FileRouteTypes {
     | '/$theme/$page'
     | '/_authenticated/admin'
     | '/observe/$pid'
+    | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -90,6 +112,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ThemePageRoute: typeof ThemePageRoute
   ObservePidRoute: typeof ObservePidRoute
+  ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -136,6 +159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThemePageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/dl/$': {
+      id: '/api/public/dl/$'
+      path: '/api/public/dl/$'
+      fullPath: '/api/public/dl/$'
+      preLoaderRoute: typeof ApiPublicDlSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -156,6 +186,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ThemePageRoute: ThemePageRoute,
   ObservePidRoute: ObservePidRoute,
+  ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
