@@ -52,11 +52,7 @@ export const uploadDropFile = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const admin = await adminClient();
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!(await isAdminUser(context.userId))) throw new Error("Forbidden");
 
     await cleanupExpired();
 
