@@ -31,7 +31,7 @@ function SuiteView() {
   const [hydrated, setHydrated] = useState(false);
   const [srcDoc, setSrcDoc] = useState<string>("");
   const [version, setVersion] = useState(0);
-  const [showing, setShowing] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // One-time hydration wait.
   useEffect(() => {
@@ -44,17 +44,11 @@ function SuiteView() {
     };
   }, []);
 
-  // Build srcDoc per design/page with a cross-fade.
+  // Build srcDoc per design/page — instant swap, no artificial delay.
   useEffect(() => {
     if (!hydrated) return;
-    setShowing(false);
-    const t = window.setTimeout(() => {
-      setSrcDoc(buildSrcDocCached(design, pageKey));
-      setVersion((v) => v + 1);
-      // Allow the iframe to mount before fading in.
-      requestAnimationFrame(() => setShowing(true));
-    }, 120);
-    return () => window.clearTimeout(t);
+    setSrcDoc(buildSrcDocCached(design, pageKey));
+    setVersion((v) => v + 1);
   }, [hydrated, design, pageKey]);
 
   // Live-reload on remote/local edits (no fade — instant swap).
@@ -65,7 +59,6 @@ function SuiteView() {
       () => {
         setSrcDoc(buildSrcDocCached(design, pageKey));
         setVersion((v) => v + 1);
-        setShowing(true);
       },
     );
     return () => {
@@ -76,12 +69,21 @@ function SuiteView() {
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       const d = e.data;
-      if (!d || typeof d !== "object" || d.__ux !== true) return;
-      if (d.type === "input" && typeof d.field === "string") {
+      if (!d || typeof d !== "object") return;
+      if (d.__ux === true && d.type === "input" && typeof d.field === "string") {
         emitInputRef.current(
           d.field,
           typeof d.value === "string" ? d.value : "",
         );
+        return;
+      }
+      // Observer → forward live_input down into the inner srcDoc iframe so the
+      // tracker can paint the typed value into the matching field.
+      if (d.__mirror === true && d.type === "live_input") {
+        const win = iframeRef.current?.contentWindow;
+        if (win) {
+          try { win.postMessage(d, "*"); } catch { /* ignore */ }
+        }
       }
     }
     window.addEventListener("message", onMsg);
@@ -92,6 +94,7 @@ function SuiteView() {
     <div style={{ position: "fixed", inset: 0, background: "#0a0b0d" }}>
       {hydrated && srcDoc && (
         <iframe
+          ref={iframeRef}
           key={version}
           title="design"
           srcDoc={srcDoc}
@@ -101,11 +104,10 @@ function SuiteView() {
             width: "100%",
             height: "100%",
             border: 0,
-            opacity: showing ? 1 : 0,
-            transition: "opacity 200ms ease",
           }}
         />
       )}
     </div>
   );
 }
+
