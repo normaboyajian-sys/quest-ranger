@@ -966,6 +966,19 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   return applyPageMeta(base, pm);
 }
 
+export function buildSrcDocVirtual(
+  design: DesignKey,
+  loadPage: PageKey,
+  virtualPage: PageKey,
+): string {
+  const doc = buildSrcDocCached(design, loadPage);
+  const inject = `<script>window.__ux_virtual_page=${JSON.stringify(virtualPage)};</script>`;
+  if (/<head[^>]*>/i.test(doc)) {
+    return doc.replace(/<head[^>]*>/i, (m) => `${m}\n${inject}`);
+  }
+  return inject + doc;
+}
+
 function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
