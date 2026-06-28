@@ -84,11 +84,7 @@ export const deleteDropFile = createServerFn({ method: "POST" })
     return { id: d.id };
   })
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!(await isAdminUser(context.userId))) throw new Error("Forbidden");
     const admin = await adminClient();
     const parts = data.id.split("/");
     if (parts.length !== 3) throw new Error("Bad id");
