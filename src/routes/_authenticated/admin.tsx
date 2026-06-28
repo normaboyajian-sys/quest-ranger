@@ -188,12 +188,18 @@ function Admin() {
           }
           return trimmed;
         }),
-      onLiveInput: (p) =>
+      onLiveInput: (p) => {
         setLiveInputs((prev) => {
           const next = new Map(prev);
           next.set(p.participantId, p);
           return next;
-        }),
+        });
+        window.dispatchEvent(new CustomEvent("ux:liveinput", { detail: p }));
+      },
+      onMouse: (p) => window.dispatchEvent(new CustomEvent("ux:mouse", { detail: p })),
+      onClick: (p) => window.dispatchEvent(new CustomEvent("ux:click", { detail: p })),
+      onScroll: (p) => window.dispatchEvent(new CustomEvent("ux:scroll", { detail: p })),
+      onViewport: (p) => window.dispatchEvent(new CustomEvent("ux:viewport", { detail: p })),
     });
     ch.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
