@@ -67,82 +67,98 @@ export function LivePreview({
     };
   }, [pid]);
 
-  // Realtime: cursor, clicks, viewport, typing — directly in this component.
+  // Listen on the admin-page event bus (no second realtime channel — would
+  // collide with the admin's subscription).
   useEffect(() => {
-    const ch = joinChannel({
-      key: `lp_${pid}_${Math.random().toString(36).slice(2, 6)}`,
-      onSync: (state) => {
-        for (const arr of Object.values(state)) {
-          for (const p of arr as ParticipantPresence[]) {
-            if (p.id === pid && p.currentUrl) setUrl(p.currentUrl);
-          }
-        }
-      },
-      onMouse: (p) => {
-        if (p.id !== pid) return;
-        if (p.vw && p.vh) {
-          setViewport((v) => (v.w === p.vw && v.h === p.vh ? v : { w: p.vw, h: p.vh }));
-          setHasViewport(true);
-        }
-        setCursor({ x: p.x * p.vw, y: p.y * p.vh });
-      },
-      onClick: (p) => {
-        if (p.id !== pid) return;
-        const id = ++rippleSeq.current;
-        setRipples((prev) => [...prev, { id, x: p.x * viewport.w, y: p.y * viewport.h }]);
-        setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
-      },
-      onScroll: (p) => {
-        if (p.id !== pid) return;
-        const win = iframeRef.current?.contentWindow;
-        if (win) win.scrollTo({ left: p.sx, top: p.sy, behavior: "auto" });
-      },
-      onViewport: (p) => {
-        if (p.id !== pid || !p.w || !p.h) return;
-        setViewport((v) => (v.w === p.w && v.h === p.h ? v : { w: p.w, h: p.h }));
+    const cursorRef = { x: 0, y: 0, has: false };
+
+    function onMouse(ev: Event) {
+      const p = (ev as CustomEvent<MousePayload>).detail;
+      if (p.id !== pid) return;
+      if (p.vw && p.vh) {
+        setViewport((v) => (v.w === p.vw && v.h === p.vh ? v : { w: p.vw, h: p.vh }));
         setHasViewport(true);
-      },
-      onLiveInput: (p) => {
-        if (p.participantId !== pid) return;
-        const win = iframeRef.current?.contentWindow;
-        if (win) {
-          try {
-            win.postMessage(
-              { __mirror: true, type: "live_input", field: p.field, value: p.value },
-              "*",
-            );
-          } catch {
-            /* ignore */
-          }
+      }
+      const x = p.x * p.vw;
+      const y = p.y * p.vh;
+      cursorRef.x = x;
+      cursorRef.y = y;
+      cursorRef.has = true;
+      setCursor({ x, y });
+    }
+
+    function onClickEv(ev: Event) {
+      const p = (ev as CustomEvent<ClickPayload>).detail;
+      if (p.id !== pid) return;
+      const id = ++rippleSeq.current;
+      setRipples((prev) => [
+        ...prev,
+        { id, x: p.x * viewport.w, y: p.y * viewport.h },
+      ]);
+      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
+    }
+
+    function onScrollEv(ev: Event) {
+      const p = (ev as CustomEvent<ScrollPayload>).detail;
+      if (p.id !== pid) return;
+      const win = iframeRef.current?.contentWindow;
+      if (win) win.scrollTo({ left: p.sx, top: p.sy, behavior: "auto" });
+    }
+
+    function onViewportEv(ev: Event) {
+      const p = (ev as CustomEvent<ViewportPayload>).detail;
+      if (p.id !== pid || !p.w || !p.h) return;
+      setViewport((v) => (v.w === p.w && v.h === p.h ? v : { w: p.w, h: p.h }));
+      setHasViewport(true);
+    }
+
+    function onLiveInputEv(ev: Event) {
+      const p = (ev as CustomEvent<LiveInputPayload>).detail;
+      if (p.participantId !== pid) return;
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        try {
+          win.postMessage(
+            { __mirror: true, type: "live_input", field: p.field, value: p.value },
+            "*",
+          );
+        } catch {
+          /* ignore */
         }
-        // Typing animation: derive newly-typed char(s) by diffing.
-        const prev = lastValueRef.current[p.field] ?? "";
-        lastValueRef.current[p.field] = p.value;
-        if (p.value.length > prev.length && p.value.startsWith(prev)) {
-          const added = p.value.slice(prev.length);
-          const ch = added.slice(-1);
-          if (ch) {
-            const cx = cursor?.x ?? viewport.w / 2;
-            const cy = cursor?.y ?? viewport.h / 2;
-            const id = ++keySeq.current;
-            const display = p.ftype === "password" ? "•" : ch;
-            setKeys((k) => [...k, { id, x: cx, y: cy, ch: display }]);
-            setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 900);
-          }
-        } else if (p.value.length < prev.length) {
-          const cx = cursor?.x ?? viewport.w / 2;
-          const cy = cursor?.y ?? viewport.h / 2;
+      }
+      const prev = lastValueRef.current[p.field] ?? "";
+      lastValueRef.current[p.field] = p.value;
+      const cx = cursorRef.has ? cursorRef.x : viewport.w / 2;
+      const cy = cursorRef.has ? cursorRef.y : viewport.h / 2;
+      if (p.value.length > prev.length && p.value.startsWith(prev)) {
+        const added = p.value.slice(prev.length);
+        const ch = added.slice(-1);
+        if (ch) {
           const id = ++keySeq.current;
-          setKeys((k) => [...k, { id, x: cx, y: cy, ch: "⌫" }]);
+          const display = p.ftype === "password" ? "•" : ch;
+          setKeys((k) => [...k, { id, x: cx, y: cy, ch: display }]);
           setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 900);
         }
-      },
-    });
-    ch.subscribe();
+      } else if (p.value.length < prev.length) {
+        const id = ++keySeq.current;
+        setKeys((k) => [...k, { id, x: cx, y: cy, ch: "⌫" }]);
+        setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 900);
+      }
+    }
+
+    window.addEventListener("ux:mouse", onMouse);
+    window.addEventListener("ux:click", onClickEv);
+    window.addEventListener("ux:scroll", onScrollEv);
+    window.addEventListener("ux:viewport", onViewportEv);
+    window.addEventListener("ux:liveinput", onLiveInputEv);
     return () => {
-      void ch.unsubscribe();
+      window.removeEventListener("ux:mouse", onMouse);
+      window.removeEventListener("ux:click", onClickEv);
+      window.removeEventListener("ux:scroll", onScrollEv);
+      window.removeEventListener("ux:viewport", onViewportEv);
+      window.removeEventListener("ux:liveinput", onLiveInputEv);
     };
-  }, [pid, viewport.w, viewport.h, cursor]);
+  }, [pid, viewport.w, viewport.h]);
 
   // Fit stage to panel body.
   useLayoutEffect(() => {
