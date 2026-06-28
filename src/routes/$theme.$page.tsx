@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
+  buildSrcDocVirtual,
   remoteHydrated,
   subscribeDesignChanges,
   type DesignKey,
@@ -31,7 +32,11 @@ function SuiteView() {
   const [hydrated, setHydrated] = useState(false);
   const [srcDoc, setSrcDoc] = useState<string>("");
   const [version, setVersion] = useState(0);
+  const [virtualPage, setVirtualPage] = useState<PageKey | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Reset virtual view whenever the real route changes.
+  useEffect(() => { setVirtualPage(null); }, [design, pageKey]);
 
   // One-time hydration wait.
   useEffect(() => {
@@ -44,27 +49,34 @@ function SuiteView() {
     };
   }, []);
 
-  // Build srcDoc per design/page — instant swap, no artificial delay.
+  // Build srcDoc per design/page (or virtual page).
   useEffect(() => {
     if (!hydrated) return;
-    setSrcDoc(buildSrcDocCached(design, pageKey));
+    const doc = virtualPage
+      ? buildSrcDocVirtual(design, virtualPage, virtualPage)
+      : buildSrcDocCached(design, pageKey);
+    setSrcDoc(doc);
     setVersion((v) => v + 1);
-  }, [hydrated, design, pageKey]);
+  }, [hydrated, design, pageKey, virtualPage]);
 
   // Live-reload on remote/local edits (no fade — instant swap).
   useEffect(() => {
     if (!hydrated) return;
+    const activePage = virtualPage || pageKey;
     const ch = subscribeDesignChanges(
-      (d, p) => d === design && (p === pageKey || p === "shared"),
+      (d, p) => d === design && (p === activePage || p === "shared"),
       () => {
-        setSrcDoc(buildSrcDocCached(design, pageKey));
+        const doc = virtualPage
+          ? buildSrcDocVirtual(design, virtualPage, virtualPage)
+          : buildSrcDocCached(design, pageKey);
+        setSrcDoc(doc);
         setVersion((v) => v + 1);
       },
     );
     return () => {
       void ch.unsubscribe();
     };
-  }, [design, pageKey, hydrated]);
+  }, [design, pageKey, virtualPage, hydrated]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -75,6 +87,11 @@ function SuiteView() {
           d.field,
           typeof d.value === "string" ? d.value : "",
         );
+        return;
+      }
+      // In-place virtual page swap (cb signin -> signinp under same URL).
+      if (d.__ux === true && d.type === "swap_virtual" && typeof d.page === "string") {
+        if (d.design === design) setVirtualPage(d.page as PageKey);
         return;
       }
       // Observer → forward live_input down into the inner srcDoc iframe so the
@@ -88,7 +105,7 @@ function SuiteView() {
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [design]);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#0a0b0d" }}>
@@ -110,4 +127,5 @@ function SuiteView() {
     </div>
   );
 }
+
 

