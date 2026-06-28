@@ -114,7 +114,24 @@ function dotStateFor(p: ParticipantRecord | undefined): DotState {
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
   const [section, setSection] = useState<"queue" | "participants">("queue");
-  const [nav, setNav] = useState<"participants" | "pages" | "settings">("participants");
+  const [nav, setNav] = useState<"participants" | "pages" | "settings" | "fileuploader">("participants");
+  const [folders, setFolders] = useState<{ admin: boolean; utils: boolean }>(() => {
+    if (typeof window === "undefined") return { admin: true, utils: true };
+    try {
+      const raw = localStorage.getItem("admin_folders_v1");
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return { admin: true, utils: true };
+  });
+  function toggleFolder(key: "admin" | "utils") {
+    setFolders((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_folders_v1", JSON.stringify(next));
+      }
+      return next;
+    });
+  }
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
   const [previews, setPreviews] = useState<string[]>([]);
