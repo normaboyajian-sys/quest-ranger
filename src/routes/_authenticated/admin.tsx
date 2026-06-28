@@ -32,6 +32,7 @@ import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { LivePreview } from "@/components/LivePreview";
 import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
+import { FileUploader } from "@/components/FileUploader";
 
 import {
   getDesigns,
