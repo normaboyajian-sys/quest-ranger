@@ -74,8 +74,17 @@ export function useParticipant() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Observer mode: this page is being rendered inside the admin live-preview
+    // iframe. Skip ALL participant registration/heartbeat/channel work so the
+    // preview loads instantly and doesn't spawn a phantom participant.
+    try {
+      if (new URLSearchParams(window.location.search).get("__observe") === "1") {
+        return;
+      }
+    } catch { /* ignore */ }
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     let cancelled = false;
+
 
     // Bot/crawler block — respect global toggle (sync from localStorage, then refresh)
     let blocked = getAppSettings().blockBots && isLikelyBot(ua);
