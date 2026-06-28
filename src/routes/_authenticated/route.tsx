@@ -52,6 +52,8 @@ function AuthedShell() {
 
     async function checkKicked() {
       try {
+        const { data: sess } = await supabase.auth.getSession();
+        if (!sess.session) return;
         const { activeSessionId } = await fetchActive();
         const mine = localStorage.getItem(SESSION_KEY);
         if (alive && activeSessionId && mine && activeSessionId !== mine) {
