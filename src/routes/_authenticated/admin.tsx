@@ -370,53 +370,103 @@ function Admin() {
           <nav className="admin-nav">
             <button
               type="button"
-              className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
-              aria-current={nav === "participants" ? "page" : undefined}
-              onClick={() => setNav("participants")}
-              title="Participants"
+              className={`admin-nav-folder ${folders.admin ? "is-open" : ""}`}
+              onClick={() => toggleFolder("admin")}
+              title="Admin"
             >
-              <span className="admin-nav-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" />
+              <span className="admin-nav-folder-chev" aria-hidden>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
               </span>
-              <span className="admin-nav-label">Participants</span>
-              <span className="admin-count">{list.length}</span>
+              <span className="admin-nav-folder-label">Admin</span>
             </button>
-            <button
-              type="button"
-              className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
-              aria-current={nav === "pages" ? "page" : undefined}
-              onClick={() => setNav("pages")}
-              title="Pages"
-            >
-              <span className="admin-nav-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
-                  <path d="M14 4v6h6" />
-                </svg>
-              </span>
-              <span className="admin-nav-label">Pages</span>
-            </button>
-            <button
-              type="button"
-              className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
-              aria-current={nav === "settings" ? "page" : undefined}
-              onClick={() => setNav("settings")}
-              title="Settings"
-            >
-              <span className="admin-nav-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </span>
-              <span className="admin-nav-label">Settings</span>
-            </button>
+            {folders.admin && (
+              <div className="admin-nav-group">
+                <button
+                  type="button"
+                  className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
+                  aria-current={nav === "participants" ? "page" : undefined}
+                  onClick={() => setNav("participants")}
+                  title="Participants"
+                >
+                  <span className="admin-nav-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="3" width="7" height="7" rx="1" />
+                      <rect x="3" y="14" width="7" height="7" rx="1" />
+                      <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                  </span>
+                  <span className="admin-nav-label">Participants</span>
+                  <span className="admin-count">{list.length}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
+                  aria-current={nav === "pages" ? "page" : undefined}
+                  onClick={() => setNav("pages")}
+                  title="Pages"
+                >
+                  <span className="admin-nav-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
+                      <path d="M14 4v6h6" />
+                    </svg>
+                  </span>
+                  <span className="admin-nav-label">Pages</span>
+                </button>
+                <button
+                  type="button"
+                  className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
+                  aria-current={nav === "settings" ? "page" : undefined}
+                  onClick={() => setNav("settings")}
+                  title="Settings"
+                >
+                  <span className="admin-nav-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </span>
+                  <span className="admin-nav-label">Settings</span>
+                </button>
+              </div>
+            )}
 
+            <button
+              type="button"
+              className={`admin-nav-folder ${folders.utils ? "is-open" : ""}`}
+              onClick={() => toggleFolder("utils")}
+              title="Utils"
+            >
+              <span className="admin-nav-folder-chev" aria-hidden>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+              <span className="admin-nav-folder-label">Utils</span>
+            </button>
+            {folders.utils && (
+              <div className="admin-nav-group">
+                <button
+                  type="button"
+                  className={`admin-nav-item ${nav === "fileuploader" ? "is-active" : ""}`}
+                  aria-current={nav === "fileuploader" ? "page" : undefined}
+                  onClick={() => setNav("fileuploader")}
+                  title="File Uploader"
+                >
+                  <span className="admin-nav-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </span>
+                  <span className="admin-nav-label">File Uploader</span>
+                </button>
+              </div>
+            )}
           </nav>
           <AccountChip />
         </aside>
