@@ -2065,3 +2065,79 @@
   margin-left: -14px; margin-top: -14px;
   background: rgba(93, 255, 163, 0.45);
 }
+
+/* Sidebar folder grouping */
+.admin-nav-folder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px 4px;
+  background: transparent;
+  border: none;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.admin-nav-folder:hover { color: #cfcfcf; }
+.admin-nav-folder-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 12px; height: 12px;
+  transition: transform 160ms ease;
+}
+.admin-nav-folder.is-open .admin-nav-folder-chev { transform: rotate(90deg); }
+.admin-nav-group { display: flex; flex-direction: column; gap: 2px; padding-left: 0; }
+.admin-shell.is-collapsed .admin-nav-folder { display: none; }
+.admin-shell.is-collapsed .admin-nav-group { padding-left: 0; }
+
+/* File Uploader */
+.file-drop { display: flex; flex-direction: column; gap: 16px; max-width: 880px; margin: 0 auto; padding: 18px; }
+.file-drop-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.file-drop-title { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 4px; }
+.file-drop-sub { font-size: 12px; color: #9a9a9a; margin: 0; max-width: 540px; line-height: 1.5; }
+.file-drop-zone {
+  position: relative;
+  display: block;
+  border: 1.5px dashed #2a2a2a;
+  border-radius: 14px;
+  padding: 36px 20px;
+  background: #0e0e0e;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.file-drop-zone:hover { border-color: #444; background: #131313; }
+.file-drop-zone.is-drag { border-color: #5dffa3; background: rgba(93,255,163,0.06); }
+.file-drop-zone.is-busy { opacity: 0.7; cursor: progress; }
+.file-drop-zone-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #cfcfcf; }
+.file-drop-zone-text { font-size: 14px; font-weight: 500; }
+.file-drop-zone-hint { font-size: 11px; color: #6b6b6b; }
+.file-drop-error { padding: 10px 12px; border-radius: 8px; background: rgba(255,82,82,0.12); color: #ff8585; font-size: 12px; }
+.file-drop-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.file-drop-empty { text-align: center; padding: 20px; color: #6b6b6b; font-size: 12px; }
+.file-drop-item { background: #111; border: 1px solid #1d1d1d; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.file-drop-item-row { display: flex; align-items: center; gap: 12px; }
+.file-drop-item-name { flex: 1; color: #fff; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-drop-item-size { color: #9a9a9a; font-size: 11px; font-family: ui-monospace, monospace; }
+.file-drop-item-timer { color: #5dffa3; font-size: 12px; font-family: ui-monospace, monospace; min-width: 48px; text-align: right; }
+.file-drop-bar { height: 3px; background: #1a1a1a; border-radius: 2px; overflow: hidden; }
+.file-drop-bar-fill { height: 100%; background: linear-gradient(90deg, #5dffa3, #2bd17e); transition: width 1s linear; }
+.file-drop-item-actions { display: flex; gap: 6px; align-items: center; }
+.file-drop-link {
+  flex: 1; min-width: 0;
+  background: #0a0a0a; border: 1px solid #1d1d1d; border-radius: 6px;
+  padding: 6px 10px; font-size: 11px; font-family: ui-monospace, monospace; color: #cfcfcf;
+}
+.file-drop-link:focus { outline: none; border-color: #333; }
+.file-drop-btn {
+  background: #1a1a1a; border: 1px solid #262626; color: #e6e6e6;
+  padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;
+  font-family: inherit; text-decoration: none; display: inline-flex; align-items: center;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.file-drop-btn:hover { background: #232323; border-color: #333; }
+.file-drop-btn.is-danger { color: #ff8585; }
+.file-drop-btn.is-danger:hover { background: rgba(255,82,82,0.12); border-color: rgba(255,82,82,0.3); }
