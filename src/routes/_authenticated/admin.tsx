@@ -520,6 +520,10 @@ function Admin() {
             <div key="pages" className="admin-pane admin-pane-swap">
               <PagesEditor />
             </div>
+          ) : nav === "fileuploader" ? (
+            <div key="fileuploader" className="admin-pane admin-pane-swap">
+              <FileUploader />
+            </div>
           ) : (
             <div key="settings" className="admin-pane admin-pane-swap">
               <SettingsPane
