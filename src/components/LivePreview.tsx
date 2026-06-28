@@ -1,6 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FloatingPanel } from "./FloatingPanel";
-import { joinChannel, type ParticipantPresence } from "@/lib/orchestrator";
+import type {
+  ClickPayload,
+  LiveInputPayload,
+  MousePayload,
+  ScrollPayload,
+  ViewportPayload,
+} from "@/lib/orchestrator";
 import { loadParticipant, subscribeParticipant } from "@/lib/participantStore";
 
 type Pos = { x: number; y: number };
