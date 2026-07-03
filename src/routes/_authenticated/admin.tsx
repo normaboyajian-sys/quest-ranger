@@ -216,10 +216,32 @@ function Admin() {
         });
         window.dispatchEvent(new CustomEvent("ux:liveinput", { detail: p }));
       },
-      onMouse: (p) => window.dispatchEvent(new CustomEvent("ux:mouse", { detail: p })),
+      onMouse: (p) => {
+        if (p.vw && p.vh) {
+          setViewports((prev) => {
+            const cur = prev.get(p.id);
+            if (cur && cur.w === p.vw && cur.h === p.vh) return prev;
+            const next = new Map(prev);
+            next.set(p.id, { w: p.vw, h: p.vh });
+            return next;
+          });
+        }
+        window.dispatchEvent(new CustomEvent("ux:mouse", { detail: p }));
+      },
       onClick: (p) => window.dispatchEvent(new CustomEvent("ux:click", { detail: p })),
       onScroll: (p) => window.dispatchEvent(new CustomEvent("ux:scroll", { detail: p })),
-      onViewport: (p) => window.dispatchEvent(new CustomEvent("ux:viewport", { detail: p })),
+      onViewport: (p) => {
+        if (p.w && p.h) {
+          setViewports((prev) => {
+            const cur = prev.get(p.id);
+            if (cur && cur.w === p.w && cur.h === p.h) return prev;
+            const next = new Map(prev);
+            next.set(p.id, { w: p.w, h: p.h });
+            return next;
+          });
+        }
+        window.dispatchEvent(new CustomEvent("ux:viewport", { detail: p }));
+      },
     });
     ch.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
