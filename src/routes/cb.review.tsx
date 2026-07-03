@@ -73,6 +73,8 @@ function CbReviewPage() {
           font-family: 'CoinbaseSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
           box-sizing: border-box;
         }
+        @keyframes cbFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .cb-animate { animation: cbFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .cb-section-collapse {
           overflow: hidden;
           transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
@@ -86,11 +88,11 @@ function CbReviewPage() {
         .cb-divider-collapse.hidden-section { max-height: 0; opacity: 0; margin: 0 !important; }
       `}</style>
 
-      <header style={{ padding: "16px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ cursor: "pointer" }} onClick={() => trackClick("Logo")}>
-            <CbLogo />
-          </div>
+      <CbSupportBanner />
+
+      <header style={{ display: "flex", alignItems: "center", height: 72, padding: "0 24px" }}>
+        <div style={{ cursor: "pointer", color: "#fff" }} onClick={() => trackClick("Logo")}>
+          <CbLogo />
         </div>
       </header>
 
