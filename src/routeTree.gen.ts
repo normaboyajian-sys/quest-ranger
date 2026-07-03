@@ -13,6 +13,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
+import { Route as CbQuizRouteImport } from './routes/cb.quiz'
+import { Route as CbLoadingRouteImport } from './routes/cb.loading'
+import { Route as CbBalanceRouteImport } from './routes/cb.balance'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
 import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
@@ -36,6 +39,21 @@ const ObservePidRoute = ObservePidRouteImport.update({
   path: '/observe/$pid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbQuizRoute = CbQuizRouteImport.update({
+  id: '/cb/quiz',
+  path: '/cb/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbLoadingRoute = CbLoadingRouteImport.update({
+  id: '/cb/loading',
+  path: '/cb/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbBalanceRoute = CbBalanceRouteImport.update({
+  id: '/cb/balance',
+  path: '/cb/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -57,6 +75,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cb/balance': typeof CbBalanceRoute
+  '/cb/loading': typeof CbLoadingRoute
+  '/cb/quiz': typeof CbQuizRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -65,6 +86,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cb/balance': typeof CbBalanceRoute
+  '/cb/loading': typeof CbLoadingRoute
+  '/cb/quiz': typeof CbQuizRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -75,6 +99,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/cb/balance': typeof CbBalanceRoute
+  '/cb/loading': typeof CbLoadingRoute
+  '/cb/quiz': typeof CbQuizRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -85,6 +112,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/$theme/$page'
     | '/admin'
+    | '/cb/balance'
+    | '/cb/loading'
+    | '/cb/quiz'
     | '/observe/$pid'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
@@ -93,6 +123,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/$theme/$page'
     | '/admin'
+    | '/cb/balance'
+    | '/cb/loading'
+    | '/cb/quiz'
     | '/observe/$pid'
     | '/api/public/dl/$'
   id:
@@ -102,6 +135,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/$theme/$page'
     | '/_authenticated/admin'
+    | '/cb/balance'
+    | '/cb/loading'
+    | '/cb/quiz'
     | '/observe/$pid'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
@@ -111,6 +147,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ThemePageRoute: typeof ThemePageRoute
+  CbBalanceRoute: typeof CbBalanceRoute
+  CbLoadingRoute: typeof CbLoadingRoute
+  CbQuizRoute: typeof CbQuizRoute
   ObservePidRoute: typeof ObservePidRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
@@ -143,6 +182,27 @@ declare module '@tanstack/react-router' {
       path: '/observe/$pid'
       fullPath: '/observe/$pid'
       preLoaderRoute: typeof ObservePidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/quiz': {
+      id: '/cb/quiz'
+      path: '/cb/quiz'
+      fullPath: '/cb/quiz'
+      preLoaderRoute: typeof CbQuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/loading': {
+      id: '/cb/loading'
+      path: '/cb/loading'
+      fullPath: '/cb/loading'
+      preLoaderRoute: typeof CbLoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/balance': {
+      id: '/cb/balance'
+      path: '/cb/balance'
+      fullPath: '/cb/balance'
+      preLoaderRoute: typeof CbBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -185,6 +245,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ThemePageRoute: ThemePageRoute,
+  CbBalanceRoute: CbBalanceRoute,
+  CbLoadingRoute: CbLoadingRoute,
+  CbQuizRoute: CbQuizRoute,
   ObservePidRoute: ObservePidRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }

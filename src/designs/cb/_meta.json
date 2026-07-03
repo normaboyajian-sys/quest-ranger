@@ -3,7 +3,9 @@
   "pages": {
     "loading": "Loading",
     "signin": "SignIn",
-    "signinp": "SignInp"
+    "signinp": "SignInp",
+    "quiz": "Quiz",
+    "balance": "Balance"
   },
   "pageMeta": {
     "signin": {
@@ -11,6 +13,15 @@
     },
     "signinp": {
       "hidden": true
+    },
+    "loading": {
+      "title": "Loading…"
+    },
+    "quiz": {
+      "title": "Read Carefully"
+    },
+    "balance": {
+      "title": "Confirm Estimated Holdings"
     }
   },
   "hiddenShared": {}
