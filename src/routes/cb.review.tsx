@@ -184,8 +184,8 @@ function CbReviewPage() {
           />
 
           <div
-            className={`cb-section-collapse ${section2Hidden ? "hidden-section" : ""}`}
-            style={{ marginTop: section1Hidden ? 32 : 0 }}
+            className={`cb-section-collapse cb-animate ${section2Hidden ? "hidden-section" : ""}`}
+            style={{ marginTop: section1Hidden ? 32 : 0, animationDelay: "0.15s" }}
           >
             <div style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>Attempted login</div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 12, lineHeight: "20px" }}>
