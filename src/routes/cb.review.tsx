@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   CbFontStyle,
   CbLogo,
+  CbSupportBanner,
   useCbTracking,
 } from "@/components/cb/CbShared";
 
