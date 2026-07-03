@@ -192,11 +192,20 @@ export function LivePreview({
     };
   }, [viewport.w, viewport.h]);
 
+  // Cap the auto-fit to the viewer's own window so the panel isn't larger
+  // than the admin screen, but otherwise render at the participant's real size.
+  const maxLong =
+    typeof window !== "undefined"
+      ? Math.max(320, Math.min(window.innerWidth, window.innerHeight) - 80)
+      : 720;
   const fittedSize = hasViewport
-    ? fitToParticipant(viewport.w, viewport.h)
+    ? fitToParticipant(viewport.w, viewport.h, maxLong)
     : initialSize.current;
   const isPhone = viewport.w > 0 && viewport.h > viewport.w;
   const resLabel = hasViewport ? `${viewport.w}×${viewport.h}` : "…";
+  const aspect = viewport.w && viewport.h
+    ? viewport.w / (viewport.h + TITLEBAR)
+    : undefined;
 
   const iframeUrl = useMemo(
     () => url + (url.includes("?") ? "&" : "?") + "__observe=1",
@@ -219,6 +228,7 @@ export function LivePreview({
       initialSize={fittedSize}
       syncSize={fittedSize}
       minSize={{ w: 160, h: 140 }}
+      aspectRatio={aspect}
       className="live-preview-panel"
     >
       <div className="mirror-root" ref={stageWrapRef}>
