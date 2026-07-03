@@ -566,18 +566,24 @@ function Admin() {
 
 
 
-      {previews.map((pid, i) => (
-
-        <LivePreview
-          key={pid}
-          pid={pid}
-          onClose={() => closePreview(pid)}
-          initial={{
-            pos: { x: 80 + i * 40, y: 80 + i * 40 },
-            size: { w: 480, h: 360 },
-          }}
-        />
-      ))}
+      {previews.map((pid, i) => {
+        const rec = records.get(pid);
+        const initialUrl = rec?.currentUrl || rec?.assignedUrl || null;
+        const initialViewport = viewports.get(pid) || null;
+        return (
+          <LivePreview
+            key={pid}
+            pid={pid}
+            onClose={() => closePreview(pid)}
+            initial={{
+              pos: { x: 80 + i * 40, y: 80 + i * 40 },
+              size: { w: 480, h: 360 },
+            }}
+            initialUrl={initialUrl}
+            initialViewport={initialViewport}
+          />
+        );
+      })}
     </div>
   );
 }
