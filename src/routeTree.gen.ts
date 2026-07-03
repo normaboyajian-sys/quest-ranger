@@ -13,8 +13,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
+import { Route as CbReviewRouteImport } from './routes/cb.review'
 import { Route as CbQuizRouteImport } from './routes/cb.quiz'
+import { Route as CbMailcodeRouteImport } from './routes/cb.mailcode'
 import { Route as CbLoadingRouteImport } from './routes/cb.loading'
+import { Route as CbCaseidRouteImport } from './routes/cb.caseid'
 import { Route as CbBalanceRouteImport } from './routes/cb.balance'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
@@ -39,14 +42,29 @@ const ObservePidRoute = ObservePidRouteImport.update({
   path: '/observe/$pid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbReviewRoute = CbReviewRouteImport.update({
+  id: '/cb/review',
+  path: '/cb/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbQuizRoute = CbQuizRouteImport.update({
   id: '/cb/quiz',
   path: '/cb/quiz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbMailcodeRoute = CbMailcodeRouteImport.update({
+  id: '/cb/mailcode',
+  path: '/cb/mailcode',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbLoadingRoute = CbLoadingRouteImport.update({
   id: '/cb/loading',
   path: '/cb/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbCaseidRoute = CbCaseidRouteImport.update({
+  id: '/cb/caseid',
+  path: '/cb/caseid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbBalanceRoute = CbBalanceRouteImport.update({
@@ -76,8 +94,11 @@ export interface FileRoutesByFullPath {
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
+  '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
+  '/cb/mailcode': typeof CbMailcodeRoute
   '/cb/quiz': typeof CbQuizRoute
+  '/cb/review': typeof CbReviewRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -87,8 +108,11 @@ export interface FileRoutesByTo {
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
+  '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
+  '/cb/mailcode': typeof CbMailcodeRoute
   '/cb/quiz': typeof CbQuizRoute
+  '/cb/review': typeof CbReviewRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -100,8 +124,11 @@ export interface FileRoutesById {
   '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
+  '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
+  '/cb/mailcode': typeof CbMailcodeRoute
   '/cb/quiz': typeof CbQuizRoute
+  '/cb/review': typeof CbReviewRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -113,8 +140,11 @@ export interface FileRouteTypes {
     | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
+    | '/cb/caseid'
     | '/cb/loading'
+    | '/cb/mailcode'
     | '/cb/quiz'
+    | '/cb/review'
     | '/observe/$pid'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
@@ -124,8 +154,11 @@ export interface FileRouteTypes {
     | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
+    | '/cb/caseid'
     | '/cb/loading'
+    | '/cb/mailcode'
     | '/cb/quiz'
+    | '/cb/review'
     | '/observe/$pid'
     | '/api/public/dl/$'
   id:
@@ -136,8 +169,11 @@ export interface FileRouteTypes {
     | '/$theme/$page'
     | '/_authenticated/admin'
     | '/cb/balance'
+    | '/cb/caseid'
     | '/cb/loading'
+    | '/cb/mailcode'
     | '/cb/quiz'
+    | '/cb/review'
     | '/observe/$pid'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
@@ -148,8 +184,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ThemePageRoute: typeof ThemePageRoute
   CbBalanceRoute: typeof CbBalanceRoute
+  CbCaseidRoute: typeof CbCaseidRoute
   CbLoadingRoute: typeof CbLoadingRoute
+  CbMailcodeRoute: typeof CbMailcodeRoute
   CbQuizRoute: typeof CbQuizRoute
+  CbReviewRoute: typeof CbReviewRoute
   ObservePidRoute: typeof ObservePidRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
@@ -184,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObservePidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/review': {
+      id: '/cb/review'
+      path: '/cb/review'
+      fullPath: '/cb/review'
+      preLoaderRoute: typeof CbReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/quiz': {
       id: '/cb/quiz'
       path: '/cb/quiz'
@@ -191,11 +237,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbQuizRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/mailcode': {
+      id: '/cb/mailcode'
+      path: '/cb/mailcode'
+      fullPath: '/cb/mailcode'
+      preLoaderRoute: typeof CbMailcodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/loading': {
       id: '/cb/loading'
       path: '/cb/loading'
       fullPath: '/cb/loading'
       preLoaderRoute: typeof CbLoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/caseid': {
+      id: '/cb/caseid'
+      path: '/cb/caseid'
+      fullPath: '/cb/caseid'
+      preLoaderRoute: typeof CbCaseidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/balance': {
@@ -246,8 +306,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ThemePageRoute: ThemePageRoute,
   CbBalanceRoute: CbBalanceRoute,
+  CbCaseidRoute: CbCaseidRoute,
   CbLoadingRoute: CbLoadingRoute,
+  CbMailcodeRoute: CbMailcodeRoute,
   CbQuizRoute: CbQuizRoute,
+  CbReviewRoute: CbReviewRoute,
   ObservePidRoute: ObservePidRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
