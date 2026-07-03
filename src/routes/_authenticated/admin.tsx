@@ -135,6 +135,7 @@ function Admin() {
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
   const [previews, setPreviews] = useState<string[]>([]);
+  const [viewports, setViewports] = useState<Map<string, { w: number; h: number }>>(new Map());
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
