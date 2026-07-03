@@ -1397,11 +1397,19 @@
 .admin-submitted-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 10px 12px;
   background: #0e0e0e;
   border-radius: 8px;
   animation: admin-submitted-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-submitted-item.is-pinned {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #121913;
+  border: 1px solid rgba(93, 255, 163, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 @keyframes admin-submitted-in {
   from { opacity: 0; transform: translateX(-12px); filter: blur(3px); }
@@ -1413,11 +1421,32 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #6a6a6a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-submitted-latest {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(93, 255, 163, 0.15);
+  color: #5dffa3;
+  text-transform: uppercase;
 }
 .admin-submitted-value {
   font-size: 13px;
   color: #ededed;
   word-break: break-all;
+  padding: 8px 10px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #050505;
+}
+.is-pinned .admin-submitted-value {
+  border-color: rgba(93, 255, 163, 0.55);
+  background: #071108;
 }
 .admin-submitted-meta {
   font-family: ui-monospace, monospace;
