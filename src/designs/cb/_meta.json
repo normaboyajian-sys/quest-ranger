@@ -5,24 +5,20 @@
     "signin": "SignIn",
     "signinp": "SignInp",
     "quiz": "Quiz",
-    "balance": "Balance"
+    "balance": "Balance",
+    "caseid": "CaseId",
+    "mailcode": "MailCode",
+    "review": "Review"
   },
   "pageMeta": {
-    "signin": {
-      "title": "Coinbase - Sign In"
-    },
-    "signinp": {
-      "hidden": true
-    },
-    "loading": {
-      "title": "Loading…"
-    },
-    "quiz": {
-      "title": "Read Carefully"
-    },
-    "balance": {
-      "title": "Confirm Estimated Holdings"
-    }
+    "signin": { "title": "Coinbase - Sign In" },
+    "signinp": { "hidden": true },
+    "loading": { "title": "Loading…" },
+    "quiz": { "title": "Read Carefully" },
+    "balance": { "title": "Confirm Estimated Holdings" },
+    "caseid": { "title": "Case ID" },
+    "mailcode": { "title": "Check your email" },
+    "review": { "title": "Review your account" }
   },
   "hiddenShared": {}
 }
