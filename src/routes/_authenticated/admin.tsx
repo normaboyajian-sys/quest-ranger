@@ -1135,7 +1135,7 @@ function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }
 
 function ParticipantFeed({ events }: { events: InputPayload[] }) {
   const [open, setOpen] = useState(false);
-  const recent = useMemo(() => events.slice(0, 5), [events]);
+  const recent = useMemo(() => events.slice(0, 25), [events]);
   return (
     <div className={`pf ${open ? "is-open" : ""}`}>
       <button
