@@ -1061,8 +1061,8 @@ function ParticipantCard({
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
           onClose={() => closePanelKey("submitted")}
-          initialSize={{ w: 380, h: 420 }}
-          minSize={{ w: 280, h: 220 }}
+          initialSize={{ w: 420, h: 620 }}
+          minSize={{ w: 280, h: 260 }}
         >
           <div className="admin-modal-list">
             {submitted.length === 0 ? (
@@ -1071,10 +1071,13 @@ function ParticipantCard({
               submitted.map((e, i) => (
                 <div
                   key={e.field}
-                  className="admin-submitted-item"
+                  className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <div className="admin-submitted-field">{e.field}</div>
+                  <div className="admin-submitted-field">
+                    {e.field}
+                    {i === 0 && <span className="admin-submitted-latest">latest</span>}
+                  </div>
                   <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
                     {e.value || <em style={{ color: "#555" }}>(empty)</em>}
                   </CopyChip>
