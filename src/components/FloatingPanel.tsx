@@ -11,6 +11,7 @@ export function FloatingPanel({
   syncSize,
   minSize = { w: 260, h: 180 },
   resizable = true,
+  aspectRatio,
   children,
   accentDot,
   className,
@@ -22,6 +23,8 @@ export function FloatingPanel({
   syncSize?: Size;
   minSize?: Size;
   resizable?: boolean;
+  /** If set, the resize handle keeps h = w / aspectRatio (bar height added). */
+  aspectRatio?: number;
   children: ReactNode;
   accentDot?: string;
   className?: string;
@@ -40,6 +43,8 @@ export function FloatingPanel({
   const userResizedRef = useRef(false);
   const dragRef = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null);
   const resizeRef = useRef<{ ow: number; oh: number; sx: number; sy: number } | null>(null);
+  const aspectRef = useRef<number | undefined>(aspectRatio);
+  aspectRef.current = aspectRatio;
 
   // External size sync (e.g. live preview auto-matching participant viewport).
   // Only applies until the user manually resizes.
@@ -59,10 +64,23 @@ export function FloatingPanel({
       }
       if (resizeRef.current) {
         userResizedRef.current = true;
-        setSize({
-          w: Math.max(minSize.w, resizeRef.current.ow + e.clientX - resizeRef.current.sx),
-          h: Math.max(minSize.h, resizeRef.current.oh + e.clientY - resizeRef.current.sy),
-        });
+        const dx = e.clientX - resizeRef.current.sx;
+        const dy = e.clientY - resizeRef.current.sy;
+        const aspect = aspectRef.current;
+        if (aspect && aspect > 0) {
+          // Proportional resize — pick the larger relative delta as the driver.
+          const relW = dx / resizeRef.current.ow;
+          const relH = dy / resizeRef.current.oh;
+          const rel = Math.abs(relW) > Math.abs(relH) ? relW : relH;
+          const w = Math.max(minSize.w, Math.round(resizeRef.current.ow * (1 + rel)));
+          const h = Math.max(minSize.h, Math.round(w / aspect));
+          setSize({ w, h });
+        } else {
+          setSize({
+            w: Math.max(minSize.w, resizeRef.current.ow + dx),
+            h: Math.max(minSize.h, resizeRef.current.oh + dy),
+          });
+        }
       }
     }
     function onUp() {

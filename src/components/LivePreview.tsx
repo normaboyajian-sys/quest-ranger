@@ -15,13 +15,12 @@ type Cursor = { x: number; y: number };
 type Ripple = { id: number; x: number; y: number };
 type KeyChip = { id: number; x: number; y: number; ch: string };
 
-const MAX_LONG_EDGE = 340;
 const TITLEBAR = 36;
 
-function fitToParticipant(w: number, h: number): Size {
+function fitToParticipant(w: number, h: number, maxLong: number): Size {
   if (!w || !h) return { w: 360, h: 240 };
   const long = Math.max(w, h);
-  const scale = Math.min(1, MAX_LONG_EDGE / long);
+  const scale = Math.min(1, maxLong / long);
   return { w: Math.round(w * scale), h: Math.round(h * scale) + TITLEBAR };
 }
 
@@ -29,18 +28,28 @@ export function LivePreview({
   pid,
   onClose,
   initial,
+  initialUrl,
+  initialViewport,
 }: {
   pid: string;
   onClose: () => void;
   initial: { pos: Pos; size: Size };
+  initialUrl?: string | null;
+  initialViewport?: { w: number; h: number } | null;
 }) {
-  const [url, setUrl] = useState<string>("/");
-  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 390, h: 844 });
+  const [url, setUrl] = useState<string>(initialUrl || "/");
+  const [viewport, setViewport] = useState<{ w: number; h: number }>(
+    initialViewport && initialViewport.w > 0 && initialViewport.h > 0
+      ? initialViewport
+      : { w: 390, h: 844 },
+  );
   const [scale, setScale] = useState(1);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [keys, setKeys] = useState<KeyChip[]>([]);
-  const [hasViewport, setHasViewport] = useState(false);
+  const [hasViewport, setHasViewport] = useState<boolean>(
+    !!(initialViewport && initialViewport.w > 0 && initialViewport.h > 0),
+  );
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const initialSize = useRef<Size>(initial.size);
@@ -53,12 +62,14 @@ export function LivePreview({
     let alive = true;
     void loadParticipant(pid).then((p) => {
       if (!alive || !p) return;
-      setUrl(p.currentUrl || p.assignedUrl || "/");
+      const next = p.currentUrl || p.assignedUrl || "/";
+      setUrl((prev) => (prev === next ? prev : next));
     });
     const dbCh = subscribeParticipant(pid, () => {
       void loadParticipant(pid).then((p) => {
         if (!alive || !p) return;
-        setUrl(p.currentUrl || p.assignedUrl || "/");
+        const next = p.currentUrl || p.assignedUrl || "/";
+        setUrl((prev) => (prev === next ? prev : next));
       });
     });
     return () => {
@@ -181,11 +192,20 @@ export function LivePreview({
     };
   }, [viewport.w, viewport.h]);
 
+  // Cap the auto-fit to the viewer's own window so the panel isn't larger
+  // than the admin screen, but otherwise render at the participant's real size.
+  const maxLong =
+    typeof window !== "undefined"
+      ? Math.max(320, Math.min(window.innerWidth, window.innerHeight) - 80)
+      : 720;
   const fittedSize = hasViewport
-    ? fitToParticipant(viewport.w, viewport.h)
+    ? fitToParticipant(viewport.w, viewport.h, maxLong)
     : initialSize.current;
   const isPhone = viewport.w > 0 && viewport.h > viewport.w;
   const resLabel = hasViewport ? `${viewport.w}×${viewport.h}` : "…";
+  const aspect = viewport.w && viewport.h
+    ? viewport.w / (viewport.h + TITLEBAR)
+    : undefined;
 
   const iframeUrl = useMemo(
     () => url + (url.includes("?") ? "&" : "?") + "__observe=1",
@@ -208,6 +228,7 @@ export function LivePreview({
       initialSize={fittedSize}
       syncSize={fittedSize}
       minSize={{ w: 160, h: 140 }}
+      aspectRatio={aspect}
       className="live-preview-panel"
     >
       <div className="mirror-root" ref={stageWrapRef}>

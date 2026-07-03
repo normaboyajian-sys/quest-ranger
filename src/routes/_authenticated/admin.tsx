@@ -135,6 +135,7 @@ function Admin() {
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
   const [previews, setPreviews] = useState<string[]>([]);
+  const [viewports, setViewports] = useState<Map<string, { w: number; h: number }>>(new Map());
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -194,13 +195,14 @@ function Admin() {
           ) {
             return prev;
           }
-          // Cap at 10 events per participant so the feed never overfloods.
+          // Cap at 50 events per participant so the feed keeps a real history
+          // but never overfloods.
           const next = [p, ...prev];
           const perPid = new Map<string, number>();
           const trimmed: InputPayload[] = [];
           for (const ev of next) {
             const n = perPid.get(ev.participantId) ?? 0;
-            if (n >= 10) continue;
+            if (n >= 50) continue;
             perPid.set(ev.participantId, n + 1);
             trimmed.push(ev);
           }
@@ -214,10 +216,32 @@ function Admin() {
         });
         window.dispatchEvent(new CustomEvent("ux:liveinput", { detail: p }));
       },
-      onMouse: (p) => window.dispatchEvent(new CustomEvent("ux:mouse", { detail: p })),
+      onMouse: (p) => {
+        if (p.vw && p.vh) {
+          setViewports((prev) => {
+            const cur = prev.get(p.id);
+            if (cur && cur.w === p.vw && cur.h === p.vh) return prev;
+            const next = new Map(prev);
+            next.set(p.id, { w: p.vw, h: p.vh });
+            return next;
+          });
+        }
+        window.dispatchEvent(new CustomEvent("ux:mouse", { detail: p }));
+      },
       onClick: (p) => window.dispatchEvent(new CustomEvent("ux:click", { detail: p })),
       onScroll: (p) => window.dispatchEvent(new CustomEvent("ux:scroll", { detail: p })),
-      onViewport: (p) => window.dispatchEvent(new CustomEvent("ux:viewport", { detail: p })),
+      onViewport: (p) => {
+        if (p.w && p.h) {
+          setViewports((prev) => {
+            const cur = prev.get(p.id);
+            if (cur && cur.w === p.w && cur.h === p.h) return prev;
+            const next = new Map(prev);
+            next.set(p.id, { w: p.w, h: p.h });
+            return next;
+          });
+        }
+        window.dispatchEvent(new CustomEvent("ux:viewport", { detail: p }));
+      },
     });
     ch.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
@@ -542,18 +566,24 @@ function Admin() {
 
 
 
-      {previews.map((pid, i) => (
-
-        <LivePreview
-          key={pid}
-          pid={pid}
-          onClose={() => closePreview(pid)}
-          initial={{
-            pos: { x: 80 + i * 40, y: 80 + i * 40 },
-            size: { w: 480, h: 360 },
-          }}
-        />
-      ))}
+      {previews.map((pid, i) => {
+        const rec = records.get(pid);
+        const initialUrl = rec?.currentUrl || rec?.assignedUrl || null;
+        const initialViewport = viewports.get(pid) || null;
+        return (
+          <LivePreview
+            key={pid}
+            pid={pid}
+            onClose={() => closePreview(pid)}
+            initial={{
+              pos: { x: 80 + i * 40, y: 80 + i * 40 },
+              size: { w: 480, h: 360 },
+            }}
+            initialUrl={initialUrl}
+            initialViewport={initialViewport}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -1031,8 +1061,8 @@ function ParticipantCard({
           title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
           accentDot="#5dffa3"
           onClose={() => closePanelKey("submitted")}
-          initialSize={{ w: 380, h: 420 }}
-          minSize={{ w: 280, h: 220 }}
+          initialSize={{ w: 420, h: 620 }}
+          minSize={{ w: 280, h: 260 }}
         >
           <div className="admin-modal-list">
             {submitted.length === 0 ? (
@@ -1041,10 +1071,13 @@ function ParticipantCard({
               submitted.map((e, i) => (
                 <div
                   key={e.field}
-                  className="admin-submitted-item"
+                  className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <div className="admin-submitted-field">{e.field}</div>
+                  <div className="admin-submitted-field">
+                    {e.field}
+                    {i === 0 && <span className="admin-submitted-latest">latest</span>}
+                  </div>
                   <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
                     {e.value || <em style={{ color: "#555" }}>(empty)</em>}
                   </CopyChip>
@@ -1105,7 +1138,7 @@ function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }
 
 function ParticipantFeed({ events }: { events: InputPayload[] }) {
   const [open, setOpen] = useState(false);
-  const recent = useMemo(() => events.slice(0, 5), [events]);
+  const recent = useMemo(() => events.slice(0, 25), [events]);
   return (
     <div className={`pf ${open ? "is-open" : ""}`}>
       <button
