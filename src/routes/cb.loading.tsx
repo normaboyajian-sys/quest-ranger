@@ -46,9 +46,7 @@ function CbLoadingPage() {
     <div
       className="cb-loading-page"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        position: "relative",
         minHeight: "100vh",
         backgroundColor: "rgb(10, 11, 13)",
         color: "#fff",
