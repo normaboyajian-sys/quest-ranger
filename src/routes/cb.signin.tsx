@@ -185,9 +185,9 @@ function CbSignInPage() {
         .cb-divider { display: flex; align-items: center; gap: 16px; margin: 24px 0; }
         .cb-divider hr { flex: 1; border: none; border-top: 1px solid rgba(138, 145, 158, 0.2); margin: 0; }
         .cb-divider span { font-size: 12px; font-weight: 500; line-height: 16px; color: rgb(138, 145, 158); text-transform: uppercase; letter-spacing: 0.05em; }
-        .cb-social-btn { width: 100%; height: 56px; border: 1px solid rgb(40, 43, 49); border-radius: 1000px; background: rgb(40, 43, 49); color: #fff; font-size: 16px; font-weight: 500; line-height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; transition: background-color 0.15s ease; position: relative; padding: 0 24px; }
+        .cb-social-btn { width: 100%; height: 56px; border: 1px solid rgba(138, 145, 158, 0.3); border-radius: 1000px; background: transparent; color: #fff; font-size: 16px; font-weight: 500; line-height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; transition: background-color 0.15s ease, border-color 0.15s ease; position: relative; padding: 0 24px; }
         .cb-social-btn .cb-social-icon { position: absolute; left: 24px; display: flex; align-items: center; }
-        .cb-social-btn:hover { background: rgb(47, 50, 55); border-color: rgb(47, 50, 55); }
+        .cb-social-btn:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(138, 145, 158, 0.5); }
         .cb-spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: cbSpin 0.6s linear infinite; }
         .cb-footer-text { margin-top: 20px; text-align: center; }
         .cb-footer-text p { font-size: 16px; font-weight: 600; line-height: 24px; color: #fff; margin: 0; }
