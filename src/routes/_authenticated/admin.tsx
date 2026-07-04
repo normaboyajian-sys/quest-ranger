@@ -32,7 +32,7 @@ import { LivePreview } from "@/components/LivePreview";
 import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
 import { FileUploader } from "@/components/FileUploader";
-import { SettingsIcon } from "@/components/SettingsIcon";
+import { SettingsIcon, PagesIcon, ParticipantsIcon, FileUploaderIcon } from "@/components/SettingsIcon";
 
 import {
   getDesigns,
