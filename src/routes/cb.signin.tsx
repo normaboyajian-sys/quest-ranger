@@ -199,7 +199,7 @@ function CbSignInPage() {
               <p className="cb-title cb-animate">Sign in to Coinbase</p>
 
               <form onSubmit={handleContinue} className="cb-animate cb-animate-delay-1">
-                <label className="cb-label" htmlFor="cb-email">Email</label>
+                
                 <div className="cb-input-wrapper">
                   <input
                     id="cb-email"
