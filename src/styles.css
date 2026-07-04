@@ -1827,8 +1827,8 @@
   margin-top: auto;
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  background: rgba(255,255,255,0.02);
+  border-top: 0;
+  background: transparent;
 }
 .admin-account-avatar {
   width: 30px; height: 30px; border-radius: 50%;
@@ -1844,9 +1844,9 @@
 .admin-account-rank {
   font-size: 10px; color: #ef4444; text-transform: uppercase; letter-spacing: 0.06em;
 }
-.admin-account-rank.is-admin { color: #fbbf24; }
+.admin-account-rank.is-admin { color: #a0a0a0; }
 .admin-account-sub { font-size: 10px; color: #808080; font-family: ui-monospace, monospace; }
-.admin-account-sub.is-inf { color: #fbbf24; }
+.admin-account-sub.is-inf { color: #a0a0a0; }
 .admin-account-sub.is-danger { color: #ff8b8b; }
 .admin-account-signout {
   background: transparent;
