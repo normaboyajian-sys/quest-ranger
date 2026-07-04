@@ -396,14 +396,14 @@ function Admin() {
               type="button"
               className={`admin-nav-folder ${folders.admin ? "is-open" : ""}`}
               onClick={() => toggleFolder("admin")}
-              title="Admin"
+              title="Panel"
             >
               <span className="admin-nav-folder-chev" aria-hidden>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </span>
-              <span className="admin-nav-folder-label">Admin</span>
+              <span className="admin-nav-folder-label">Panel</span>
             </button>
             {folders.admin && (
               <div className="admin-nav-group">
