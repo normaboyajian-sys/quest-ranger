@@ -1374,6 +1374,8 @@ const PAGE_SIZE = 5;
 function AccountsSection() {
   const list = useServerFn(listAccounts);
   const del = useServerFn(deleteAccount);
+  const fetchMe = useServerFn(getMyAccount);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -1389,8 +1391,22 @@ function AccountsSection() {
     }
   }
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = (await fetchMe()) as { isAdmin: boolean };
+        if (cancelled) return;
+        setIsAdmin(me.isAdmin);
+        if (me.isAdmin) await refresh();
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
 
   async function onDelete(userId: string, username: string) {
     if (!window.confirm(`Delete account "${username}"? This cannot be undone.`)) return;
@@ -1402,6 +1418,8 @@ function AccountsSection() {
       setError(err instanceof Error ? err.message : "Failed");
     }
   }
+
+  if (!isAdmin) return null;
 
   const totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
