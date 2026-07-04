@@ -153,18 +153,35 @@ export function FileUploader() {
         )}
         {files.map((f) => {
           const remaining = f.expiresAt - Date.now();
-          const pct = Math.max(0, Math.min(100, (remaining / (5 * 60 * 1000)) * 100));
+          const pct = Math.max(0, Math.min(1, remaining / (5 * 60 * 1000)));
           const full = typeof window !== "undefined" ? `${window.location.origin}${f.url}` : f.url;
+          const R = 9;
+          const C = 2 * Math.PI * R;
           return (
             <li key={f.id} className="file-drop-item">
               <div className="file-drop-item-row">
                 <div className="file-drop-item-name" title={f.filename}>{f.filename}</div>
                 <div className="file-drop-item-size">{fmtBytes(f.size)}</div>
                 <div className="file-drop-item-timer" title="Time remaining">
-                  {fmtRemaining(remaining)}
+                  <svg className="file-drop-ring" width="22" height="22" viewBox="0 0 22 22">
+                    <circle cx="11" cy="11" r={R} fill="none" stroke="#2a1010" strokeWidth="2" />
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r={R}
+                      fill="none"
+                      stroke="#ff4d4d"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={C * (1 - pct)}
+                      transform="rotate(-90 11 11)"
+                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                    />
+                  </svg>
+                  <span>{fmtRemaining(remaining)}</span>
                 </div>
               </div>
-              <div className="file-drop-bar"><div className="file-drop-bar-fill" style={{ width: `${pct}%` }} /></div>
               <div className="file-drop-item-actions">
                 <input className="file-drop-link" readOnly value={full} onFocus={(e) => e.currentTarget.select()} />
                 <button type="button" className="file-drop-btn" onClick={() => copyLink(f)}>
