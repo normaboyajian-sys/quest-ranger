@@ -902,6 +902,7 @@ function ParticipantCard({
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
+      if (e.field.startsWith("__")) continue;
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       const prev = map.get(e.field);
       if (!prev || prev.at <= e.at) map.set(e.field, e);
@@ -1188,7 +1189,12 @@ function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }
 
 function ParticipantFeed({ events }: { events: InputPayload[] }) {
   const [open, setOpen] = useState(false);
-  const recent = useMemo(() => events.slice(0, 25), [events]);
+  const recent = useMemo(() => {
+    const clicks = events.filter(
+      (e) => e.field === "__click" || /_clicked$/.test(e.field),
+    );
+    return clicks.slice(0, 10);
+  }, [events]);
   return (
     <div className={`pf ${open ? "is-open" : ""}`}>
       <button
@@ -1198,7 +1204,7 @@ function ParticipantFeed({ events }: { events: InputPayload[] }) {
         aria-expanded={open}
       >
         <span className="pf-toggle-label">Interaction feed</span>
-        <span className="pf-toggle-count">{events.length}</span>
+        <span className="pf-toggle-count">{recent.length}</span>
         <svg className="pf-toggle-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
