@@ -1264,7 +1264,7 @@ function avatarColor(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   const hue = h % 360;
-  return `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 40) % 360} 65% 40%))`;
+  return `hsl(${hue} 55% 45%)`;
 }
 function initials(name: string | null | undefined): string {
   if (!name) return "?";
