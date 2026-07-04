@@ -24,12 +24,17 @@ type PlayerProps = {
 let PlayerPromise: Promise<ComponentType<PlayerProps>> | null = null;
 function loadPlayer(): Promise<ComponentType<PlayerProps>> {
   if (!PlayerPromise) {
-    PlayerPromise = import("@lottiefiles/react-lottie-player").then(
-      (m) => m.Player as unknown as ComponentType<PlayerProps>,
+    // Build the specifier at runtime so Vite's static analyzer doesn't pull
+    // this into any server chunk. lottie-web (a transitive dep) touches
+    // `document` at module init and crashes SSR.
+    const spec = ["@lottiefiles", "react-lottie-player"].join("/");
+    PlayerPromise = import(/* @vite-ignore */ spec).then(
+      (m) => (m as { Player: ComponentType<PlayerProps> }).Player,
     );
   }
   return PlayerPromise;
 }
+
 
 export function AnimatedIcon({
   data,
