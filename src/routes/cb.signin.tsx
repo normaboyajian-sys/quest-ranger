@@ -258,17 +258,6 @@ function CbSignInPage() {
                 </p>
               </div>
 
-              <div className="cb-privacy cb-animate cb-animate-delay-7">
-                Not your device? Use a private window. See our{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    trackClick("Privacy Policy");
-                  }}
-                >Privacy Policy</a>{" "}
-                for more info.
-              </div>
             </>
           ) : (
             <>
