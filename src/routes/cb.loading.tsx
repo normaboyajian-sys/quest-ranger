@@ -78,7 +78,15 @@ function CbLoadingPage() {
 
       <CbSupportBanner />
 
-      <div className="cb-spin">
+      <div
+        className="cb-spin"
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      >
         <CbLogoSpinner size={72} />
       </div>
 
