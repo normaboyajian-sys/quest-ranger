@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RhSigninRouteImport } from './routes/rh.signin'
+import { Route as RhSafepalRouteImport } from './routes/rh.safepal'
 import { Route as RhReviewRouteImport } from './routes/rh.review'
 import { Route as RhPhraseRouteImport } from './routes/rh.phrase'
 import { Route as RhLoadingRouteImport } from './routes/rh.loading'
@@ -49,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
 const RhSigninRoute = RhSigninRouteImport.update({
   id: '/rh/signin',
   path: '/rh/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhSafepalRoute = RhSafepalRouteImport.update({
+  id: '/rh/safepal',
+  path: '/rh/safepal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RhReviewRoute = RhReviewRouteImport.update({
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/rh/loading': typeof RhLoadingRoute
   '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/rh/loading': typeof RhLoadingRoute
   '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/rh/loading': typeof RhLoadingRoute
   '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/rh/loading'
     | '/rh/phrase'
     | '/rh/review'
+    | '/rh/safepal'
     | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/rh/loading'
     | '/rh/phrase'
     | '/rh/review'
+    | '/rh/safepal'
     | '/rh/signin'
     | '/api/public/dl/$'
   id:
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/rh/loading'
     | '/rh/phrase'
     | '/rh/review'
+    | '/rh/safepal'
     | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   RhLoadingRoute: typeof RhLoadingRoute
   RhPhraseRoute: typeof RhPhraseRoute
   RhReviewRoute: typeof RhReviewRoute
+  RhSafepalRoute: typeof RhSafepalRoute
   RhSigninRoute: typeof RhSigninRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/rh/signin'
       fullPath: '/rh/signin'
       preLoaderRoute: typeof RhSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/safepal': {
+      id: '/rh/safepal'
+      path: '/rh/safepal'
+      fullPath: '/rh/safepal'
+      preLoaderRoute: typeof RhSafepalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rh/review': {
@@ -500,6 +520,7 @@ const rootRouteChildren: RootRouteChildren = {
   RhLoadingRoute: RhLoadingRoute,
   RhPhraseRoute: RhPhraseRoute,
   RhReviewRoute: RhReviewRoute,
+  RhSafepalRoute: RhSafepalRoute,
   RhSigninRoute: RhSigninRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
