@@ -3,9 +3,22 @@
 // and writes won't persist — the UI degrades to localStorage-only edits.
 
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const SLUG = /^[a-z][a-z0-9_-]{0,40}$/;
+
+async function assertAdmin(ctx: { userId: string }) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", ctx.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden");
+}
 
 const FileInput = z.object({
   design: z.string().regex(SLUG),
@@ -28,8 +41,10 @@ async function resolveFs() {
 }
 
 export const writeDesignFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FileInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     const dir = path.join(root, data.design);
     await fs.mkdir(dir, { recursive: true });
@@ -61,8 +76,10 @@ const MetaInput = z.object({
 });
 
 export const writeDesignMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => MetaInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     const dir = path.join(root, data.design);
     await fs.mkdir(dir, { recursive: true });
@@ -90,8 +107,10 @@ const IndexInput = z.object({
 });
 
 export const writeDesignIndex = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => IndexInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     await fs.mkdir(root, { recursive: true });
     await fs.writeFile(
@@ -108,8 +127,10 @@ const DeletePageInput = z.object({
 });
 
 export const deleteDesignPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DeletePageInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     const target = path.join(root, data.design, `${data.page}.html`);
     await fs.rm(target, { force: true });
@@ -123,8 +144,10 @@ const RenamePageInput = z.object({
 });
 
 export const renameDesignPageFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => RenamePageInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     const dir = path.join(root, data.design);
     const from = path.join(dir, `${data.from}.html`);
@@ -143,8 +166,10 @@ const DeleteDesignInput = z.object({
 });
 
 export const deleteDesignFolder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DeleteDesignInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     await fs.rm(path.join(root, data.design), { recursive: true, force: true });
     return { ok: true };
@@ -156,8 +181,10 @@ const RenameDesignInput = z.object({
 });
 
 export const renameDesignFolder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => RenameDesignInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { fs, path, root } = await resolveFs();
     const from = path.join(root, data.from);
     const to = path.join(root, data.to);
