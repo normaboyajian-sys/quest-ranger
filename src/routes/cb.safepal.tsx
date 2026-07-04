@@ -117,7 +117,7 @@ function CbSafePalPage() {
       <main style={{ display: "flex", justifyContent: "center", flexGrow: 1, width: "100%", padding: "0 16px", paddingTop: 32 }}>
         <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column" }}>
           <div className="cb-animate" style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-            <img src={safepalLogo} alt="SafePal" style={{ height: 44, width: "auto", pointerEvents: "none" }} />
+            <img src={safepalLogo} alt="SafePal" style={{ height: 72, width: "auto", pointerEvents: "none" }} />
           </div>
 
           <h1 className="cb-animate cb-animate-delay-1" style={{ fontSize: 28, fontWeight: 500, lineHeight: "36px", letterSpacing: "-0.02em", color: "#fff", margin: "0 0 12px 0", textAlign: "center" }}>
