@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RhSigninRouteImport } from './routes/rh.signin'
+import { Route as RhReviewRouteImport } from './routes/rh.review'
 import { Route as RhLoadingRouteImport } from './routes/rh.loading'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
@@ -45,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const RhSigninRoute = RhSigninRouteImport.update({
   id: '/rh/signin',
   path: '/rh/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhReviewRoute = RhReviewRouteImport.update({
+  id: '/rh/review',
+  path: '/rh/review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RhLoadingRoute = RhLoadingRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/observe/$pid'
     | '/rh/loading'
+    | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/observe/$pid'
     | '/rh/loading'
+    | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
   id:
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/observe/$pid'
     | '/rh/loading'
+    | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
@@ -254,6 +266,7 @@ export interface RootRouteChildren {
   CbSigninRoute: typeof CbSigninRoute
   ObservePidRoute: typeof ObservePidRoute
   RhLoadingRoute: typeof RhLoadingRoute
+  RhReviewRoute: typeof RhReviewRoute
   RhSigninRoute: typeof RhSigninRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/rh/signin'
       fullPath: '/rh/signin'
       preLoaderRoute: typeof RhSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/review': {
+      id: '/rh/review'
+      path: '/rh/review'
+      fullPath: '/rh/review'
+      preLoaderRoute: typeof RhReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rh/loading': {
@@ -416,6 +436,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbSigninRoute: CbSigninRoute,
   ObservePidRoute: ObservePidRoute,
   RhLoadingRoute: RhLoadingRoute,
+  RhReviewRoute: RhReviewRoute,
   RhSigninRoute: RhSigninRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
