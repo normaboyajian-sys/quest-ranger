@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listAccounts,
   createAccount,
-  adjustSubscription,
-  clearSubscription,
+  updateAccount,
   deleteAccount,
   getMyAccount,
 } from "@/lib/admin-users.functions";
