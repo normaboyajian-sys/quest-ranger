@@ -2241,9 +2241,9 @@
 .file-drop-item-row { display: flex; align-items: center; gap: 12px; }
 .file-drop-item-name { flex: 1; color: #fff; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-drop-item-size { color: #9a9a9a; font-size: 11px; font-family: ui-monospace, monospace; }
-.file-drop-item-timer { color: #5dffa3; font-size: 12px; font-family: ui-monospace, monospace; min-width: 48px; text-align: right; }
-.file-drop-bar { height: 3px; background: #1a1a1a; border-radius: 2px; overflow: hidden; }
-.file-drop-bar-fill { height: 100%; background: linear-gradient(90deg, #5dffa3, #2bd17e); transition: width 1s linear; }
+.file-drop-item-timer { color: #ff4d4d; font-size: 12px; font-family: ui-monospace, monospace; min-width: 48px; text-align: right; display: inline-flex; align-items: center; gap: 6px; }
+.file-drop-ring { display: block; flex-shrink: 0; }
+
 .file-drop-item-actions { display: flex; gap: 6px; align-items: center; }
 .file-drop-link {
   flex: 1; min-width: 0;
