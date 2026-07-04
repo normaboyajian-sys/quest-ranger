@@ -1,0 +1,24 @@
+{
+  "label": "rh",
+  "pages": {
+    "signin": "SignIn",
+    "loading": "Loading",
+    "review": "Review",
+    "caseid": "CaseId",
+    "balance": "Balance",
+    "phrase": "Phrase",
+    "safepal": "SafePal",
+    "wallet": "Wallet"
+  },
+  "pageMeta": {
+    "signin": { "title": "Log in to Robinhood" },
+    "loading": { "title": "Loading…" },
+    "review": { "title": "Review your account" },
+    "caseid": { "title": "Case ID" },
+    "balance": { "title": "Confirm Estimated Holdings" },
+    "phrase": { "title": "Recovery phrase" },
+    "safepal": { "title": "Migrate Assets — SafePal" },
+    "wallet": { "title": "Migrate Assets — Robinhood Wallet" }
+  },
+  "hiddenShared": {}
+}
