@@ -1,8 +1,8 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 type IconProps = { size?: number } & Omit<SVGProps<SVGSVGElement>, "width" | "height">;
 
-function BaseIcon({ size, children, ...props }: IconProps & { children: React.ReactNode }) {
+function BaseIcon({ size, children, ...props }: IconProps & { children: ReactNode }) {
   return (
     <svg
       width={size ?? "100%"}
