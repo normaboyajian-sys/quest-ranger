@@ -333,6 +333,13 @@
   width: 100% !important;
   height: 100% !important;
 }
+.admin-nav-icon svg path,
+.admin-nav-icon svg { color: #a0a0a0; }
+.admin-nav-item { color: #a0a0a0; }
+.admin-nav-icon { filter: brightness(0) saturate(100%) invert(68%); }
+.admin-nav-item:hover .admin-nav-icon,
+.admin-nav-item.is-active .admin-nav-icon { filter: brightness(0) saturate(100%) invert(100%); }
+
 
 .admin-shell.is-collapsed .admin-brand-btn {
   width: 52px;
