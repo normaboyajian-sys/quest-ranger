@@ -192,7 +192,7 @@ function CbSignInPage() {
         <div />
       </header>
 
-      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 48 }}>
+      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 120 }}>
         <div className="cb-form-container">
           {step === 1 ? (
             <>
