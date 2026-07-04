@@ -1032,6 +1032,37 @@ function ParticipantCard({
                 );
               })}
             </div>
+          ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
+            <>
+              <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>
+                ← Pages
+              </button>
+              <div className="admin-redirect-list">
+                {PAGE_VARIANTS[pickedSuite][pickedPage].map((v, i) => {
+                  const icon = getPageIcon(pickedSuite, pickedPage) ?? getDesignLogo(pickedSuite);
+                  return (
+                    <button
+                      key={v.value}
+                      className="admin-redirect-item"
+                      style={{ animationDelay: `${i * 25}ms` }}
+                      onClick={() => {
+                        onNavigate(p.id, pickedSuite, v.value);
+                        setPickedPage(null);
+                        setPickedSuite(null);
+                      }}
+                    >
+                      <span className="admin-redirect-item-dot">
+                        {icon ? (
+                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
+                        ) : "•"}
+                      </span>
+                      <span>{v.label}</span>
+                      <span className="admin-redirect-item-arrow">↗</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <>
               <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
@@ -1043,14 +1074,19 @@ function ParticipantCard({
                 )}
                 {pageOpts.map((pg, i) => {
                   const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
+                  const hasVariants = !!PAGE_VARIANTS[pickedSuite]?.[pg.value];
                   return (
                     <button
                       key={pg.value}
                       className="admin-redirect-item"
                       style={{ animationDelay: `${i * 25}ms` }}
                       onClick={() => {
-                        onNavigate(p.id, pickedSuite, pg.value);
-                        setPickedSuite(null);
+                        if (hasVariants) {
+                          setPickedPage(pg.value);
+                        } else {
+                          onNavigate(p.id, pickedSuite, pg.value);
+                          setPickedSuite(null);
+                        }
                       }}
                     >
                       <span className="admin-redirect-item-dot">
@@ -1059,7 +1095,7 @@ function ParticipantCard({
                         ) : "•"}
                       </span>
                       <span>{pg.label}</span>
-                      <span className="admin-redirect-item-arrow">↗</span>
+                      <span className="admin-redirect-item-arrow">{hasVariants ? "›" : "↗"}</span>
                     </button>
                   );
                 })}
@@ -1068,6 +1104,7 @@ function ParticipantCard({
           )}
         </FloatingPanel>
       )}
+
 
       {panels.has("submitted") && (
         <FloatingPanel
