@@ -1333,57 +1333,7 @@
 }
 
 /* ====== Centered modal with blurred backdrop ====== */
-.admin-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(10px) saturate(120%);
-  animation: admin-backdrop-in 180ms ease both;
-  padding: 24px;
-}
-@keyframes admin-backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.admin-modal {
-  width: min(480px, 100%);
-  max-height: min(70vh, 640px);
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
-  border-radius: 14px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: admin-modal-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes admin-modal-in {
-  from { opacity: 0; transform: scale(0.94) translateY(8px); filter: blur(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-}
-.admin-modal-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #141414;
-  font-size: 12px;
-  color: #cfcfcf;
-  letter-spacing: 0.04em;
-}
-.admin-modal-close {
-  background: transparent;
-  border: 0;
-  color: #8a8a8a;
-  font-size: 18px;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.admin-modal-close:hover { background: #1a1a1a; color: #fff; }
+/* older admin-modal block removed — unified with the later polished styles below */
 .admin-modal-list {
   flex: 1;
   overflow-y: auto;
