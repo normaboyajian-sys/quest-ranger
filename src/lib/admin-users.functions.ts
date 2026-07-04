@@ -70,7 +70,11 @@ export const createAccount = createServerFn({ method: "POST" })
       email_confirm: true,
       user_metadata: { username },
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (/weak|easy to guess/i.test(error.message))
+        throw new Error("Please choose a longer password");
+      throw new Error(error.message);
+    }
     const uid = created.user!.id;
     await supabaseAdmin.from("profiles").update({ password: data.password }).eq("id", uid);
     if (data.isAdmin) {
