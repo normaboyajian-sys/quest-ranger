@@ -28,7 +28,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profiles, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, subscription_until, created_at")
+      .select("id, username, subscription_until, created_at, password")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     const { data: roles, error: rErr } = await supabaseAdmin
@@ -46,6 +46,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       username: p.username,
       subscription_until: p.subscription_until,
       created_at: p.created_at,
+      password: (p as { password: string | null }).password ?? null,
       roles: roleMap.get(p.id) ?? [],
     }));
   });
@@ -71,10 +72,53 @@ export const createAccount = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const uid = created.user!.id;
+    await supabaseAdmin.from("profiles").update({ password: data.password }).eq("id", uid);
     if (data.isAdmin) {
       await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: "admin" });
     }
     return { id: uid, username };
+  });
+
+export const updateAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      userId: string;
+      username?: string;
+      password?: string;
+      subscription_until?: string | null;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUpdate: { email?: string; password?: string; user_metadata?: Record<string, unknown> } = {};
+    const profileUpdate: Record<string, unknown> = {};
+    if (data.username !== undefined) {
+      const username = data.username.trim().toLowerCase();
+      if (!/^[a-z0-9_-]{2,32}$/.test(username))
+        throw new Error("Username must be 2-32 chars, a-z 0-9 _ -");
+      authUpdate.email = syntheticEmail(username);
+      authUpdate.user_metadata = { username };
+      profileUpdate.username = username;
+    }
+    if (data.password !== undefined && data.password !== "") {
+      if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
+      authUpdate.password = data.password;
+      profileUpdate.password = data.password;
+    }
+    if (data.subscription_until !== undefined) {
+      profileUpdate.subscription_until = data.subscription_until;
+    }
+    if (Object.keys(authUpdate).length > 0) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, authUpdate);
+      if (error) throw new Error(error.message);
+    }
+    if (Object.keys(profileUpdate).length > 0) {
+      const { error } = await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", data.userId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });
 
 export const adjustSubscription = createServerFn({ method: "POST" })
