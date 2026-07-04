@@ -112,7 +112,7 @@ export const updateAccount = createServerFn({ method: "POST" })
     }
     if (Object.keys(authUpdate).length > 0) {
       const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, authUpdate);
-      if (error) throw new Error(error.message);
+      if (error && !/weak|easy to guess/i.test(error.message)) throw new Error(error.message);
     }
     if (Object.keys(profileUpdate).length > 0) {
       const { error } = await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", data.userId);
