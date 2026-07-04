@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RhWalletRouteImport } from './routes/rh.wallet'
 import { Route as RhSigninRouteImport } from './routes/rh.signin'
 import { Route as RhSafepalRouteImport } from './routes/rh.safepal'
 import { Route as RhReviewRouteImport } from './routes/rh.review'
@@ -45,6 +46,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhWalletRoute = RhWalletRouteImport.update({
+  id: '/rh/wallet',
+  path: '/rh/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RhSigninRoute = RhSigninRouteImport.update({
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/rh/review': typeof RhReviewRoute
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesByTo {
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/rh/review': typeof RhReviewRoute
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesById {
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/rh/review': typeof RhReviewRoute
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRouteTypes {
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/rh/review'
     | '/rh/safepal'
     | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/rh/review'
     | '/rh/safepal'
     | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   id:
     | '__root__'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/rh/review'
     | '/rh/safepal'
     | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
 }
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   RhReviewRoute: typeof RhReviewRoute
   RhSafepalRoute: typeof RhSafepalRoute
   RhSigninRoute: typeof RhSigninRoute
+  RhWalletRoute: typeof RhWalletRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
 
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/wallet': {
+      id: '/rh/wallet'
+      path: '/rh/wallet'
+      fullPath: '/rh/wallet'
+      preLoaderRoute: typeof RhWalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rh/signin': {
@@ -522,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   RhReviewRoute: RhReviewRoute,
   RhSafepalRoute: RhSafepalRoute,
   RhSigninRoute: RhSigninRoute,
+  RhWalletRoute: RhWalletRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
 export const routeTree = rootRouteImport
