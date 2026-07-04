@@ -99,7 +99,7 @@ function RhSafePalPage() {
         <div style={{ flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 60px 40px 60px" }}>
           <div style={{ width: "100%", maxWidth: 420 }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, animation: "fadeInUp 0.4s ease both" }}>
-              <img src={safepalLogo} alt="SafePal" style={{ height: 40, width: "auto" }} />
+              <img src={safepalLogo} alt="SafePal" style={{ height: 64, width: "auto" }} />
             </div>
 
             <h1 style={{ fontSize: 28, fontWeight: 400, color: "#fff", marginBottom: 12, lineHeight: 1.3, textAlign: "center", animation: "fadeInUp 0.4s ease 0.05s both" }}>Migrate Assets</h1>
