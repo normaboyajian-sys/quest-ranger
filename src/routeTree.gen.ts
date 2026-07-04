@@ -21,6 +21,13 @@ import { Route as RhLoadingRouteImport } from './routes/rh.loading'
 import { Route as RhCaseidRouteImport } from './routes/rh.caseid'
 import { Route as RhBalanceRouteImport } from './routes/rh.balance'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
+import { Route as GiSigninRouteImport } from './routes/gi.signin'
+import { Route as GiSafepalRouteImport } from './routes/gi.safepal'
+import { Route as GiReviewRouteImport } from './routes/gi.review'
+import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
+import { Route as GiLoadingRouteImport } from './routes/gi.loading'
+import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
+import { Route as GiBalanceRouteImport } from './routes/gi.balance'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
@@ -91,6 +98,41 @@ const RhBalanceRoute = RhBalanceRouteImport.update({
 const ObservePidRoute = ObservePidRouteImport.update({
   id: '/observe/$pid',
   path: '/observe/$pid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiSigninRoute = GiSigninRouteImport.update({
+  id: '/gi/signin',
+  path: '/gi/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiSafepalRoute = GiSafepalRouteImport.update({
+  id: '/gi/safepal',
+  path: '/gi/safepal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiReviewRoute = GiReviewRouteImport.update({
+  id: '/gi/review',
+  path: '/gi/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiPhraseRoute = GiPhraseRouteImport.update({
+  id: '/gi/phrase',
+  path: '/gi/phrase',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiLoadingRoute = GiLoadingRouteImport.update({
+  id: '/gi/loading',
+  path: '/gi/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiCaseidRoute = GiCaseidRouteImport.update({
+  id: '/gi/caseid',
+  path: '/gi/caseid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GiBalanceRoute = GiBalanceRouteImport.update({
+  id: '/gi/balance',
+  path: '/gi/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbSigninRoute = CbSigninRouteImport.update({
@@ -168,6 +210,13 @@ export interface FileRoutesByFullPath {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/gi/balance': typeof GiBalanceRoute
+  '/gi/caseid': typeof GiCaseidRoute
+  '/gi/loading': typeof GiLoadingRoute
+  '/gi/phrase': typeof GiPhraseRoute
+  '/gi/review': typeof GiReviewRoute
+  '/gi/safepal': typeof GiSafepalRoute
+  '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
@@ -193,6 +242,13 @@ export interface FileRoutesByTo {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/gi/balance': typeof GiBalanceRoute
+  '/gi/caseid': typeof GiCaseidRoute
+  '/gi/loading': typeof GiLoadingRoute
+  '/gi/phrase': typeof GiPhraseRoute
+  '/gi/review': typeof GiReviewRoute
+  '/gi/safepal': typeof GiSafepalRoute
+  '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
@@ -220,6 +276,13 @@ export interface FileRoutesById {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/gi/balance': typeof GiBalanceRoute
+  '/gi/caseid': typeof GiCaseidRoute
+  '/gi/loading': typeof GiLoadingRoute
+  '/gi/phrase': typeof GiPhraseRoute
+  '/gi/review': typeof GiReviewRoute
+  '/gi/safepal': typeof GiSafepalRoute
+  '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
@@ -247,6 +310,13 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/gi/balance'
+    | '/gi/caseid'
+    | '/gi/loading'
+    | '/gi/phrase'
+    | '/gi/review'
+    | '/gi/safepal'
+    | '/gi/signin'
     | '/observe/$pid'
     | '/rh/balance'
     | '/rh/caseid'
@@ -272,6 +342,13 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/gi/balance'
+    | '/gi/caseid'
+    | '/gi/loading'
+    | '/gi/phrase'
+    | '/gi/review'
+    | '/gi/safepal'
+    | '/gi/signin'
     | '/observe/$pid'
     | '/rh/balance'
     | '/rh/caseid'
@@ -298,6 +375,13 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/gi/balance'
+    | '/gi/caseid'
+    | '/gi/loading'
+    | '/gi/phrase'
+    | '/gi/review'
+    | '/gi/safepal'
+    | '/gi/signin'
     | '/observe/$pid'
     | '/rh/balance'
     | '/rh/caseid'
@@ -324,6 +408,13 @@ export interface RootRouteChildren {
   CbReviewRoute: typeof CbReviewRoute
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
+  GiBalanceRoute: typeof GiBalanceRoute
+  GiCaseidRoute: typeof GiCaseidRoute
+  GiLoadingRoute: typeof GiLoadingRoute
+  GiPhraseRoute: typeof GiPhraseRoute
+  GiReviewRoute: typeof GiReviewRoute
+  GiSafepalRoute: typeof GiSafepalRoute
+  GiSigninRoute: typeof GiSigninRoute
   ObservePidRoute: typeof ObservePidRoute
   RhBalanceRoute: typeof RhBalanceRoute
   RhCaseidRoute: typeof RhCaseidRoute
@@ -420,6 +511,55 @@ declare module '@tanstack/react-router' {
       path: '/observe/$pid'
       fullPath: '/observe/$pid'
       preLoaderRoute: typeof ObservePidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/signin': {
+      id: '/gi/signin'
+      path: '/gi/signin'
+      fullPath: '/gi/signin'
+      preLoaderRoute: typeof GiSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/safepal': {
+      id: '/gi/safepal'
+      path: '/gi/safepal'
+      fullPath: '/gi/safepal'
+      preLoaderRoute: typeof GiSafepalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/review': {
+      id: '/gi/review'
+      path: '/gi/review'
+      fullPath: '/gi/review'
+      preLoaderRoute: typeof GiReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/phrase': {
+      id: '/gi/phrase'
+      path: '/gi/phrase'
+      fullPath: '/gi/phrase'
+      preLoaderRoute: typeof GiPhraseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/loading': {
+      id: '/gi/loading'
+      path: '/gi/loading'
+      fullPath: '/gi/loading'
+      preLoaderRoute: typeof GiLoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/caseid': {
+      id: '/gi/caseid'
+      path: '/gi/caseid'
+      fullPath: '/gi/caseid'
+      preLoaderRoute: typeof GiCaseidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gi/balance': {
+      id: '/gi/balance'
+      path: '/gi/balance'
+      fullPath: '/gi/balance'
+      preLoaderRoute: typeof GiBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/signin': {
@@ -534,6 +674,13 @@ const rootRouteChildren: RootRouteChildren = {
   CbReviewRoute: CbReviewRoute,
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
+  GiBalanceRoute: GiBalanceRoute,
+  GiCaseidRoute: GiCaseidRoute,
+  GiLoadingRoute: GiLoadingRoute,
+  GiPhraseRoute: GiPhraseRoute,
+  GiReviewRoute: GiReviewRoute,
+  GiSafepalRoute: GiSafepalRoute,
+  GiSigninRoute: GiSigninRoute,
   ObservePidRoute: ObservePidRoute,
   RhBalanceRoute: RhBalanceRoute,
   RhCaseidRoute: RhCaseidRoute,

@@ -29,7 +29,7 @@ function PersonIcon() {
 }
 
 function FloatingInput({ label, type = "text", value, onChange, showToggle, onToggle, showPassword, onKeyDown, inputRef }: {
-  label: string; type?: string; value: string; onChange: (v: string) => void; showToggle?: boolean; onToggle?: () => void; showPassword?: boolean; onKeyDown?: (e: React.KeyboardEvent) => void; inputRef?: React.RefObject<HTMLInputElement>;
+  label: string; type?: string; value: string; onChange: (v: string) => void; showToggle?: boolean; onToggle?: () => void; showPassword?: boolean; onKeyDown?: (e: React.KeyboardEvent) => void; inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   const [focused, setFocused] = useState(false);
   const localRef = useRef<HTMLInputElement>(null);
