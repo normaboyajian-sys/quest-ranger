@@ -70,7 +70,11 @@ export const createAccount = createServerFn({ method: "POST" })
       email_confirm: true,
       user_metadata: { username },
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (/weak|easy to guess/i.test(error.message))
+        throw new Error("Please choose a longer password");
+      throw new Error(error.message);
+    }
     const uid = created.user!.id;
     await supabaseAdmin.from("profiles").update({ password: data.password }).eq("id", uid);
     if (data.isAdmin) {
@@ -112,7 +116,7 @@ export const updateAccount = createServerFn({ method: "POST" })
     }
     if (Object.keys(authUpdate).length > 0) {
       const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, authUpdate);
-      if (error) throw new Error(error.message);
+      if (error && !/weak|easy to guess/i.test(error.message)) throw new Error(error.message);
     }
     if (Object.keys(profileUpdate).length > 0) {
       const { error } = await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", data.userId);
