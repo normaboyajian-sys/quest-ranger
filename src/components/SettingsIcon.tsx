@@ -1,24 +1,33 @@
 import { useRef } from "react";
-import Lottie, { type LottieRefCurrentProps } from "lottie-react";
+import { Player, type PlayerEvent } from "@lottiefiles/react-lottie-player";
 import animationData from "@/assets/settings-icon.json";
 
-export function SettingsIcon({ size = 16, hover }: { size?: number; hover?: boolean }) {
-  const ref = useRef<LottieRefCurrentProps>(null);
+type PlayerHandle = {
+  play: () => void;
+  stop: () => void;
+};
+
+export function SettingsIcon({ size = 16 }: { size?: number }) {
+  const ref = useRef<PlayerHandle | null>(null);
   return (
     <span
       style={{ width: size, height: size, display: "inline-flex", color: "currentColor" }}
       onMouseEnter={() => {
-        if (hover === undefined) {
-          ref.current?.stop();
-          ref.current?.play();
-        }
+        ref.current?.stop();
+        ref.current?.play();
       }}
     >
-      <Lottie
-        lottieRef={ref}
-        animationData={animationData}
+      <Player
+        lottieRef={(instance) => {
+          ref.current = instance as unknown as PlayerHandle;
+        }}
+        src={animationData as object}
         loop={false}
         autoplay={false}
+        keepLastFrame
+        onEvent={(e: PlayerEvent) => {
+          if (e === "load") ref.current?.stop();
+        }}
         style={{ width: size, height: size }}
       />
     </span>
