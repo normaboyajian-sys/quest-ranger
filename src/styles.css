@@ -1796,7 +1796,7 @@
   font-family: inherit;
   outline: none;
 }
-.auth-field input:focus { border-color: rgba(74,222,128,0.4); }
+.auth-field input:focus { border-color: rgba(239,68,68,0.45); }
 .auth-error {
   background: rgba(239,68,68,0.10);
   color: #ff8b8b;
@@ -1806,8 +1806,8 @@
   font-size: 12px;
 }
 .auth-btn {
-  background: #4ade80;
-  color: #062b14;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 10px 12px;
@@ -1815,7 +1815,9 @@
   font-size: 13px;
   cursor: pointer;
   font-family: inherit;
+  transition: transform 120ms ease, box-shadow 200ms ease;
 }
+.auth-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(239,68,68,0.35); }
 .auth-btn:disabled { opacity: 0.6; cursor: progress; }
 
 /* ====== Sidebar account chip (bottom-left) ====== */
