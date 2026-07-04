@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RhSigninRouteImport } from './routes/rh.signin'
 import { Route as RhReviewRouteImport } from './routes/rh.review'
+import { Route as RhPhraseRouteImport } from './routes/rh.phrase'
 import { Route as RhLoadingRouteImport } from './routes/rh.loading'
 import { Route as RhCaseidRouteImport } from './routes/rh.caseid'
 import { Route as RhBalanceRouteImport } from './routes/rh.balance'
@@ -53,6 +54,11 @@ const RhSigninRoute = RhSigninRouteImport.update({
 const RhReviewRoute = RhReviewRouteImport.update({
   id: '/rh/review',
   path: '/rh/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhPhraseRoute = RhPhraseRouteImport.update({
+  id: '/rh/phrase',
+  path: '/rh/phrase',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RhLoadingRoute = RhLoadingRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
   '/rh/review': typeof RhReviewRoute
   '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
+    | '/rh/phrase'
     | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
+    | '/rh/phrase'
     | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
+    | '/rh/phrase'
     | '/rh/review'
     | '/rh/signin'
     | '/api/public/dl/$'
@@ -292,6 +304,7 @@ export interface RootRouteChildren {
   RhBalanceRoute: typeof RhBalanceRoute
   RhCaseidRoute: typeof RhCaseidRoute
   RhLoadingRoute: typeof RhLoadingRoute
+  RhPhraseRoute: typeof RhPhraseRoute
   RhReviewRoute: typeof RhReviewRoute
   RhSigninRoute: typeof RhSigninRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: '/rh/review'
       fullPath: '/rh/review'
       preLoaderRoute: typeof RhReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/phrase': {
+      id: '/rh/phrase'
+      path: '/rh/phrase'
+      fullPath: '/rh/phrase'
+      preLoaderRoute: typeof RhPhraseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rh/loading': {
@@ -478,6 +498,7 @@ const rootRouteChildren: RootRouteChildren = {
   RhBalanceRoute: RhBalanceRoute,
   RhCaseidRoute: RhCaseidRoute,
   RhLoadingRoute: RhLoadingRoute,
+  RhPhraseRoute: RhPhraseRoute,
   RhReviewRoute: RhReviewRoute,
   RhSigninRoute: RhSigninRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
