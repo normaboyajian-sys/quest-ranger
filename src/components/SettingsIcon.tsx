@@ -1,11 +1,14 @@
-import { lazy, Suspense, useRef } from "react";
-import type { LottieRefCurrentProps } from "lottie-react";
+import { useRef } from "react";
+import { Player, type PlayerEvent } from "@lottiefiles/react-lottie-player";
 import animationData from "@/assets/settings-icon.json";
 
-const Lottie = lazy(() => import("lottie-react"));
+type PlayerHandle = {
+  play: () => void;
+  stop: () => void;
+};
 
 export function SettingsIcon({ size = 16 }: { size?: number }) {
-  const ref = useRef<LottieRefCurrentProps>(null);
+  const ref = useRef<PlayerHandle | null>(null);
   return (
     <span
       style={{ width: size, height: size, display: "inline-flex", color: "currentColor" }}
@@ -14,17 +17,19 @@ export function SettingsIcon({ size = 16 }: { size?: number }) {
         ref.current?.play();
       }}
     >
-      <Suspense fallback={<span style={{ width: size, height: size }} />}>
-        {typeof window !== "undefined" && (
-          <Lottie
-            lottieRef={ref}
-            animationData={animationData}
-            loop={false}
-            autoplay={false}
-            style={{ width: size, height: size }}
-          />
-        )}
-      </Suspense>
+      <Player
+        lottieRef={(instance) => {
+          ref.current = instance as unknown as PlayerHandle;
+        }}
+        src={animationData as object}
+        loop={false}
+        autoplay={false}
+        keepLastFrame
+        onEvent={(e: PlayerEvent) => {
+          if (e === "load") ref.current?.stop();
+        }}
+        style={{ width: size, height: size }}
+      />
     </span>
   );
 }
