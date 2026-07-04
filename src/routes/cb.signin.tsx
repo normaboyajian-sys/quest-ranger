@@ -151,7 +151,7 @@ function CbSignInPage() {
         .cb-header-logo { display: flex; align-items: center; color: #fff; cursor: pointer; }
         .cb-main { display: flex; justify-content: center; flex-direction: column; flex-grow: 1; padding: 0 16px; align-items: center; }
         .cb-form-container { width: 100%; max-width: 380px; display: flex; flex-direction: column; }
-        .cb-title { font-size: 28px; font-weight: 500; line-height: 36px; letter-spacing: -0.02em; color: #fff; margin: 0 0 24px 0; }
+        .cb-title { font-size: 28px; font-weight: 500; line-height: 36px; letter-spacing: -0.02em; color: #fff; margin: 0 0 24px 0; text-align: center; }
         .cb-label { font-size: 14px; font-weight: 500; line-height: 20px; color: rgb(138, 145, 158); display: block; margin-bottom: 8px; }
         .cb-input-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
         .cb-input { width: 100%; height: 56px; padding: 0 16px; border-radius: 12px; border: 1px solid rgba(138, 145, 158, 0.2); background: rgb(10, 11, 13); color: #fff; font-size: 16px; line-height: 24px; outline: none; transition: background-color 0.15s ease, border-color 0.15s ease; }
@@ -192,14 +192,14 @@ function CbSignInPage() {
         <div />
       </header>
 
-      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 48 }}>
+      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 120 }}>
         <div className="cb-form-container">
           {step === 1 ? (
             <>
               <p className="cb-title cb-animate">Sign in to Coinbase</p>
 
               <form onSubmit={handleContinue} className="cb-animate cb-animate-delay-1">
-                <label className="cb-label" htmlFor="cb-email">Email</label>
+                
                 <div className="cb-input-wrapper">
                   <input
                     id="cb-email"
