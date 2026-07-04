@@ -403,7 +403,7 @@ function Admin() {
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </span>
-              <span className="admin-nav-folder-label">Admin</span>
+              <span className="admin-nav-folder-label">Panel</span>
             </button>
             {folders.admin && (
               <div className="admin-nav-group">
