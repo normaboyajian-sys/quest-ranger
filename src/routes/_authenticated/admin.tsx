@@ -32,7 +32,7 @@ import { LivePreview } from "@/components/LivePreview";
 import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
 import { FileUploader } from "@/components/FileUploader";
-import { SettingsIcon } from "@/components/SettingsIcon";
+import { SettingsIcon, PagesIcon, ParticipantsIcon, FileUploaderIcon } from "@/components/SettingsIcon";
 
 import {
   getDesigns,
@@ -415,12 +415,7 @@ function Admin() {
                   title="Participants"
                 >
                   <span className="admin-nav-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="7" height="7" rx="1" />
-                      <rect x="14" y="3" width="7" height="7" rx="1" />
-                      <rect x="3" y="14" width="7" height="7" rx="1" />
-                      <rect x="14" y="14" width="7" height="7" rx="1" />
-                    </svg>
+                    <ParticipantsIcon />
                   </span>
                   <span className="admin-nav-label">Participants</span>
                   <span className="admin-count">{list.length}</span>
@@ -433,10 +428,7 @@ function Admin() {
                   title="Pages"
                 >
                   <span className="admin-nav-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 4h10l6 6v10a0 0 0 0 1 0 0H4z" />
-                      <path d="M14 4v6h6" />
-                    </svg>
+                    <PagesIcon />
                   </span>
                   <span className="admin-nav-label">Pages</span>
                 </button>
@@ -448,10 +440,11 @@ function Admin() {
                   title="Settings"
                 >
                   <span className="admin-nav-icon">
-                    <SettingsIcon size={16} />
+                    <SettingsIcon />
                   </span>
                   <span className="admin-nav-label">Settings</span>
                 </button>
+
               </div>
             )}
 
@@ -478,12 +471,9 @@ function Admin() {
                   title="File Uploader"
                 >
                   <span className="admin-nav-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
+                    <FileUploaderIcon />
                   </span>
+
                   <span className="admin-nav-label">File Uploader</span>
                 </button>
               </div>
