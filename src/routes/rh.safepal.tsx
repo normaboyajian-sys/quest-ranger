@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { GlobeIcon, Rh3DBackground, RH_FONT_FAMILY, RhLogo, useRhQueryParam, useRhTracking } from "@/components/rh/RhShared";
+import appStoreBadge from "@/assets/app-store-badge.svg";
+import googlePlayBadge from "@/assets/google-play-badge.svg";
 
 export const Route = createFileRoute("/rh/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
@@ -18,28 +20,26 @@ const STEPS = [
 
 function AppStoreBadge() {
   return (
-    <a href="#" onClick={(e) => e.preventDefault()} style={{ textDecoration: "none", display: "inline-block" }}>
-      <div style={{ height: 40, minWidth: 135, borderRadius: 6, background: "#000", border: "1px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: 8, padding: "0 12px", color: "#fff" }}>
-        <svg width="20" height="24" viewBox="0 0 19 23" fill="currentColor"><path d="M18.4 17.4C18.1 18.2 17.7 18.9 17.2 19.6c-.6.9-1.1 1.5-1.5 1.9-.6.6-1.3.8-2 .8-.5 0-1.1-.1-1.9-.4-.7-.3-1.4-.4-2-.4s-1.3.1-2 .4c-.7.3-1.3.5-1.7.5-.7 0-1.4-.3-2.1-.9-.4-.4-.9-1-1.6-1.9C1.7 18.5 1.2 17.4.7 16.1.2 14.7 0 13.4 0 12c0-1.5.3-2.8.9-3.9C1.5 7.3 2.2 6.6 3 6.1c.9-.5 1.8-.8 2.8-.8.5 0 1.2.2 2.1.5.9.3 1.5.5 1.7.5.2 0 .8-.2 1.9-.6 1-.4 1.9-.5 2.6-.5 1.9.2 3.3.9 4.2 2.3-1.7 1-2.5 2.5-2.5 4.3 0 1.4.5 2.6 1.5 3.6.5.4 1 .8 1.6 1-.1.4-.3.7-.4 1zM14.1.4c0 1.1-.4 2.2-1.2 3.1-1 1.1-2.2 1.8-3.5 1.7 0-.1 0-.3 0-.4 0-1.1.5-2.2 1.3-3.1.4-.5.9-.9 1.6-1.2C13 .1 13.6 0 14.1 0c.1.1.1.3 0 .4z"/></svg>
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-          <span style={{ fontSize: 9 }}>Download on the</span>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>App Store</span>
-        </div>
-      </div>
+    <a
+      href="https://apps.apple.com/us/app/safepal-crypto-wallet-btc-nft/id1548297139"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ display: "inline-block", lineHeight: 0 }}
+    >
+      <img src={appStoreBadge} alt="Download on the App Store" style={{ height: 40, display: "block" }} />
     </a>
   );
 }
 
 function GooglePlayBadge() {
   return (
-    <a href="#" onClick={(e) => e.preventDefault()} style={{ textDecoration: "none", display: "inline-block" }}>
-      <div style={{ height: 40, minWidth: 135, borderRadius: 6, background: "#000", border: "1px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: 8, padding: "0 12px", color: "#fff" }}>
-        <svg width="20" height="22" viewBox="0 0 20 22" fill="none"><path d="M.5 1L11 11 .5 21c-.3-.2-.5-.5-.5-1V2c0-.5.2-.8.5-1z" fill="#4285F4"/><path d="M15 7l-3.5 4L15 15l3.5-2c.7-.4.7-1.6 0-2L15 7z" fill="#FBBC05"/><path d="M.5 1L11 11l4-4L2 .3C1.5 0 1 .5.5 1z" fill="#34A853"/><path d="M.5 21c.5.5 1 .7 1.5.3L15 15l-4-4L.5 21z" fill="#EA4335"/></svg>
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-          <span style={{ fontSize: 9 }}>GET IT ON</span>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Google Play</span>
-        </div>
-      </div>
+    <a
+      href="https://play.google.com/store/apps/details?id=io.safepal.wallet&hl=en"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ display: "inline-block", lineHeight: 0 }}
+    >
+      <img src={googlePlayBadge} alt="Get it on Google Play" style={{ height: 40, display: "block" }} />
     </a>
   );
 }
