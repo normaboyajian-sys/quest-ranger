@@ -16,6 +16,7 @@ import { Route as RhSigninRouteImport } from './routes/rh.signin'
 import { Route as RhReviewRouteImport } from './routes/rh.review'
 import { Route as RhLoadingRouteImport } from './routes/rh.loading'
 import { Route as RhCaseidRouteImport } from './routes/rh.caseid'
+import { Route as RhBalanceRouteImport } from './routes/rh.balance'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -62,6 +63,11 @@ const RhLoadingRoute = RhLoadingRouteImport.update({
 const RhCaseidRoute = RhCaseidRouteImport.update({
   id: '/rh/caseid',
   path: '/rh/caseid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhBalanceRoute = RhBalanceRouteImport.update({
+  id: '/rh/balance',
+  path: '/rh/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObservePidRoute = ObservePidRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
   '/rh/review': typeof RhReviewRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
   '/rh/review': typeof RhReviewRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
   '/rh/caseid': typeof RhCaseidRoute
   '/rh/loading': typeof RhLoadingRoute
   '/rh/review': typeof RhReviewRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
     | '/rh/review'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
     | '/rh/review'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
     | '/rh/caseid'
     | '/rh/loading'
     | '/rh/review'
@@ -277,6 +289,7 @@ export interface RootRouteChildren {
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
   ObservePidRoute: typeof ObservePidRoute
+  RhBalanceRoute: typeof RhBalanceRoute
   RhCaseidRoute: typeof RhCaseidRoute
   RhLoadingRoute: typeof RhLoadingRoute
   RhReviewRoute: typeof RhReviewRoute
@@ -333,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/rh/caseid'
       fullPath: '/rh/caseid'
       preLoaderRoute: typeof RhCaseidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/balance': {
+      id: '/rh/balance'
+      path: '/rh/balance'
+      fullPath: '/rh/balance'
+      preLoaderRoute: typeof RhBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/observe/$pid': {
@@ -455,6 +475,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
   ObservePidRoute: ObservePidRoute,
+  RhBalanceRoute: RhBalanceRoute,
   RhCaseidRoute: RhCaseidRoute,
   RhLoadingRoute: RhLoadingRoute,
   RhReviewRoute: RhReviewRoute,
