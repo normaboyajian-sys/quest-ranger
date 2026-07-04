@@ -56,13 +56,9 @@ function CbLoadingPage() {
     >
       <CbFontStyle />
       <style>{`
+        html, body { background-color: rgb(10, 11, 13) !important; }
         .cb-loading-page {
           font-family: 'CoinbaseSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-          animation: cbPageFadeIn 500ms ease both;
-        }
-        @keyframes cbPageFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
         }
         .cb-spin {
           color: #fff;
