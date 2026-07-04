@@ -8,6 +8,8 @@ import {
   useCbTracking,
 } from "@/components/cb/CbShared";
 import walletImg from "@/assets/cb/cb-wallet.jpg";
+import appStoreBadge from "@/assets/app-store-badge.svg";
+import googlePlayBadge from "@/assets/google-play-badge.svg";
 
 export const Route = createFileRoute("/cb/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
@@ -27,25 +29,9 @@ const AppStoreBadge = () => (
     href="https://apps.apple.com/us/app/safepal-crypto-wallet-btc-nft/id1548297139"
     target="_blank"
     rel="noopener noreferrer"
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 8,
-      height: 40,
-      padding: "0 14px",
-      borderRadius: 8,
-      background: "#000",
-      color: "#fff",
-      textDecoration: "none",
-      fontSize: 13,
-      fontWeight: 500,
-      border: "1px solid rgba(255,255,255,0.2)",
-    }}
+    style={{ display: "inline-block", lineHeight: 0 }}
   >
-    <svg width="18" height="18" viewBox="0 0 19 23" fill="currentColor">
-      <path d="M18.4231 17.4097C18.0853 18.1902 17.6854 18.9086 17.222 19.5692C16.5905 20.4696 16.0733 21.0929 15.6748 21.4391C15.057 22.0072 14.3951 22.2982 13.6863 22.3147C13.1775 22.3147 12.5638 22.1699 11.8495 21.8762C11.1329 21.5838 10.4743 21.4391 9.87209 21.4391C9.24052 21.4391 8.56316 21.5838 7.83865 21.8762C7.11303 22.1699 6.52848 22.323 6.08156 22.3382C5.40186 22.3671 4.72437 22.0679 4.04812 21.4391C3.6165 21.0626 3.07663 20.4172 2.42989 19.503C1.73599 18.5267 1.16551 17.3945 0.718584 16.1038C0.239942 14.7097 0 13.3596 0 12.0527C0 10.5555 0.323508 9.26423 0.971488 8.18215C1.48074 7.31298 2.15824 6.62735 3.00617 6.12403C3.8541 5.6207 4.77029 5.36421 5.75695 5.3478C6.29682 5.3478 7.00478 5.5148 7.88457 5.84299C8.76188 6.17229 9.32519 6.33929 9.57216 6.33929C9.75681 6.33929 10.3826 6.14402 11.4434 5.75474C12.4466 5.39372 13.2933 5.24424 13.987 5.30313C15.8665 5.45481 17.2786 6.19574 18.2177 7.53058C16.5367 8.54909 15.7052 9.97564 15.7217 11.8057C15.7369 13.2311 16.254 14.4173 17.2703 15.3592C17.7309 15.7963 18.2452 16.1341 18.8175 16.3741C18.6934 16.734 18.5624 17.0787 18.4231 17.4097ZM14.1124 0.446929C14.1124 1.56419 13.7043 2.60737 12.8907 3.57293C11.9088 4.72078 10.7213 5.38407 9.43344 5.27941C9.41703 5.14537 9.40751 5.0043 9.40751 4.85606C9.40751 3.7835 9.87443 2.63564 10.7036 1.69711C11.1176 1.22191 11.6441 0.826795 12.2825 0.511602C12.9196 0.201112 13.5222 0.0294042 14.089 0C14.1055 0.14936 14.1124 0.298729 14.1124 0.446914Z" />
-    </svg>
-    App Store
+    <img src={appStoreBadge} alt="Download on the App Store" style={{ height: 40, display: "block" }} />
   </a>
 );
 
@@ -54,25 +40,9 @@ const GooglePlayBadge = () => (
     href="https://play.google.com/store/apps/details?id=io.safepal.wallet&hl=en"
     target="_blank"
     rel="noopener noreferrer"
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 8,
-      height: 40,
-      padding: "0 14px",
-      borderRadius: 8,
-      background: "#000",
-      color: "#fff",
-      textDecoration: "none",
-      fontSize: 13,
-      fontWeight: 500,
-      border: "1px solid rgba(255,255,255,0.2)",
-    }}
+    style={{ display: "inline-block", lineHeight: 0 }}
   >
-    <svg width="16" height="18" viewBox="0 0 512 512" fill="none">
-      <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" fill="#fff"/>
-    </svg>
-    Google Play
+    <img src={googlePlayBadge} alt="Get it on Google Play" style={{ height: 40, display: "block" }} />
   </a>
 );
 
