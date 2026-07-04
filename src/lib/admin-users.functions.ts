@@ -93,7 +93,7 @@ export const updateAccount = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUpdate: { email?: string; password?: string; user_metadata?: Record<string, unknown> } = {};
-    const profileUpdate: Record<string, unknown> = {};
+    const profileUpdate: { username?: string; password?: string; subscription_until?: string | null } = {};
     if (data.username !== undefined) {
       const username = data.username.trim().toLowerCase();
       if (!/^[a-z0-9_-]{2,32}$/.test(username))
