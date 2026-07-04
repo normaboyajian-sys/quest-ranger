@@ -1377,18 +1377,20 @@ type Account = {
   username: string;
   subscription_until: string | null;
   created_at: string;
+  password: string | null;
   roles: string[];
 };
 
+const PAGE_SIZE = 5;
+
 function AccountsSection() {
   const list = useServerFn(listAccounts);
-  const adjust = useServerFn(adjustSubscription);
-  const clear = useServerFn(clearSubscription);
   const del = useServerFn(deleteAccount);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"paid" | "admin">("paid");
+  const [page, setPage] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState<Account | null>(null);
 
   async function refresh() {
     try {
@@ -1402,24 +1404,6 @@ function AccountsSection() {
     void refresh();
   }, []);
 
-  async function onAdjust(userId: string, days: number) {
-    setError(null);
-    try {
-      await adjust({ data: { userId, days } });
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    }
-  }
-  async function onClear(userId: string) {
-    setError(null);
-    try {
-      await clear({ data: { userId } });
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    }
-  }
   async function onDelete(userId: string, username: string) {
     if (!window.confirm(`Delete account "${username}"? This cannot be undone.`)) return;
     setError(null);
@@ -1431,32 +1415,17 @@ function AccountsSection() {
     }
   }
 
-  const admins = accounts.filter((a) => a.roles.includes("admin"));
-  const paid = accounts.filter((a) => !a.roles.includes("admin"));
-  const visible = tab === "admin" ? admins : paid;
+  const totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const visible = accounts.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <section className="admin-settings-group">
       <div className="admin-acct-head">
-        <div className="admin-acct-tabs" role="tablist">
-          <button
-            className={`admin-acct-tab ${tab === "paid" ? "is-active" : ""}`}
-            onClick={() => setTab("paid")}
-          >
-            Paid users <span className="admin-acct-tab-count">{paid.length}</span>
-          </button>
-          <button
-            className={`admin-acct-tab ${tab === "admin" ? "is-active" : ""}`}
-            onClick={() => setTab("admin")}
-          >
-            Admins <span className="admin-acct-tab-count">{admins.length}</span>
-          </button>
-        </div>
-        <button className="admin-acct-create-btn" onClick={() => setShowCreate(true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+        <h2 className="admin-settings-group-title" style={{ margin: 0 }}>
+          Accounts <span style={{ color: "#555" }}>· {accounts.length}</span>
+        </h2>
+        <button className="admin-acct-create-link" onClick={() => setShowCreate(true)}>
           Create account
         </button>
       </div>
@@ -1468,15 +1437,42 @@ function AccountsSection() {
           <AccountRow
             key={a.id}
             a={a}
-            onAdjust={onAdjust}
-            onClear={onClear}
+            onEdit={() => setEditing(a)}
             onDelete={onDelete}
           />
         ))}
-        {visible.length === 0 && (
-          <p className="admin-empty">No {tab === "admin" ? "admins" : "paid users"} yet.</p>
+        {accounts.length === 0 && (
+          <p className="admin-empty">No accounts yet.</p>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="admin-acct-pager">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={currentPage === 0}
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              className={i === currentPage ? "is-active" : ""}
+              onClick={() => setPage(i)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={currentPage >= totalPages - 1}
+            aria-label="Next page"
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       {showCreate && (
         <CreateAccountModal
@@ -1487,68 +1483,85 @@ function AccountsSection() {
           }}
         />
       )}
+      {editing && (
+        <EditAccountModal
+          account={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void refresh();
+          }}
+        />
+      )}
     </section>
   );
 }
 
 function AccountRow({
   a,
-  onAdjust,
-  onClear,
+  onEdit,
   onDelete,
 }: {
   a: Account;
-  onAdjust: (id: string, days: number) => void;
-  onClear: (id: string) => void;
+  onEdit: () => void;
   onDelete: (id: string, username: string) => void;
 }) {
   const isAdmin = a.roles.includes("admin");
   const cd = useCountdown(a.subscription_until);
   const suspended = !isAdmin && (cd.kind === "expired" || cd.kind === "none");
-  const subText = isAdmin
-    ? "Infinite access"
+  const [showPw, setShowPw] = useState(false);
+
+  const timeText = isAdmin
+    ? "∞ infinite"
     : cd.kind === "none"
-      ? "No subscription — suspended"
+      ? "no subscription"
       : cd.kind === "expired"
-        ? "Expired — suspended"
+        ? "expired"
         : `${cd.text} left`;
-  const subKind = isAdmin
-    ? "is-inf"
-    : suspended
-      ? "is-danger"
-      : cd.kind === "danger"
-        ? "is-danger"
-        : "is-active";
+  const timeKind = isAdmin ? "is-inf" : suspended ? "is-danger" : cd.kind === "danger" ? "is-danger" : "";
+
   return (
-    <div className={`admin-acct-row ${suspended ? "is-suspended" : ""}`}>
-      <div className="admin-acct-avatar" style={{ background: avatarColor(a.username) }}>
-        {initials(a.username)}
-      </div>
+    <div className="admin-acct-row">
       <div className="admin-acct-main">
-        <div className="admin-acct-name">
-          {a.username}
-          <span className={`admin-acct-badge ${isAdmin ? "" : suspended ? "is-suspended" : "is-paid"}`}>
+        <div className="admin-acct-name-row">
+          <span className="admin-acct-name">{a.username}</span>
+          <span className={`admin-acct-badge ${isAdmin ? "is-admin" : suspended ? "is-suspended" : ""}`}>
             {isAdmin ? "admin" : suspended ? "suspended" : "paid"}
           </span>
         </div>
-        <div className={`admin-acct-sub ${subKind}`}>
-          <span className="dot" />
-          {subText}
+        <div className="admin-acct-meta">
+          <span className={`m-time ${timeKind}`}>{timeText}</span>
+          <span className="admin-acct-pw">
+            <span className="admin-acct-pw-val">
+              {showPw ? (a.password ?? "—") : "••••••••"}
+            </span>
+            <button
+              type="button"
+              className="admin-acct-pw-toggle"
+              onClick={() => setShowPw((v) => !v)}
+              title={showPw ? "Hide password" : "Show password"}
+              aria-label={showPw ? "Hide password" : "Show password"}
+            >
+              {showPw ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.11" />
+                  <path d="M1 1l22 22" />
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.77 19.77 0 0 1-3.17 4.19" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </span>
         </div>
       </div>
       <div className="admin-acct-actions">
+        <button onClick={onEdit}>Edit</button>
         {!isAdmin && (
-          <>
-            <button onClick={() => onAdjust(a.id, 1)}>+1d</button>
-            <button onClick={() => onAdjust(a.id, 7)}>+7d</button>
-            <button onClick={() => onAdjust(a.id, 30)}>+30d</button>
-            <button className="admin-acct-clear" onClick={() => onClear(a.id)} title="Clear subscription">
-              Clear
-            </button>
-          </>
-        )}
-        {!isAdmin && (
-          <button className="admin-acct-delete" onClick={() => onDelete(a.id, a.username)} title="Delete account">
+          <button className="admin-acct-delete" onClick={() => onDelete(a.id, a.username)}>
             Delete
           </button>
         )}
@@ -1565,7 +1578,7 @@ function CreateAccountModal({
   onCreated: () => void;
 }) {
   const create = useServerFn(createAccount);
-  const adjust = useServerFn(adjustSubscription);
+  const update = useServerFn(updateAccount);
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [role, setRole] = useState<"paid" | "admin">("paid");
@@ -1588,7 +1601,8 @@ function CreateAccountModal({
     try {
       const res = await create({ data: { username: u, password: p, isAdmin: role === "admin" } });
       if (role === "paid" && days > 0) {
-        await adjust({ data: { userId: res.id, days } });
+        const until = new Date(Date.now() + days * 86_400_000).toISOString();
+        await update({ data: { userId: res.id, subscription_until: until } });
       }
       onCreated();
     } catch (err) {
@@ -1629,7 +1643,7 @@ function CreateAccountModal({
         <label className="admin-modal-field">
           <span>Password</span>
           <input
-            type="password"
+            type="text"
             value={p}
             onChange={(e) => setP(e.target.value)}
             required
@@ -1637,48 +1651,25 @@ function CreateAccountModal({
           />
         </label>
 
-        <div className="admin-modal-field">
+        <label className="admin-modal-field">
           <span>Role</span>
-          <div className="admin-modal-role">
-            <label className={`admin-modal-role-opt ${role === "paid" ? "is-selected" : ""}`}>
-              <input
-                type="radio"
-                name="role"
-                checked={role === "paid"}
-                onChange={() => setRole("paid")}
-              />
-              <div className="r-title">Paid user</div>
-              <div className="r-desc">Access while subscription is active</div>
-            </label>
-            <label className={`admin-modal-role-opt ${role === "admin" ? "is-selected" : ""}`}>
-              <input
-                type="radio"
-                name="role"
-                checked={role === "admin"}
-                onChange={() => setRole("admin")}
-              />
-              <div className="r-title">Admin</div>
-              <div className="r-desc">Infinite access, full control</div>
-            </label>
-          </div>
-        </div>
+          <select value={role} onChange={(e) => setRole(e.target.value as "paid" | "admin")}>
+            <option value="paid">Paid user</option>
+            <option value="admin">Admin (infinite)</option>
+          </select>
+        </label>
 
         {role === "paid" && (
-          <div className="admin-modal-field">
-            <span>Initial subscription</span>
-            <div className="admin-modal-sub-row">
-              {[0, 1, 7, 30, 90, 365].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={days === d ? "is-active" : ""}
-                  onClick={() => setDays(d)}
-                >
-                  {d === 0 ? "None" : d < 30 ? `${d}d` : d < 365 ? `${d / 30}mo` : `${d / 365}y`}
-                </button>
-              ))}
-            </div>
-          </div>
+          <label className="admin-modal-field">
+            <span>Subscription (days)</span>
+            <input
+              type="number"
+              min={0}
+              max={3650}
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value) || 0)}
+            />
+          </label>
         )}
 
         {error && <div className="auth-error">{error}</div>}
@@ -1688,7 +1679,127 @@ function CreateAccountModal({
             Cancel
           </button>
           <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? "Creating…" : "Create account"}
+            {busy ? "Creating…" : "Create"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditAccountModal({
+  account,
+  onClose,
+  onSaved,
+}: {
+  account: Account;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const update = useServerFn(updateAccount);
+  const isAdmin = account.roles.includes("admin");
+  const [u, setU] = useState(account.username);
+  const [p, setP] = useState("");
+  const initialDays = account.subscription_until
+    ? Math.max(0, Math.ceil((new Date(account.subscription_until).getTime() - Date.now()) / 86_400_000))
+    : 0;
+  const [days, setDays] = useState<number>(initialDays);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const payload: {
+        userId: string;
+        username?: string;
+        password?: string;
+        subscription_until?: string | null;
+      } = { userId: account.id };
+      if (u !== account.username) payload.username = u;
+      if (p) payload.password = p;
+      if (!isAdmin) {
+        payload.subscription_until =
+          days > 0 ? new Date(Date.now() + days * 86_400_000).toISOString() : null;
+      }
+      await update({ data: payload });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="admin-modal-backdrop" onClick={onClose}>
+      <form className="admin-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="admin-modal-head">
+          <h2 className="admin-modal-title">Edit {account.username}</h2>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <label className="admin-modal-field">
+          <span>Username</span>
+          <input
+            value={u}
+            onChange={(e) => setU(e.target.value)}
+            required
+            minLength={2}
+            maxLength={32}
+            pattern="[a-zA-Z0-9_-]+"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </label>
+
+        <label className="admin-modal-field">
+          <span>New password (leave blank to keep)</span>
+          <input
+            type="text"
+            value={p}
+            onChange={(e) => setP(e.target.value)}
+            minLength={6}
+            placeholder={account.password ?? "••••••••"}
+          />
+        </label>
+
+        {!isAdmin && (
+          <label className="admin-modal-field">
+            <span>Subscription (days from now)</span>
+            <input
+              type="number"
+              min={0}
+              max={3650}
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value) || 0)}
+            />
+          </label>
+        )}
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="admin-modal-actions">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? "Saving…" : "Save"}
           </button>
         </div>
       </form>
