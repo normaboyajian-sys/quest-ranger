@@ -3,6 +3,14 @@
 // @lottiefiles/react-lottie-player, which is pulled into a shared SSR chunk
 // by many route files). Keep this file self-contained and side-effect only.
 
+// Some browser-oriented libraries and TanStack internals check for `document`
+// and then expect `self` to exist too. Workers have `self`, but the local SSR
+// runtime may not, so mirror it to globalThis before installing `document`.
+if (typeof (globalThis as unknown as { self?: unknown }).self === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).self = globalThis;
+}
+
 if (typeof (globalThis as unknown as { document?: unknown }).document === "undefined") {
   const noop = () => {};
   const makeEl = () => ({
