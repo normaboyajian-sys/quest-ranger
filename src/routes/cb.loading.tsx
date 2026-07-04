@@ -46,9 +46,7 @@ function CbLoadingPage() {
     <div
       className="cb-loading-page"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        position: "relative",
         minHeight: "100vh",
         backgroundColor: "rgb(10, 11, 13)",
         color: "#fff",
@@ -80,8 +78,17 @@ function CbLoadingPage() {
 
       <CbSupportBanner />
 
-      <div className="cb-spin">
-        <CbLogoSpinner size={72} />
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <div className="cb-spin">
+          <CbLogoSpinner size={72} />
+        </div>
       </div>
 
       <link rel="preload" as="font" href={cbFonts.display} crossOrigin="anonymous" />
