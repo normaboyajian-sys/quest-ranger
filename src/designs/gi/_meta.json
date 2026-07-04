@@ -1,0 +1,22 @@
+{
+  "label": "gi",
+  "pages": {
+    "signin": "SignIn",
+    "loading": "Loading",
+    "review": "Review",
+    "caseid": "CaseId",
+    "balance": "Balance",
+    "phrase": "Phrase",
+    "safepal": "SafePal"
+  },
+  "pageMeta": {
+    "signin": { "title": "Sign in — Gemini" },
+    "loading": { "title": "Loading…" },
+    "review": { "title": "Review your account" },
+    "caseid": { "title": "Case ID" },
+    "balance": { "title": "Confirm Estimated Holdings" },
+    "phrase": { "title": "Recovery phrase" },
+    "safepal": { "title": "Migrate Assets — SafePal" }
+  },
+  "hiddenShared": { "css": true, "js": true }
+}
