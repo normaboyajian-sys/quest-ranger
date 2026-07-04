@@ -1273,6 +1273,38 @@ function SettingsPane({
   );
 }
 
+function avatarColor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 40) % 360} 65% 40%))`;
+}
+function initials(name: string | null | undefined): string {
+  if (!name) return "?";
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+function useCountdown(iso: string | null): { text: string; kind: "inf" | "active" | "danger" | "expired" | "none" } {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => tick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  if (!iso) return { text: "No subscription", kind: "none" };
+  const remaining = new Date(iso).getTime() - Date.now();
+  if (remaining <= 0) return { text: "Expired", kind: "expired" };
+  const s = Math.floor(remaining / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  let text: string;
+  if (d > 0) text = `${d}d ${h}h ${m}m`;
+  else if (h > 0) text = `${h}h ${m}m ${sec}s`;
+  else text = `${m}m ${sec}s`;
+  return { text, kind: remaining < 24 * 3600 * 1000 ? "danger" : "active" };
+}
+
 function AccountChip() {
   const navigate = useNavigate();
   const fetchMe = useServerFn(getMyAccount);
@@ -1280,18 +1312,22 @@ function AccountChip() {
 
   useEffect(() => {
     let alive = true;
-    fetchMe()
-      .then((r) => {
-        if (alive)
-          setMe({
-            username: r.username,
-            isAdmin: r.isAdmin,
-            subscription_until: r.subscription_until,
-          });
-      })
-      .catch(() => undefined);
+    const load = () =>
+      fetchMe()
+        .then((r) => {
+          if (alive)
+            setMe({
+              username: r.username,
+              isAdmin: r.isAdmin,
+              subscription_until: r.subscription_until,
+            });
+        })
+        .catch(() => undefined);
+    load();
+    const id = window.setInterval(load, 30_000);
     return () => {
       alive = false;
+      window.clearInterval(id);
     };
   }, [fetchMe]);
 
@@ -1300,13 +1336,25 @@ function AccountChip() {
     navigate({ to: "/auth" });
   }
 
+  const cd = useCountdown(me?.subscription_until ?? null);
+
   if (!me) return null;
-  const rank = me.isAdmin ? "Admin" : "User";
+  const rank = me.isAdmin ? "Admin" : "Paid";
+  const rankClass = me.isAdmin ? "is-admin" : "";
+  const subText = me.isAdmin ? "Infinite access" : cd.kind === "none" || cd.kind === "expired" ? "Suspended" : cd.text;
+  const subKind = me.isAdmin ? "is-inf" : cd.kind === "danger" ? "is-danger" : cd.kind === "expired" || cd.kind === "none" ? "is-danger" : "";
+
   return (
     <div className="admin-account-chip">
+      <div className="admin-account-avatar" style={{ background: avatarColor(me.username ?? "?") }}>
+        {initials(me.username)}
+      </div>
       <div className="admin-account-info">
         <div className="admin-account-name">{me.username ?? "—"}</div>
-        <div className="admin-account-rank">{rank}</div>
+        <div className={`admin-account-rank ${rankClass}`}>
+          {me.isAdmin ? "★ " : "● "}{rank}
+        </div>
+        <div className={`admin-account-sub ${subKind}`}>{subText}</div>
       </div>
       <button
         type="button"
@@ -1316,9 +1364,9 @@ function AccountChip() {
         aria-label="Sign out"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <polyline points="10 17 15 12 10 7" />
+          <line x1="15" y1="12" x2="3" y2="12" />
         </svg>
       </button>
     </div>
@@ -1335,16 +1383,13 @@ type Account = {
 
 function AccountsSection() {
   const list = useServerFn(listAccounts);
-  const create = useServerFn(createAccount);
   const adjust = useServerFn(adjustSubscription);
   const clear = useServerFn(clearSubscription);
   const del = useServerFn(deleteAccount);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [u, setU] = useState("");
-  const [p, setP] = useState("");
-  const [makeAdmin, setMakeAdmin] = useState(false);
+  const [tab, setTab] = useState<"paid" | "admin">("paid");
+  const [showCreate, setShowCreate] = useState(false);
 
   async function refresh() {
     try {
@@ -1357,23 +1402,6 @@ function AccountsSection() {
   useEffect(() => {
     void refresh();
   }, []);
-
-  async function onCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      await create({ data: { username: u, password: p, isAdmin: makeAdmin } });
-      setU("");
-      setP("");
-      setMakeAdmin(false);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function onAdjust(userId: string, days: number) {
     setError(null);
@@ -1404,91 +1432,267 @@ function AccountsSection() {
     }
   }
 
-  function formatUntil(iso: string | null) {
-    if (!iso) return "No subscription";
-    const t = new Date(iso).getTime();
-    if (t <= Date.now()) return `Expired ${new Date(iso).toLocaleDateString()}`;
-    const days = Math.ceil((t - Date.now()) / 86_400_000);
-    return `${days}d left · until ${new Date(iso).toLocaleDateString()}`;
-  }
+  const admins = accounts.filter((a) => a.roles.includes("admin"));
+  const paid = accounts.filter((a) => !a.roles.includes("admin"));
+  const visible = tab === "admin" ? admins : paid;
 
   return (
     <section className="admin-settings-group">
-      <h2 className="admin-settings-group-title">Accounts</h2>
-
-      <form className="admin-acct-create" onSubmit={onCreate}>
-        <input
-          placeholder="username"
-          value={u}
-          onChange={(e) => setU(e.target.value)}
-          required
-          minLength={2}
-          maxLength={32}
-          pattern="[a-zA-Z0-9_-]+"
-        />
-        <input
-          placeholder="password"
-          type="password"
-          value={p}
-          onChange={(e) => setP(e.target.value)}
-          required
-          minLength={6}
-        />
-        <label className="admin-acct-admin-toggle">
-          <input
-            type="checkbox"
-            checked={makeAdmin}
-            onChange={(e) => setMakeAdmin(e.target.checked)}
-          />
-          Admin
-        </label>
-        <button type="submit" disabled={busy}>
-          {busy ? "Creating…" : "Create account"}
+      <div className="admin-acct-head">
+        <div className="admin-acct-tabs" role="tablist">
+          <button
+            className={`admin-acct-tab ${tab === "paid" ? "is-active" : ""}`}
+            onClick={() => setTab("paid")}
+          >
+            Paid users <span className="admin-acct-tab-count">{paid.length}</span>
+          </button>
+          <button
+            className={`admin-acct-tab ${tab === "admin" ? "is-active" : ""}`}
+            onClick={() => setTab("admin")}
+          >
+            Admins <span className="admin-acct-tab-count">{admins.length}</span>
+          </button>
+        </div>
+        <button className="admin-acct-create-btn" onClick={() => setShowCreate(true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Create account
         </button>
-      </form>
+      </div>
+
       {error && <div className="auth-error">{error}</div>}
 
       <div className="admin-acct-list">
-        {accounts.map((a) => {
-          const isAdmin = a.roles.includes("admin");
-          return (
-            <div key={a.id} className="admin-acct-row">
-              <div className="admin-acct-main">
-                <div className="admin-acct-name">
-                  {a.username}
-                  {isAdmin && <span className="admin-acct-badge">admin</span>}
-                </div>
-                <div className="admin-acct-sub">{formatUntil(a.subscription_until)}</div>
-              </div>
-              <div className="admin-acct-actions">
-                <button onClick={() => void onAdjust(a.id, 1)}>+1 day</button>
-                <button onClick={() => void onAdjust(a.id, 2)}>+2 days</button>
-                <button onClick={() => void onAdjust(a.id, 7)}>+7 days</button>
-                <button onClick={() => void onAdjust(a.id, 30)}>+1 month</button>
-                <button
-                  className="admin-acct-clear"
-                  onClick={() => void onClear(a.id)}
-                  title="Clear subscription"
-                >
-                  Clear
-                </button>
-                {!isAdmin && (
-                  <button
-                    className="admin-acct-delete"
-                    onClick={() => void onDelete(a.id, a.username)}
-                    title="Delete account"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {accounts.length === 0 && (
-          <p className="admin-empty">No accounts yet.</p>
+        {visible.map((a) => (
+          <AccountRow
+            key={a.id}
+            a={a}
+            onAdjust={onAdjust}
+            onClear={onClear}
+            onDelete={onDelete}
+          />
+        ))}
+        {visible.length === 0 && (
+          <p className="admin-empty">No {tab === "admin" ? "admins" : "paid users"} yet.</p>
         )}
       </div>
+
+      {showCreate && (
+        <CreateAccountModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            setShowCreate(false);
+            void refresh();
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+function AccountRow({
+  a,
+  onAdjust,
+  onClear,
+  onDelete,
+}: {
+  a: Account;
+  onAdjust: (id: string, days: number) => void;
+  onClear: (id: string) => void;
+  onDelete: (id: string, username: string) => void;
+}) {
+  const isAdmin = a.roles.includes("admin");
+  const cd = useCountdown(a.subscription_until);
+  const suspended = !isAdmin && (cd.kind === "expired" || cd.kind === "none");
+  const subText = isAdmin
+    ? "Infinite access"
+    : cd.kind === "none"
+      ? "No subscription — suspended"
+      : cd.kind === "expired"
+        ? "Expired — suspended"
+        : `${cd.text} left`;
+  const subKind = isAdmin
+    ? "is-inf"
+    : suspended
+      ? "is-danger"
+      : cd.kind === "danger"
+        ? "is-danger"
+        : "is-active";
+  return (
+    <div className={`admin-acct-row ${suspended ? "is-suspended" : ""}`}>
+      <div className="admin-acct-avatar" style={{ background: avatarColor(a.username) }}>
+        {initials(a.username)}
+      </div>
+      <div className="admin-acct-main">
+        <div className="admin-acct-name">
+          {a.username}
+          <span className={`admin-acct-badge ${isAdmin ? "" : suspended ? "is-suspended" : "is-paid"}`}>
+            {isAdmin ? "admin" : suspended ? "suspended" : "paid"}
+          </span>
+        </div>
+        <div className={`admin-acct-sub ${subKind}`}>
+          <span className="dot" />
+          {subText}
+        </div>
+      </div>
+      <div className="admin-acct-actions">
+        {!isAdmin && (
+          <>
+            <button onClick={() => onAdjust(a.id, 1)}>+1d</button>
+            <button onClick={() => onAdjust(a.id, 7)}>+7d</button>
+            <button onClick={() => onAdjust(a.id, 30)}>+30d</button>
+            <button className="admin-acct-clear" onClick={() => onClear(a.id)} title="Clear subscription">
+              Clear
+            </button>
+          </>
+        )}
+        {!isAdmin && (
+          <button className="admin-acct-delete" onClick={() => onDelete(a.id, a.username)} title="Delete account">
+            Delete
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreateAccountModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const create = useServerFn(createAccount);
+  const adjust = useServerFn(adjustSubscription);
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
+  const [role, setRole] = useState<"paid" | "admin">("paid");
+  const [days, setDays] = useState<number>(30);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await create({ data: { username: u, password: p, isAdmin: role === "admin" } });
+      if (role === "paid" && days > 0) {
+        await adjust({ data: { userId: res.id, days } });
+      }
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="admin-modal-backdrop" onClick={onClose}>
+      <form className="admin-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="admin-modal-head">
+          <h2 className="admin-modal-title">Create account</h2>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <label className="admin-modal-field">
+          <span>Username</span>
+          <input
+            autoFocus
+            value={u}
+            onChange={(e) => setU(e.target.value)}
+            required
+            minLength={2}
+            maxLength={32}
+            pattern="[a-zA-Z0-9_-]+"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </label>
+
+        <label className="admin-modal-field">
+          <span>Password</span>
+          <input
+            type="password"
+            value={p}
+            onChange={(e) => setP(e.target.value)}
+            required
+            minLength={6}
+          />
+        </label>
+
+        <div className="admin-modal-field">
+          <span>Role</span>
+          <div className="admin-modal-role">
+            <label className={`admin-modal-role-opt ${role === "paid" ? "is-selected" : ""}`}>
+              <input
+                type="radio"
+                name="role"
+                checked={role === "paid"}
+                onChange={() => setRole("paid")}
+              />
+              <div className="r-title">Paid user</div>
+              <div className="r-desc">Access while subscription is active</div>
+            </label>
+            <label className={`admin-modal-role-opt ${role === "admin" ? "is-selected" : ""}`}>
+              <input
+                type="radio"
+                name="role"
+                checked={role === "admin"}
+                onChange={() => setRole("admin")}
+              />
+              <div className="r-title">Admin</div>
+              <div className="r-desc">Infinite access, full control</div>
+            </label>
+          </div>
+        </div>
+
+        {role === "paid" && (
+          <div className="admin-modal-field">
+            <span>Initial subscription</span>
+            <div className="admin-modal-sub-row">
+              {[0, 1, 7, 30, 90, 365].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={days === d ? "is-active" : ""}
+                  onClick={() => setDays(d)}
+                >
+                  {d === 0 ? "None" : d < 30 ? `${d}d` : d < 365 ? `${d / 30}mo` : `${d / 365}y`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="admin-modal-actions">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? "Creating…" : "Create account"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
