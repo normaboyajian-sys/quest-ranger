@@ -1,9 +1,3 @@
-// MUST be the very first import: installs SSR shims for browser-only globals
-// (document, etc.) before any other module runs. lottie-web (transitively
-// pulled in by @lottiefiles/react-lottie-player) touches `document` at module
-// init and otherwise crashes SSR on every request.
-import "./lib/ssr-dom-shim";
-
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";

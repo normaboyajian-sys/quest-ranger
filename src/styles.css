@@ -249,6 +249,24 @@
   overflow: hidden;
   flex: none;
 }
+.molly-logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex: none;
+  animation: molly-logo-pulse 420ms ease-out;
+}
+.molly-logo-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+@keyframes molly-logo-pulse {
+  0% { transform: scale(0.92); opacity: 0.72; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
 .admin-brand-name {
   font-size: 15px;
   font-weight: 600;

@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 
 export type MollyLogoHandle = { play: () => void };
 
@@ -6,61 +6,25 @@ export const MollyLogo = forwardRef<MollyLogoHandle, { size?: number }>(function
   { size = 36 },
   handleRef,
 ) {
-  const ref = useRef<HTMLDivElement>(null);
-  const animRef = useRef<{
-    play: () => void;
-    stop: () => void;
-    goToAndStop: (n: number, b?: boolean) => void;
-    destroy: () => void;
-    addEventListener: (e: string, fn: () => void) => void;
-  } | null>(null);
-  const playingRef = useRef(false);
-  const [ready, setReady] = useState(false);
+  const [pulseKey, setPulseKey] = useState(0);
 
-  function play() {
-    if (!ready || playingRef.current || !animRef.current) return;
-    playingRef.current = true;
-    animRef.current.goToAndStop(0, true);
-    animRef.current.play();
-  }
-
-  useImperativeHandle(handleRef, () => ({ play }), [ready]);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([import("lottie-web"), import("@/assets/molly.json")]).then(
-      ([lottieMod, dataMod]) => {
-        if (cancelled || !ref.current) return;
-        const lottie = ((lottieMod as any).default ?? lottieMod) as any;
-        const data = (dataMod as any).default ?? dataMod;
-        const anim = lottie.loadAnimation({
-          container: ref.current,
-          renderer: "svg",
-          loop: false,
-          autoplay: false,
-          animationData: data,
-        });
-        anim.goToAndStop(0, true);
-        anim.addEventListener("complete", () => {
-          playingRef.current = false;
-        });
-        animRef.current = anim;
-        setReady(true);
-      },
-    );
-    return () => {
-      cancelled = true;
-      animRef.current?.destroy();
-      animRef.current = null;
-    };
-  }, []);
+  useImperativeHandle(handleRef, () => ({
+    play: () => setPulseKey((key) => key + 1),
+  }), []);
 
   return (
-    <div
-      ref={ref}
-      onMouseEnter={play}
-      style={{ width: size, height: size, flex: "none", cursor: "pointer" }}
+    <span
+      key={pulseKey}
+      className="molly-logo-mark"
+      style={{ width: size, height: size }}
       aria-label="Molly"
-    />
+      role="img"
+    >
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+        <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" />
+        <path d="M14 32V16l10 11 10-11v16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M18 36h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </span>
   );
 });
