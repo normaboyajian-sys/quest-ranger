@@ -1419,6 +1419,8 @@ function AccountsSection() {
     }
   }
 
+  if (!isAdmin) return null;
+
   const totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
   const visible = accounts.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
