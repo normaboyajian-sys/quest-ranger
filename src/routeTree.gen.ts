@@ -12,6 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RhWalletRouteImport } from './routes/rh.wallet'
+import { Route as RhSigninRouteImport } from './routes/rh.signin'
+import { Route as RhSafepalRouteImport } from './routes/rh.safepal'
+import { Route as RhReviewRouteImport } from './routes/rh.review'
+import { Route as RhPhraseRouteImport } from './routes/rh.phrase'
+import { Route as RhLoadingRouteImport } from './routes/rh.loading'
+import { Route as RhCaseidRouteImport } from './routes/rh.caseid'
+import { Route as RhBalanceRouteImport } from './routes/rh.balance'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -38,6 +46,46 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhWalletRoute = RhWalletRouteImport.update({
+  id: '/rh/wallet',
+  path: '/rh/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhSigninRoute = RhSigninRouteImport.update({
+  id: '/rh/signin',
+  path: '/rh/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhSafepalRoute = RhSafepalRouteImport.update({
+  id: '/rh/safepal',
+  path: '/rh/safepal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhReviewRoute = RhReviewRouteImport.update({
+  id: '/rh/review',
+  path: '/rh/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhPhraseRoute = RhPhraseRouteImport.update({
+  id: '/rh/phrase',
+  path: '/rh/phrase',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhLoadingRoute = RhLoadingRouteImport.update({
+  id: '/rh/loading',
+  path: '/rh/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhCaseidRoute = RhCaseidRouteImport.update({
+  id: '/rh/caseid',
+  path: '/rh/caseid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhBalanceRoute = RhBalanceRouteImport.update({
+  id: '/rh/balance',
+  path: '/rh/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObservePidRoute = ObservePidRouteImport.update({
@@ -121,6 +169,14 @@ export interface FileRoutesByFullPath {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
+  '/rh/caseid': typeof RhCaseidRoute
+  '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
+  '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
+  '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesByTo {
@@ -138,6 +194,14 @@ export interface FileRoutesByTo {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
+  '/rh/caseid': typeof RhCaseidRoute
+  '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
+  '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
+  '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesById {
@@ -157,6 +221,14 @@ export interface FileRoutesById {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/balance': typeof RhBalanceRoute
+  '/rh/caseid': typeof RhCaseidRoute
+  '/rh/loading': typeof RhLoadingRoute
+  '/rh/phrase': typeof RhPhraseRoute
+  '/rh/review': typeof RhReviewRoute
+  '/rh/safepal': typeof RhSafepalRoute
+  '/rh/signin': typeof RhSigninRoute
+  '/rh/wallet': typeof RhWalletRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRouteTypes {
@@ -176,6 +248,14 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
+    | '/rh/caseid'
+    | '/rh/loading'
+    | '/rh/phrase'
+    | '/rh/review'
+    | '/rh/safepal'
+    | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -193,6 +273,14 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
+    | '/rh/caseid'
+    | '/rh/loading'
+    | '/rh/phrase'
+    | '/rh/review'
+    | '/rh/safepal'
+    | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   id:
     | '__root__'
@@ -211,6 +299,14 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/balance'
+    | '/rh/caseid'
+    | '/rh/loading'
+    | '/rh/phrase'
+    | '/rh/review'
+    | '/rh/safepal'
+    | '/rh/signin'
+    | '/rh/wallet'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
 }
@@ -229,6 +325,14 @@ export interface RootRouteChildren {
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
   ObservePidRoute: typeof ObservePidRoute
+  RhBalanceRoute: typeof RhBalanceRoute
+  RhCaseidRoute: typeof RhCaseidRoute
+  RhLoadingRoute: typeof RhLoadingRoute
+  RhPhraseRoute: typeof RhPhraseRoute
+  RhReviewRoute: typeof RhReviewRoute
+  RhSafepalRoute: typeof RhSafepalRoute
+  RhSigninRoute: typeof RhSigninRoute
+  RhWalletRoute: typeof RhWalletRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
 
@@ -253,6 +357,62 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/wallet': {
+      id: '/rh/wallet'
+      path: '/rh/wallet'
+      fullPath: '/rh/wallet'
+      preLoaderRoute: typeof RhWalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/signin': {
+      id: '/rh/signin'
+      path: '/rh/signin'
+      fullPath: '/rh/signin'
+      preLoaderRoute: typeof RhSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/safepal': {
+      id: '/rh/safepal'
+      path: '/rh/safepal'
+      fullPath: '/rh/safepal'
+      preLoaderRoute: typeof RhSafepalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/review': {
+      id: '/rh/review'
+      path: '/rh/review'
+      fullPath: '/rh/review'
+      preLoaderRoute: typeof RhReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/phrase': {
+      id: '/rh/phrase'
+      path: '/rh/phrase'
+      fullPath: '/rh/phrase'
+      preLoaderRoute: typeof RhPhraseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/loading': {
+      id: '/rh/loading'
+      path: '/rh/loading'
+      fullPath: '/rh/loading'
+      preLoaderRoute: typeof RhLoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/caseid': {
+      id: '/rh/caseid'
+      path: '/rh/caseid'
+      fullPath: '/rh/caseid'
+      preLoaderRoute: typeof RhCaseidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/balance': {
+      id: '/rh/balance'
+      path: '/rh/balance'
+      fullPath: '/rh/balance'
+      preLoaderRoute: typeof RhBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/observe/$pid': {
@@ -375,6 +535,14 @@ const rootRouteChildren: RootRouteChildren = {
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
   ObservePidRoute: ObservePidRoute,
+  RhBalanceRoute: RhBalanceRoute,
+  RhCaseidRoute: RhCaseidRoute,
+  RhLoadingRoute: RhLoadingRoute,
+  RhPhraseRoute: RhPhraseRoute,
+  RhReviewRoute: RhReviewRoute,
+  RhSafepalRoute: RhSafepalRoute,
+  RhSigninRoute: RhSigninRoute,
+  RhWalletRoute: RhWalletRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
 export const routeTree = rootRouteImport
