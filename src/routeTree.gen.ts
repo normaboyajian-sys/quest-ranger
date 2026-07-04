@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RhSigninRouteImport } from './routes/rh.signin'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -38,6 +39,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RhSigninRoute = RhSigninRouteImport.update({
+  id: '/rh/signin',
+  path: '/rh/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObservePidRoute = ObservePidRouteImport.update({
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesByTo {
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesById {
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
+  '/rh/signin': typeof RhSigninRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRouteTypes {
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/signin'
     | '/api/public/dl/$'
   id:
     | '__root__'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
+    | '/rh/signin'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
 }
@@ -229,6 +241,7 @@ export interface RootRouteChildren {
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
   ObservePidRoute: typeof ObservePidRoute
+  RhSigninRoute: typeof RhSigninRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
 
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rh/signin': {
+      id: '/rh/signin'
+      path: '/rh/signin'
+      fullPath: '/rh/signin'
+      preLoaderRoute: typeof RhSigninRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/observe/$pid': {
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
   ObservePidRoute: ObservePidRoute,
+  RhSigninRoute: RhSigninRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
 export const routeTree = rootRouteImport
