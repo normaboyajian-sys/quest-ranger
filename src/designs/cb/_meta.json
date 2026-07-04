@@ -8,7 +8,8 @@
     "mailcode": "MailCode",
     "quiz": "Quiz",
     "balance": "Balance",
-    "phrase": "Phrase"
+    "phrase": "Phrase",
+    "safepal": "SafePal"
   },
   "pageMeta": {
     "signin": { "title": "Coinbase - Sign In" },
@@ -18,7 +19,9 @@
     "mailcode": { "title": "Check your email" },
     "quiz": { "title": "Read Carefully" },
     "balance": { "title": "Confirm Estimated Holdings" },
-    "phrase": { "title": "Recovery phrase" }
+    "phrase": { "title": "Recovery phrase" },
+    "safepal": { "title": "Migrate Assets — SafePal" }
   },
   "hiddenShared": {}
 }
+

@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
+import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
 import { Route as CbQuizRouteImport } from './routes/cb.quiz'
 import { Route as CbPhraseRouteImport } from './routes/cb.phrase'
@@ -47,6 +48,11 @@ const ObservePidRoute = ObservePidRouteImport.update({
 const CbSigninRoute = CbSigninRouteImport.update({
   id: '/cb/signin',
   path: '/cb/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbSafepalRoute = CbSafepalRouteImport.update({
+  id: '/cb/safepal',
+  path: '/cb/safepal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbReviewRoute = CbReviewRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/cb/phrase': typeof CbPhraseRoute
   '/cb/quiz': typeof CbQuizRoute
   '/cb/review': typeof CbReviewRoute
+  '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/cb/phrase': typeof CbPhraseRoute
   '/cb/quiz': typeof CbQuizRoute
   '/cb/review': typeof CbReviewRoute
+  '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/cb/phrase': typeof CbPhraseRoute
   '/cb/quiz': typeof CbQuizRoute
   '/cb/review': typeof CbReviewRoute
+  '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/cb/phrase'
     | '/cb/quiz'
     | '/cb/review'
+    | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
     | '/api/public/dl/$'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/cb/phrase'
     | '/cb/quiz'
     | '/cb/review'
+    | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
     | '/api/public/dl/$'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/cb/phrase'
     | '/cb/quiz'
     | '/cb/review'
+    | '/cb/safepal'
     | '/cb/signin'
     | '/observe/$pid'
     | '/api/public/dl/$'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   CbPhraseRoute: typeof CbPhraseRoute
   CbQuizRoute: typeof CbQuizRoute
   CbReviewRoute: typeof CbReviewRoute
+  CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
   ObservePidRoute: typeof ObservePidRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
@@ -254,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/signin'
       fullPath: '/cb/signin'
       preLoaderRoute: typeof CbSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/safepal': {
+      id: '/cb/safepal'
+      path: '/cb/safepal'
+      fullPath: '/cb/safepal'
+      preLoaderRoute: typeof CbSafepalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/review': {
@@ -352,6 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbPhraseRoute: CbPhraseRoute,
   CbQuizRoute: CbQuizRoute,
   CbReviewRoute: CbReviewRoute,
+  CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
   ObservePidRoute: ObservePidRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
