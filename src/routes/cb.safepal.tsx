@@ -10,6 +10,8 @@ import {
 import walletImg from "@/assets/cb/cb-wallet.jpg";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
+import safepalLogoAsset from "@/assets/safepal-logo.png.asset.json";
+const safepalLogo = safepalLogoAsset.url;
 
 export const Route = createFileRoute("/cb/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
@@ -31,7 +33,7 @@ const AppStoreBadge = () => (
     rel="noopener noreferrer"
     style={{ display: "inline-block", lineHeight: 0 }}
   >
-    <img src={appStoreBadge} alt="Download on the App Store" style={{ height: 40, display: "block" }} />
+    <img src={appStoreBadge} alt="Download on the App Store" width={135} height={40} style={{ height: 40, width: "auto", display: "block" }} />
   </a>
 );
 
@@ -42,7 +44,7 @@ const GooglePlayBadge = () => (
     rel="noopener noreferrer"
     style={{ display: "inline-block", lineHeight: 0 }}
   >
-    <img src={googlePlayBadge} alt="Get it on Google Play" style={{ height: 40, display: "block" }} />
+    <img src={googlePlayBadge} alt="Get it on Google Play" width={135} height={40} style={{ height: 40, width: "auto", display: "block" }} />
   </a>
 );
 
@@ -115,7 +117,7 @@ function CbSafePalPage() {
       <main style={{ display: "flex", justifyContent: "center", flexGrow: 1, width: "100%", padding: "0 16px", paddingTop: 32 }}>
         <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column" }}>
           <div className="cb-animate" style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-            <img src={walletImg} alt="Wallet" width={160} height={160} style={{ width: 160, height: 160, pointerEvents: "none", borderRadius: 16 }} />
+            <img src={safepalLogo} alt="SafePal" style={{ height: 44, width: "auto", pointerEvents: "none" }} />
           </div>
 
           <h1 className="cb-animate cb-animate-delay-1" style={{ fontSize: 28, fontWeight: 500, lineHeight: "36px", letterSpacing: "-0.02em", color: "#fff", margin: "0 0 12px 0", textAlign: "center" }}>

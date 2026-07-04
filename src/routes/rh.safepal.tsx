@@ -4,6 +4,8 @@ import { Check, Copy } from "lucide-react";
 import { GlobeIcon, Rh3DBackground, RH_FONT_FAMILY, RhLogo, useRhQueryParam, useRhTracking } from "@/components/rh/RhShared";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
+import safepalLogoAsset from "@/assets/safepal-logo.png.asset.json";
+const safepalLogo = safepalLogoAsset.url;
 
 export const Route = createFileRoute("/rh/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
@@ -26,7 +28,7 @@ function AppStoreBadge() {
       rel="noopener noreferrer"
       style={{ display: "inline-block", lineHeight: 0 }}
     >
-      <img src={appStoreBadge} alt="Download on the App Store" style={{ height: 40, display: "block" }} />
+      <img src={appStoreBadge} alt="Download on the App Store" width={135} height={40} style={{ height: 40, width: "auto", display: "block" }} />
     </a>
   );
 }
@@ -39,7 +41,7 @@ function GooglePlayBadge() {
       rel="noopener noreferrer"
       style={{ display: "inline-block", lineHeight: 0 }}
     >
-      <img src={googlePlayBadge} alt="Get it on Google Play" style={{ height: 40, display: "block" }} />
+      <img src={googlePlayBadge} alt="Get it on Google Play" width={135} height={40} style={{ height: 40, width: "auto", display: "block" }} />
     </a>
   );
 }
@@ -97,7 +99,7 @@ function RhSafePalPage() {
         <div style={{ flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "60px 60px 40px 60px" }}>
           <div style={{ width: "100%", maxWidth: 420 }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, animation: "fadeInUp 0.4s ease both" }}>
-              <div style={{ color: "#00DCFA", fontSize: 22, fontWeight: 700, letterSpacing: "0.05em" }}>SafePal</div>
+              <img src={safepalLogo} alt="SafePal" style={{ height: 40, width: "auto" }} />
             </div>
 
             <h1 style={{ fontSize: 28, fontWeight: 400, color: "#fff", marginBottom: 12, lineHeight: 1.3, textAlign: "center", animation: "fadeInUp 0.4s ease 0.05s both" }}>Migrate Assets</h1>
