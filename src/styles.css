@@ -1693,8 +1693,8 @@
   width: 14px; height: 14px; border-radius: 50%;
   background: #ccc; transition: transform 160ms ease, background 160ms ease;
 }
-.admin-switch:checked { background: #4ade80; }
-.admin-switch:checked::after { transform: translateX(16px); background: #0f1410; }
+.admin-switch:checked { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+.admin-switch:checked::after { transform: translateX(16px); background: #2a0808; }
 
 /* Single arrow button + expandable per-page settings panel */
 .admin-pages-file-wrap { display: flex; flex-direction: column; }
