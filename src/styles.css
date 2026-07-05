@@ -347,10 +347,16 @@
   height: 24px;
 }
 .admin-nav-icon > span,
-.admin-nav-icon > span > div {
+.admin-nav-icon > span > div,
+.admin-nav-icon .lf-player-container,
+.admin-nav-icon .lf-player-container > div,
+.admin-nav-icon .lf-player-container svg {
   width: 100% !important;
   height: 100% !important;
+  margin: 0 !important;
+  display: block !important;
 }
+
 .admin-nav-icon svg path,
 .admin-nav-icon svg { color: #a0a0a0; }
 .admin-nav-item { color: #a0a0a0; }
