@@ -4,7 +4,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
 function installServerDocumentShim() {
-  const g = globalThis as typeof globalThis & {
+  const g = globalThis as {
     document?: unknown;
     navigator?: unknown;
   };
