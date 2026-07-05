@@ -36,6 +36,7 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
     const playerRef = useRef<PlayerLike | null>(null);
 
     useEffect(() => {
+      if (typeof window === "undefined" || typeof document === "undefined") return;
       let cancelled = false;
       import("@lottiefiles/react-lottie-player")
         .then((m) => {
