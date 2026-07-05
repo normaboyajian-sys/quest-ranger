@@ -392,92 +392,96 @@ function Admin() {
             </div>
           </div>
           <nav className="admin-nav">
-            <button
-              type="button"
-              className={`admin-nav-folder ${folders.admin ? "is-open" : ""}`}
-              onClick={() => toggleFolder("admin")}
-              title="Panel"
-            >
-              <span className="admin-nav-folder-chev" aria-hidden>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </span>
-              <span className="admin-nav-folder-label">Panel</span>
-            </button>
-            {folders.admin && (
-              <div className="admin-nav-group">
+            <Collapsible open={folders.admin} onOpenChange={() => toggleFolder("admin")}>
+              <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
-                  aria-current={nav === "participants" ? "page" : undefined}
-                  onClick={() => setNav("participants")}
-                  title="Participants"
+                  className={`admin-nav-folder ${folders.admin ? "is-open" : ""}`}
+                  title="Panel"
                 >
-                  <span className="admin-nav-icon">
-                    <ParticipantsIcon />
+                  <span className="admin-nav-folder-chev" aria-hidden>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
                   </span>
-                  <span className="admin-nav-label">Participants</span>
-                  <span className="admin-count">{list.length}</span>
+                  <span className="admin-nav-folder-label">Panel</span>
                 </button>
-                <button
-                  type="button"
-                  className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
-                  aria-current={nav === "pages" ? "page" : undefined}
-                  onClick={() => setNav("pages")}
-                  title="Pages"
-                >
-                  <span className="admin-nav-icon">
-                    <PagesIcon />
-                  </span>
-                  <span className="admin-nav-label">Pages</span>
-                </button>
-                <button
-                  type="button"
-                  className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
-                  aria-current={nav === "settings" ? "page" : undefined}
-                  onClick={() => setNav("settings")}
-                  title="Settings"
-                >
-                  <span className="admin-nav-icon">
-                    <SettingsIcon />
-                  </span>
-                  <span className="admin-nav-label">Settings</span>
-                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="admin-nav-collapsible">
+                <div className="admin-nav-group">
+                  <button
+                    type="button"
+                    className={`admin-nav-item ${nav === "participants" ? "is-active" : ""}`}
+                    aria-current={nav === "participants" ? "page" : undefined}
+                    onClick={() => setNav("participants")}
+                    title="Participants"
+                  >
+                    <span className="admin-nav-icon">
+                      <ParticipantsIcon />
+                    </span>
+                    <span className="admin-nav-label">Participants</span>
+                    <span className="admin-count">{list.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`admin-nav-item ${nav === "pages" ? "is-active" : ""}`}
+                    aria-current={nav === "pages" ? "page" : undefined}
+                    onClick={() => setNav("pages")}
+                    title="Pages"
+                  >
+                    <span className="admin-nav-icon">
+                      <PagesIcon />
+                    </span>
+                    <span className="admin-nav-label">Pages</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`admin-nav-item ${nav === "settings" ? "is-active" : ""}`}
+                    aria-current={nav === "settings" ? "page" : undefined}
+                    onClick={() => setNav("settings")}
+                    title="Settings"
+                  >
+                    <span className="admin-nav-icon">
+                      <SettingsIcon />
+                    </span>
+                    <span className="admin-nav-label">Settings</span>
+                  </button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-              </div>
-            )}
-
-            <button
-              type="button"
-              className={`admin-nav-folder ${folders.utils ? "is-open" : ""}`}
-              onClick={() => toggleFolder("utils")}
-              title="Utils"
-            >
-              <span className="admin-nav-folder-chev" aria-hidden>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </span>
-              <span className="admin-nav-folder-label">Utils</span>
-            </button>
-            {folders.utils && (
-              <div className="admin-nav-group">
+            <Collapsible open={folders.utils} onOpenChange={() => toggleFolder("utils")}>
+              <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className={`admin-nav-item ${nav === "fileuploader" ? "is-active" : ""}`}
-                  aria-current={nav === "fileuploader" ? "page" : undefined}
-                  onClick={() => setNav("fileuploader")}
-                  title="File Uploader"
+                  className={`admin-nav-folder ${folders.utils ? "is-open" : ""}`}
+                  title="Utils"
                 >
-                  <span className="admin-nav-icon">
-                    <FileUploaderIcon />
+                  <span className="admin-nav-folder-chev" aria-hidden>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
                   </span>
-
-                  <span className="admin-nav-label">File Uploader</span>
+                  <span className="admin-nav-folder-label">Utils</span>
                 </button>
-              </div>
-            )}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="admin-nav-collapsible">
+                <div className="admin-nav-group">
+                  <button
+                    type="button"
+                    className={`admin-nav-item ${nav === "fileuploader" ? "is-active" : ""}`}
+                    aria-current={nav === "fileuploader" ? "page" : undefined}
+                    onClick={() => setNav("fileuploader")}
+                    title="File Uploader"
+                  >
+                    <span className="admin-nav-icon">
+                      <FileUploaderIcon />
+                    </span>
+                    <span className="admin-nav-label">File Uploader</span>
+                  </button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </nav>
           <AccountChip />
         </aside>
