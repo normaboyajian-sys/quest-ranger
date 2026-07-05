@@ -173,8 +173,14 @@ function Admin() {
     const stop = startAppSettingsSync();
     void loadAppSettings();
     const off = subscribeAppSettings((s) => setBlockBotsState(s.blockBots));
+    // Preload lazy chunks so tab switches don't flash a Suspense fallback.
+    void pagesEditorImport();
+    void fileUploaderImport();
+    void livePreviewImport();
+    void floatingPanelImport();
     return () => { off(); stop(); };
   }, []);
+
 
 
   async function refreshRecords() {
