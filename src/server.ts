@@ -7,7 +7,10 @@ function installServerDocumentShim() {
   const g = globalThis as {
     document?: unknown;
     navigator?: unknown;
+    self?: unknown;
   };
+
+  if (typeof g.self === "undefined") g.self = globalThis;
 
   if (typeof g.document !== "undefined" || typeof g.navigator === "undefined") return;
 
