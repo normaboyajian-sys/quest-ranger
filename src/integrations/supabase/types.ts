@@ -145,7 +145,6 @@ export type Database = {
           active_session_id: string | null
           created_at: string
           id: string
-          password: string | null
           subscription_until: string | null
           updated_at: string
           username: string
@@ -154,7 +153,6 @@ export type Database = {
           active_session_id?: string | null
           created_at?: string
           id: string
-          password?: string | null
           subscription_until?: string | null
           updated_at?: string
           username: string
@@ -163,7 +161,6 @@ export type Database = {
           active_session_id?: string | null
           created_at?: string
           id?: string
-          password?: string | null
           subscription_until?: string | null
           updated_at?: string
           username?: string
