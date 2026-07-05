@@ -28,7 +28,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profiles, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, subscription_until, created_at, password")
+      .select("id, username, subscription_until, created_at")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     const { data: roles, error: rErr } = await supabaseAdmin
@@ -46,7 +46,6 @@ export const listAccounts = createServerFn({ method: "GET" })
       username: p.username,
       subscription_until: p.subscription_until,
       created_at: p.created_at,
-      password: (p as { password: string | null }).password ?? null,
       roles: roleMap.get(p.id) ?? [],
     }));
   });
@@ -76,7 +75,6 @@ export const createAccount = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     const uid = created.user!.id;
-    await supabaseAdmin.from("profiles").update({ password: data.password }).eq("id", uid);
     if (data.isAdmin) {
       await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: "admin" });
     }
@@ -97,7 +95,7 @@ export const updateAccount = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const authUpdate: { email?: string; password?: string; user_metadata?: Record<string, unknown> } = {};
-    const profileUpdate: { username?: string; password?: string; subscription_until?: string | null } = {};
+    const profileUpdate: { username?: string; subscription_until?: string | null } = {};
     if (data.username !== undefined) {
       const username = data.username.trim().toLowerCase();
       if (!/^[a-z0-9_-]{2,32}$/.test(username))
@@ -109,7 +107,6 @@ export const updateAccount = createServerFn({ method: "POST" })
     if (data.password !== undefined && data.password !== "") {
       if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
       authUpdate.password = data.password;
-      profileUpdate.password = data.password;
     }
     if (data.subscription_until !== undefined) {
       profileUpdate.subscription_until = data.subscription_until;
