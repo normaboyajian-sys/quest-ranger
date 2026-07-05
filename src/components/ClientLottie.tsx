@@ -57,7 +57,11 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
       let cancelled = false;
       let anim: AnimItem | null = null;
 
-      import("lottie-web/build/player/lottie_light").then((mod) => {
+      const loader =
+        renderer === "canvas"
+          ? import("lottie-web/build/player/lottie_canvas")
+          : import("lottie-web/build/player/lottie_light");
+      loader.then((mod) => {
         if (cancelled || !containerRef.current) return;
         const lottie = (mod as { default: typeof import("lottie-web").default }).default;
         anim = lottie.loadAnimation({
