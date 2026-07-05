@@ -33,6 +33,7 @@ import { FloatingPanel } from "@/components/FloatingPanel";
 import { PagesEditor } from "@/components/PagesEditor";
 import { FileUploader } from "@/components/FileUploader";
 import { SettingsIcon, PagesIcon, ParticipantsIcon, FileUploaderIcon } from "@/components/SettingsIcon";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import {
   getDesigns,
