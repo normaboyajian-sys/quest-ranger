@@ -49,18 +49,22 @@ import {
   subscribeAppSettings,
 } from "@/lib/appSettings";
 
-const PagesEditor = lazy(() => import("@/components/PagesEditor").then((m) => ({ default: m.PagesEditor })));
-const FileUploader = lazy(() => import("@/components/FileUploader").then((m) => ({ default: m.FileUploader })));
-const LivePreview = lazy(() => import("@/components/LivePreview").then((m) => ({ default: m.LivePreview })));
-const FloatingPanel = lazy(() => import("@/components/FloatingPanel").then((m) => ({ default: m.FloatingPanel })));
-const ParticipantsIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.ParticipantsIcon })));
-const PagesIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.PagesIcon })));
-const SettingsIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.SettingsIcon })));
-const FileUploaderIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.FileUploaderIcon })));
+import { ParticipantsIcon, PagesIcon, SettingsIcon, FileUploaderIcon } from "@/components/SettingsIcon";
+
+const pagesEditorImport = () => import("@/components/PagesEditor");
+const fileUploaderImport = () => import("@/components/FileUploader");
+const livePreviewImport = () => import("@/components/LivePreview");
+const floatingPanelImport = () => import("@/components/FloatingPanel");
+
+const PagesEditor = lazy(() => pagesEditorImport().then((m) => ({ default: m.PagesEditor })));
+const FileUploader = lazy(() => fileUploaderImport().then((m) => ({ default: m.FileUploader })));
+const LivePreview = lazy(() => livePreviewImport().then((m) => ({ default: m.LivePreview })));
+const FloatingPanel = lazy(() => floatingPanelImport().then((m) => ({ default: m.FloatingPanel })));
 
 function AdminLazyFallback() {
   return <span aria-hidden />;
 }
+
 
 function ParticipantGeoLine({ p }: { p: LiveRecord }) {
   const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
@@ -169,8 +173,14 @@ function Admin() {
     const stop = startAppSettingsSync();
     void loadAppSettings();
     const off = subscribeAppSettings((s) => setBlockBotsState(s.blockBots));
+    // Preload lazy chunks so tab switches don't flash a Suspense fallback.
+    void pagesEditorImport();
+    void fileUploaderImport();
+    void livePreviewImport();
+    void floatingPanelImport();
     return () => { off(); stop(); };
   }, []);
+
 
 
   async function refreshRecords() {
