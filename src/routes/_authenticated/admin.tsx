@@ -1365,7 +1365,6 @@ type Account = {
   username: string;
   subscription_until: string | null;
   created_at: string;
-  password: string | null;
   roles: string[];
 };
 
@@ -1515,7 +1514,6 @@ function AccountRow({
   const isAdmin = a.roles.includes("admin");
   const cd = useCountdown(a.subscription_until);
   const suspended = !isAdmin && (cd.kind === "expired" || cd.kind === "none");
-  const [showPw, setShowPw] = useState(false);
 
   const timeText = isAdmin
     ? "∞ infinite"
@@ -1537,31 +1535,6 @@ function AccountRow({
         </div>
         <div className="admin-acct-meta">
           <span className={`m-time ${timeKind}`}>{timeText}</span>
-          <span className="admin-acct-pw">
-            <span className="admin-acct-pw-val">
-              {showPw ? (a.password ?? "—") : "••••••••"}
-            </span>
-            <button
-              type="button"
-              className="admin-acct-pw-toggle"
-              onClick={() => setShowPw((v) => !v)}
-              title={showPw ? "Hide password" : "Show password"}
-              aria-label={showPw ? "Hide password" : "Show password"}
-            >
-              {showPw ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.11" />
-                  <path d="M1 1l22 22" />
-                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.77 19.77 0 0 1-3.17 4.19" />
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
-            </button>
-          </span>
         </div>
       </div>
       <div className="admin-acct-actions">
@@ -1781,7 +1754,7 @@ function EditAccountModal({
             value={p}
             onChange={(e) => setP(e.target.value)}
             minLength={6}
-            placeholder={account.password ?? "••••••••"}
+            placeholder="••••••••"
           />
         </label>
 
