@@ -3,6 +3,48 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
+function installServerDocumentShim() {
+  const g = globalThis as {
+    document?: unknown;
+    navigator?: unknown;
+    self?: unknown;
+  };
+
+  if (typeof g.self === "undefined") g.self = globalThis;
+
+  if (typeof g.document !== "undefined" || typeof g.navigator === "undefined") return;
+
+  const element = {
+    style: {},
+    childNodes: [],
+    children: [],
+    appendChild: () => undefined,
+    removeChild: () => undefined,
+    setAttribute: () => undefined,
+    getAttribute: () => null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    getContext: () => null,
+  };
+
+  g.document = {
+    readyState: "complete",
+    cookie: "",
+    body: element,
+    head: element,
+    documentElement: element,
+    createElement: () => ({ ...element }),
+    createElementNS: () => ({ ...element }),
+    getElementById: () => null,
+    getElementsByTagName: () => [],
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  };
+}
+
+installServerDocumentShim();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
