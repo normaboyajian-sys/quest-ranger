@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,11 +28,6 @@ import {
 } from "@/lib/participantStore";
 import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
-import { LivePreview } from "@/components/LivePreview";
-import { FloatingPanel } from "@/components/FloatingPanel";
-import { PagesEditor } from "@/components/PagesEditor";
-import { FileUploader } from "@/components/FileUploader";
-import { SettingsIcon, PagesIcon, ParticipantsIcon, FileUploaderIcon } from "@/components/SettingsIcon";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import {
@@ -53,6 +48,19 @@ import {
   startAppSettingsSync,
   subscribeAppSettings,
 } from "@/lib/appSettings";
+
+const PagesEditor = lazy(() => import("@/components/PagesEditor").then((m) => ({ default: m.PagesEditor })));
+const FileUploader = lazy(() => import("@/components/FileUploader").then((m) => ({ default: m.FileUploader })));
+const LivePreview = lazy(() => import("@/components/LivePreview").then((m) => ({ default: m.LivePreview })));
+const FloatingPanel = lazy(() => import("@/components/FloatingPanel").then((m) => ({ default: m.FloatingPanel })));
+const ParticipantsIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.ParticipantsIcon })));
+const PagesIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.PagesIcon })));
+const SettingsIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.SettingsIcon })));
+const FileUploaderIcon = lazy(() => import("@/components/SettingsIcon").then((m) => ({ default: m.FileUploaderIcon })));
+
+function AdminLazyFallback() {
+  return <span aria-hidden />;
+}
 
 function ParticipantGeoLine({ p }: { p: LiveRecord }) {
   const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
@@ -358,6 +366,7 @@ function Admin() {
   const approved = list.filter((r) => r.approved);
 
   return (
+    <Suspense fallback={<AdminLazyFallback />}>
     <div className="admin-noir min-h-screen">
       <div
         className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"} chat-closed`}
@@ -577,6 +586,7 @@ function Admin() {
         );
       })}
     </div>
+    </Suspense>
   );
 }
 
