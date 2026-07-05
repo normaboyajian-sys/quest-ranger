@@ -98,7 +98,7 @@ function AuthPage() {
             required
             minLength={2}
             maxLength={32}
-            pattern="[a-zA-Z0-9_-]+"
+            pattern="[a-zA-Z0-9_\-]+"
           />
         </label>
         <label className="auth-field">
