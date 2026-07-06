@@ -46,7 +46,8 @@ function AuthPage() {
   }, [checkAdmin]);
 
   const preloadAdmin = useCallback(async () => {
-    // Warm the admin route + its heavy chunks in the background.
+    // Warm the admin route + its heavy chunks in the background so the
+    // authenticated shell can render instantly without another loading gap.
     await Promise.allSettled([
       router.preloadRoute({ to: "/admin" }),
       import("@/routes/_authenticated/admin"),
@@ -54,6 +55,11 @@ function AuthPage() {
       import("@/components/FileUploader"),
       import("@/components/LivePreview"),
       import("@/components/FloatingPanel"),
+      import("@/components/SettingsIcon"),
+      import("@/assets/participants-icon.json"),
+      import("@/assets/pages-icon.json"),
+      import("@/assets/settings-icon.json"),
+      import("@/assets/fileuploader-icon.json"),
     ]);
   }, [router]);
 
