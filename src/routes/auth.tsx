@@ -93,11 +93,7 @@ function AuthPage() {
   }
 
   if (mode === "loading")
-    return (
-      <div className="auth-page">
-        <div className="auth-card">Loading…</div>
-      </div>
-    );
+    return <LoadingScreen onDone={() => {}} minMs={5000} maxMs={20000} />;
 
   return (
     <div className="auth-page">

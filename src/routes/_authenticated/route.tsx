@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyAccount, getMyActiveSession } from "@/lib/admin-users.functions";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const SESSION_KEY = "molly_active_session_id";
 
@@ -99,11 +100,7 @@ function AuthedShell() {
   }, [state, fetchActive]);
 
   if (state.kind === "loading")
-    return (
-      <div style={{ padding: 40, color: "#888", fontFamily: "ui-monospace, monospace" }}>
-        Loading…
-      </div>
-    );
+    return <LoadingScreen onDone={() => {}} minMs={5000} maxMs={20000} />;
   if (state.kind === "kicked") return <KickedGate />;
   if (state.kind === "no_access") return <NoAccessGate />;
   return <Outlet />;

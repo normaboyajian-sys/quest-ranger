@@ -21,7 +21,26 @@ export function LoadingScreen({
   useEffect(() => {
     let alive = true;
     void import("@/assets/loading.json").then((m) => {
-      if (alive) setData(m.default);
+      if (!alive) return;
+      // Deep clone + force stroke color to white (the source JSON is dark navy).
+      const json = JSON.parse(JSON.stringify(m.default)) as {
+        assets?: Array<{ layers?: unknown[] }>;
+        layers?: unknown[];
+      };
+      const walk = (node: unknown): void => {
+        if (!node || typeof node !== "object") return;
+        const obj = node as Record<string, unknown>;
+        if (obj.ty === "st" || obj.ty === "fl") {
+          const c = obj.c as { k?: number[] } | undefined;
+          if (c && Array.isArray(c.k)) c.k = [1, 1, 1, 1];
+        }
+        for (const v of Object.values(obj)) {
+          if (Array.isArray(v)) v.forEach(walk);
+          else if (v && typeof v === "object") walk(v);
+        }
+      };
+      walk(json);
+      setData(json);
     });
     return () => {
       alive = false;
@@ -68,7 +87,7 @@ export function LoadingScreen({
       {data ? (
         <ClientLottie
           animationData={data}
-          size={140}
+          size={72}
           loop
           autoplay
           renderer="canvas"
