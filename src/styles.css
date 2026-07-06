@@ -2262,10 +2262,13 @@
 
 .admin-nav-collapsible { overflow: hidden; }
 .admin-nav-collapsible[data-state="open"] {
-  animation: admin-nav-slide-down 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: admin-nav-slide-down 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .admin-nav-collapsible[data-state="closed"] {
-  animation: admin-nav-slide-up 180ms cubic-bezier(0.4, 0, 1, 1);
+  animation: admin-nav-slide-up 180ms cubic-bezier(0.4, 0, 1, 1) both;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 @keyframes admin-nav-slide-down {
   from { height: 0; opacity: 0; transform: translateY(-4px); }
