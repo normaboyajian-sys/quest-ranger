@@ -376,7 +376,6 @@ function Admin() {
   const approved = list.filter((r) => r.approved);
 
   return (
-    <Suspense fallback={<AdminLazyFallback />}>
     <div className="admin-noir min-h-screen">
       <div
         className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"} chat-closed`}
@@ -427,7 +426,7 @@ function Admin() {
                   <span className="admin-nav-folder-label">Panel</span>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="admin-nav-collapsible">
+              <CollapsibleContent className="admin-nav-collapsible" forceMount>
                 <div className="admin-nav-group">
                   <button
                     type="button"
@@ -485,7 +484,7 @@ function Admin() {
                   <span className="admin-nav-folder-label">Utils</span>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="admin-nav-collapsible">
+              <CollapsibleContent className="admin-nav-collapsible" forceMount>
                 <div className="admin-nav-group">
                   <button
                     type="button"
@@ -509,10 +508,8 @@ function Admin() {
 
 
         <main className="admin-main">
-
-
-          {nav === "participants" ? (
-            <>
+          <Suspense fallback={<AdminLazyFallback />}>
+            <div hidden={nav !== "participants"} style={nav === "participants" ? undefined : { display: "none" }}>
               <div className="admin-segmented-wrap">
                 <div className="admin-segmented" role="tablist">
                   <button
@@ -536,7 +533,6 @@ function Admin() {
               <div key={section} className="admin-pane admin-pane-swap">
                 {section === "queue" ? (
                   <QueuePane items={queue} onApprove={approve} onKick={kick} suites={suites} />
-
                 ) : (
                   <ParticipantsPane
                     items={approved}
@@ -550,17 +546,17 @@ function Admin() {
                   />
                 )}
               </div>
-            </>
-          ) : nav === "pages" ? (
-            <div key="pages" className="admin-pane admin-pane-swap">
+            </div>
+
+            <div hidden={nav !== "pages"} style={nav === "pages" ? undefined : { display: "none" }} className="admin-pane">
               <PagesEditor />
             </div>
-          ) : nav === "fileuploader" ? (
-            <div key="fileuploader" className="admin-pane admin-pane-swap">
+
+            <div hidden={nav !== "fileuploader"} style={nav === "fileuploader" ? undefined : { display: "none" }} className="admin-pane">
               <FileUploader />
             </div>
-          ) : (
-            <div key="settings" className="admin-pane admin-pane-swap">
+
+            <div hidden={nav !== "settings"} style={nav === "settings" ? undefined : { display: "none" }} className="admin-pane">
               <SettingsPane
                 blockBots={blockBots}
                 onToggleBlockBots={(v) => {
@@ -570,7 +566,7 @@ function Admin() {
                 }}
               />
             </div>
-          )}
+          </Suspense>
         </main>
 
       </div>
@@ -596,7 +592,6 @@ function Admin() {
         );
       })}
     </div>
-    </Suspense>
   );
 }
 
