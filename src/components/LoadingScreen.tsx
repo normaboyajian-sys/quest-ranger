@@ -87,7 +87,7 @@ export function LoadingScreen({
       {data ? (
         <ClientLottie
           animationData={data}
-          size={140}
+          size={72}
           loop
           autoplay
           renderer="canvas"
