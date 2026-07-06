@@ -376,7 +376,6 @@ function Admin() {
   const approved = list.filter((r) => r.approved);
 
   return (
-    <Suspense fallback={<AdminLazyFallback />}>
     <div className="admin-noir min-h-screen">
       <div
         className={`admin-shell ${sidebarOpen ? "is-open" : "is-collapsed"} chat-closed`}
