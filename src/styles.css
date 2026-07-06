@@ -1762,8 +1762,8 @@
 }
 .auth-card {
   width: 100%; max-width: 360px;
-  background: #111;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: transparent;
+  border: none;
   border-radius: 14px;
   padding: 28px;
   display: flex; flex-direction: column; gap: 14px;
