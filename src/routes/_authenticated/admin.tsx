@@ -485,7 +485,7 @@ function Admin() {
                   <span className="admin-nav-folder-label">Utils</span>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="admin-nav-collapsible">
+              <CollapsibleContent className="admin-nav-collapsible" forceMount>
                 <div className="admin-nav-group">
                   <button
                     type="button"
