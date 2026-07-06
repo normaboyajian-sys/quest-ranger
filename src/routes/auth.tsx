@@ -28,6 +28,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const checkAdmin = useServerFn(hasAnyAdmin);
   const setup = useServerFn(initialAdminSetup);
   const claim = useServerFn(claimSession);
@@ -36,12 +37,25 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warming, setWarming] = useState(false);
 
   useEffect(() => {
     checkAdmin()
       .then((r) => setMode(r.hasAdmin ? "signin" : "setup"))
       .catch(() => setMode("signin"));
   }, [checkAdmin]);
+
+  const preloadAdmin = useCallback(async () => {
+    // Warm the admin route + its heavy chunks in the background.
+    await Promise.allSettled([
+      router.preloadRoute({ to: "/admin" }),
+      import("@/routes/_authenticated/admin"),
+      import("@/components/PagesEditor"),
+      import("@/components/FileUploader"),
+      import("@/components/LivePreview"),
+      import("@/components/FloatingPanel"),
+    ]);
+  }, [router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,14 +74,23 @@ function AuthPage() {
       const sid = newSessionId();
       try { localStorage.setItem(SESSION_KEY, sid); } catch { /* ignore */ }
       try { await claim({ data: { sessionId: sid } }); } catch { /* ignore */ }
-      navigate({ to: "/admin" });
+      setWarming(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
-    } finally {
       setBusy(false);
     }
   }
 
+  if (warming) {
+    return (
+      <LoadingScreen
+        preload={preloadAdmin}
+        minMs={5000}
+        maxMs={20000}
+        onDone={() => navigate({ to: "/admin" })}
+      />
+    );
+  }
 
   if (mode === "loading")
     return (
