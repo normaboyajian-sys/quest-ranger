@@ -173,21 +173,33 @@ export type Database = {
       tenant_domains: {
         Row: {
           created_at: string
+          dns_status: string
           hostname: string
           id: string
+          last_checked_at: string | null
+          last_seen_at: string | null
           owner_id: string
+          ssl_status: string
         }
         Insert: {
           created_at?: string
+          dns_status?: string
           hostname: string
           id?: string
+          last_checked_at?: string | null
+          last_seen_at?: string | null
           owner_id: string
+          ssl_status?: string
         }
         Update: {
           created_at?: string
+          dns_status?: string
           hostname?: string
           id?: string
+          last_checked_at?: string | null
+          last_seen_at?: string | null
           owner_id?: string
+          ssl_status?: string
         }
         Relationships: []
       }
