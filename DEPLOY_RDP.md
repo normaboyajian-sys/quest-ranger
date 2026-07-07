@@ -62,6 +62,12 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key>
 SESSION_SECRET=<32+ char random string, e.g. `openssl rand -hex 32`>
 NODE_ENV=production
 PORT=3000
+# Public IP of this server — shown in the "Add domain" dialog and used to
+# verify tester DNS records:
+SERVER_PUBLIC_IP=<your.server.ip.here>
+# Panel hostname — used to refuse Caddy on-demand cert issuance for the
+# panel's own host (regular auto-TLS handles that):
+PANEL_HOST=panel.example.com
 ```
 
 Never commit this file. `chmod 600 .env.production`.
