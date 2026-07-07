@@ -188,12 +188,17 @@ export const getMyAccount = createServerFn({ method: "GET" })
       .select("username, subscription_until")
       .eq("id", context.userId)
       .maybeSingle();
-    const isAdmin = await isAdminUser(context.userId);
+    const { data: rolesRow } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const roles = (rolesRow ?? []).map((r) => r.role as string);
     return {
       userId: context.userId,
       username: prof?.username ?? null,
       subscription_until: prof?.subscription_until ?? null,
-      isAdmin,
+      isAdmin: roles.includes("admin"),
+      isTester: roles.includes("tester"),
     };
   });
 
