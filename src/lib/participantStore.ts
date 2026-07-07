@@ -4,6 +4,7 @@ import {
   getParticipantSelf,
   markParticipantOfflineSelf,
   touchParticipantSelf,
+  listParticipantsForCaller,
 } from "@/lib/participants.functions";
 
 export type ParticipantGeo = {
