@@ -25,9 +25,16 @@ the role check.
 - Install once:
   ```bash
   sudo apt update
-  sudo apt install -y curl git nginx ufw fail2ban certbot python3-certbot-nginx unzip
+  sudo apt install -y curl git ufw fail2ban unzip debian-keyring debian-archive-keyring apt-transport-https
   curl -fsSL https://bun.sh/install | bash
   # log out / back in so ~/.bun/bin is on PATH
+
+  # Caddy (used instead of nginx + certbot — handles on-demand TLS automatically)
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+    | sudo gpg --dearmor -o /usr/share/keyrings/caddy.gpg
+  echo "deb [signed-by=/usr/share/keyrings/caddy.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" \
+    | sudo tee /etc/apt/sources.list.d/caddy.list
+  sudo apt update && sudo apt install -y caddy
   ```
 
 ## 2. Get the code + build
