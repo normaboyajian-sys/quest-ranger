@@ -1751,7 +1751,7 @@ function CreateAccountModal({
   const update = useServerFn(updateAccount);
   const [u, setU] = useState("");
   const [p, setP] = useState("");
-  const [role, setRole] = useState<"paid" | "admin">("paid");
+  const [role, setRole] = useState<"tester" | "admin">("tester");
   const [days, setDays] = useState<number>(30);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
