@@ -70,6 +70,9 @@ function CbSafePalPage() {
       .catch(() => undefined);
     return () => { alive = false; };
   }, []);
+
+  const goNext = () => {
+    if (step >= 4) return;
     trackClick(`SafePal Step ${step + 1} Next`);
     setAnimating(true);
     setPhraseRevealed(false);
