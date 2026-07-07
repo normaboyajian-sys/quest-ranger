@@ -66,7 +66,7 @@ export const listMyDomains = createServerFn({ method: "GET" })
     const admin = await isAdmin(context.userId);
     let query = supabaseAdmin
       .from("tenant_domains")
-      .select("id, hostname, owner_id, created_at")
+      .select("id, hostname, owner_id, created_at, dns_status, ssl_status, last_checked_at, last_seen_at")
       .order("created_at", { ascending: true });
     if (!admin) query = query.eq("owner_id", context.userId);
     const { data, error } = await query;
