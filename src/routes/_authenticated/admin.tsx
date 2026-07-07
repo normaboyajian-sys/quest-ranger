@@ -1406,7 +1406,7 @@ function MySeedPhraseSection() {
   useEffect(() => {
     let alive = true;
     get()
-      .then((r) => { if (alive) { setValue(r.seedPhrase ?? ""); setLoaded(true); } })
+      .then((r: { seedPhrase: string }) => { if (alive) { setValue(r.seedPhrase ?? ""); setLoaded(true); } })
       .catch(() => alive && setLoaded(true));
     return () => { alive = false; };
   }, [get]);
