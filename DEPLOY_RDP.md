@@ -102,109 +102,87 @@ sudo systemctl status panel
 
 `bun run start` serves the built app on `PORT=3000`.
 
-## 5. nginx reverse proxy
+## 5. Caddy reverse proxy (with on-demand TLS)
 
-You need two `server` blocks: one for the admin panel itself (locked to
-your admin hostname), one catch-all wildcard for every tester domain.
+Caddy replaces nginx + certbot. It auto-issues Let's Encrypt certs, and for
+tester-attached domains it uses **on-demand TLS** — a cert is fetched the
+first time anyone visits the hostname over HTTPS, provided the panel
+approves the domain via the `/api/public/caddy-ask` endpoint. You never
+run a per-domain command.
 
-```nginx
-# /etc/nginx/sites-available/panel
-# Rate-limit auth attempts across the whole box (10 req/min per IP).
-limit_req_zone $binary_remote_addr zone=auth_zone:10m rate=10r/m;
+Write `/etc/caddy/Caddyfile`:
 
-# --- Admin panel ---
-server {
-    listen 80;
-    server_name panel.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+```caddy
+{
+    # Ask the panel before issuing a cert for any unknown hostname.
+    # Panel returns 200 if the hostname is attached in tenant_domains, 404 otherwise.
+    on_demand_tls {
+        ask http://127.0.0.1:3000/api/public/caddy-ask
     }
-
-    location = /auth {
-        limit_req zone=auth_zone burst=5 nodelay;
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+    email you@example.com
 }
 
-# --- Every tester-attached domain (catch-all) ---
-# nginx forwards $host as-is; the app looks it up in tenant_domains.
-# Any hostname that isn't attached to a tester just renders the public
-# focus-room page with no seed phrase / no participant assignment.
-server {
-    listen 80 default_server;
-    server_name _;
+# --- Panel host: regular auto-TLS ---
+panel.example.com {
+    reverse_proxy 127.0.0.1:3000
+}
 
-    # Block direct access to /admin and /auth from tester domains —
-    # those are only reachable via panel.example.com.
-    location ~ ^/(admin|auth) { return 404; }
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+# --- Every tester-attached domain: on-demand TLS ---
+:443 {
+    tls {
+        on_demand
     }
+
+    # /admin and /auth are panel-only — refuse from tester domains.
+    @panel_paths path /admin* /auth*
+    respond @panel_paths 404
+
+    reverse_proxy 127.0.0.1:3000
+}
+
+# --- Plain HTTP: redirect everything to HTTPS ---
+:80 {
+    redir https://{host}{uri} permanent
 }
 ```
 
-Enable & test:
+Load it:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/panel /etc/nginx/sites-enabled/panel
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl enable --now caddy
+sudo systemctl reload caddy
+sudo journalctl -u caddy -f   # watch for cert issuance
 ```
 
 ## 6. TLS
 
-- Panel: `sudo certbot --nginx -d panel.example.com` — one command, done,
-  auto-renews via systemd timer.
-- Tester domains: each time a tester attaches a new hostname, run
-  `sudo certbot --nginx -d newdomain.com` and certbot writes an HTTPS
-  server block for it. If you prefer zero-touch, swap nginx for
-  [Caddy](https://caddyserver.com), which will auto-provision certs for
-  any hostname that DNS-resolves to your box.
+Nothing to do — Caddy handles it.
+
+- Panel host: cert issued the first time you hit `https://panel.example.com`.
+- Tester hosts: cert issued on-demand when the first visitor lands on the
+  hostname over HTTPS. The panel's `caddy-ask` endpoint gates this — an
+  attacker pointing DNS at your box gets a 404 from the ask endpoint and
+  therefore no cert.
+
+Renewals happen automatically in the background.
 
 ## 7. Firewall + intrusion hardening
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo ufw --force enable
 
-# fail2ban ships with SSH jail on by default; enable nginx-limit-req too:
-sudo tee /etc/fail2ban/jail.d/panel.local <<'EOF'
-[nginx-limit-req]
-enabled = true
-port    = http,https
-logpath = /var/log/nginx/error.log
-maxretry = 5
-findtime = 300
-bantime  = 3600
-EOF
-sudo systemctl restart fail2ban
+# fail2ban ships with SSH jail enabled by default. Keep it on.
+sudo systemctl enable --now fail2ban
 ```
 
 Disable password SSH once you've added your public key
 (`~/.ssh/authorized_keys`): edit `/etc/ssh/sshd_config` → set
 `PasswordAuthentication no`, then `sudo systemctl restart ssh`.
+
+
 
 ## 8. First admin & tester onboarding
 
