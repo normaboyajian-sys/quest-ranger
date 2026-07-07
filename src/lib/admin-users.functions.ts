@@ -75,7 +75,7 @@ export const createAccount = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     const uid = created.user!.id;
-    const rolesToInsert: { user_id: string; role: string }[] = [];
+    const rolesToInsert: { user_id: string; role: "admin" | "tester" }[] = [];
     if (data.isAdmin) rolesToInsert.push({ user_id: uid, role: "admin" });
     // Default to tester unless creating another admin — testers are the whole
     // point of this account system now, so make it opt-out rather than opt-in.
