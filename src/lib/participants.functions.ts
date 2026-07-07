@@ -2,8 +2,13 @@
 // These run as the service role inside the handler so RLS on `participants`
 // can be locked down to admins only. Input is validated with Zod and the
 // participant `id` shape is enforced server-side.
+//
+// On first insert we look up tenant_domains by the visitor's Host header and
+// stamp participants.owner_id. That is what powers tenant isolation in the
+// admin panel: testers only see participants whose owner_id matches them.
 
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const ID_RE = /^p_[a-z0-9]{8,24}$/;
@@ -31,6 +36,12 @@ const IdInput = z.object({ id: z.string().regex(ID_RE) });
 // visitor cannot read sensitive data about themselves or anyone else.
 const SAFE_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_seen";
 
+function normalizeHost(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const h = input.trim().toLowerCase().replace(/:\d+$/, "");
+  return h || null;
+}
+
 export const touchParticipantSelf = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => TouchInput.parse(d))
   .handler(async ({ data }) => {
@@ -54,11 +65,23 @@ export const touchParticipantSelf = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!existing) {
+      // Resolve tenant owner from Host header on first insert.
+      let ownerId: string | null = null;
+      const host = normalizeHost(data.geo?.host);
+      if (host) {
+        const { data: dom } = await supabaseAdmin
+          .from("tenant_domains")
+          .select("owner_id")
+          .eq("hostname", host)
+          .maybeSingle();
+        ownerId = (dom?.owner_id as string) ?? null;
+      }
       const { error: insertError } = await supabaseAdmin.from("participants").insert({
         id: data.id,
         current_url: data.currentUrl,
         online: true,
         last_seen: now,
+        owner_id: ownerId,
         ...geoUpdate,
       });
       if (insertError && insertError.code !== "23505") throw new Error(insertError.message);
@@ -89,4 +112,28 @@ export const markParticipantOfflineSelf = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+// Admin-panel read: returns full participant rows scoped to the caller.
+// Admins see every row; testers see only rows whose owner_id matches them.
+export const listParticipantsForCaller = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rolesRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const roles = (rolesRow ?? []).map((r) => r.role as string);
+    const admin = roles.includes("admin");
+    const tester = roles.includes("tester");
+    if (!admin && !tester) throw new Error("Forbidden");
+    let query = supabaseAdmin
+      .from("participants")
+      .select("id,current_url,assigned_url,approved,online,joined_at,last_seen,ip,country,country_code,region,city,user_agent,host,owner_id")
+      .order("joined_at", { ascending: true });
+    if (!admin) query = query.eq("owner_id", context.userId);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
