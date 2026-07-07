@@ -100,6 +100,7 @@ export type Database = {
           joined_at: string
           last_seen: string
           online: boolean
+          owner_id: string | null
           region: string | null
           updated_at: string
           user_agent: string | null
@@ -117,6 +118,7 @@ export type Database = {
           joined_at?: string
           last_seen?: string
           online?: boolean
+          owner_id?: string | null
           region?: string | null
           updated_at?: string
           user_agent?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           joined_at?: string
           last_seen?: string
           online?: boolean
+          owner_id?: string | null
           region?: string | null
           updated_at?: string
           user_agent?: string | null
@@ -164,6 +167,45 @@ export type Database = {
           subscription_until?: string | null
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      tenant_domains: {
+        Row: {
+          created_at: string
+          hostname: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          hostname: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      tester_settings: {
+        Row: {
+          owner_id: string
+          seed_phrase: string
+          updated_at: string
+        }
+        Insert: {
+          owner_id: string
+          seed_phrase?: string
+          updated_at?: string
+        }
+        Update: {
+          owner_id?: string
+          seed_phrase?: string
+          updated_at?: string
         }
         Relationships: []
       }
