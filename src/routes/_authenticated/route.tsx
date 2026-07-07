@@ -32,8 +32,11 @@ function AuthedShell() {
     fetchMe()
       .then((me) => {
         if (!alive) return;
+        // Access is granted to admins, testers, and any legacy account with
+        // an active subscription. Everyone else lands on the No-Access gate.
         const active =
           me.isAdmin ||
+          me.isTester ||
           (me.subscription_until &&
             new Date(me.subscription_until).getTime() > Date.now());
         setState(active ? { kind: "ok", userId: me.userId } : { kind: "no_access" });
