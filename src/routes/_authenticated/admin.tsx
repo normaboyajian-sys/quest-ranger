@@ -15,6 +15,8 @@ import {
   removeDomain,
   getMySeedPhrase,
   setMySeedPhrase,
+  getServerConnectionInfo,
+  checkDomainStatus,
 } from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
