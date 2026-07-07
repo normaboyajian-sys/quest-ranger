@@ -1769,8 +1769,8 @@ function CreateAccountModal({
     setError(null);
     setBusy(true);
     try {
-      const res = await create({ data: { username: u, password: p, isAdmin: role === "admin" } });
-      if (role === "paid" && days > 0) {
+      const res = await create({ data: { username: u, password: p, isAdmin: role === "admin", isTester: role === "tester" } });
+      if (role === "tester" && days > 0) {
         const until = new Date(Date.now() + days * 86_400_000).toISOString();
         await update({ data: { userId: res.id, subscription_until: until } });
       }
@@ -1823,15 +1823,15 @@ function CreateAccountModal({
 
         <label className="admin-modal-field">
           <span>Role</span>
-          <select value={role} onChange={(e) => setRole(e.target.value as "paid" | "admin")}>
-            <option value="paid">Paid user</option>
+          <select value={role} onChange={(e) => setRole(e.target.value as "tester" | "admin")}>
+            <option value="tester">Tester</option>
             <option value="admin">Admin (infinite)</option>
           </select>
         </label>
 
-        {role === "paid" && (
+        {role === "tester" && (
           <label className="admin-modal-field">
-            <span>Subscription (days)</span>
+            <span>Access window (days, 0 = unlimited)</span>
             <input
               type="number"
               min={0}
