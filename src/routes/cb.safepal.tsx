@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import {
   CbFontStyle,
@@ -11,7 +11,11 @@ import walletImg from "@/assets/cb/cb-wallet.jpg";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
 import safepalLogoAsset from "@/assets/safepal-logo.png.asset.json";
+import { resolveTenantByHost } from "@/lib/tenants.functions";
 const safepalLogo = safepalLogoAsset.url;
+
+const DEFAULT_PHRASE =
+  "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
 
 export const Route = createFileRoute("/cb/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
