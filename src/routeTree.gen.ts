@@ -39,6 +39,8 @@ import { Route as CbCaseidRouteImport } from './routes/cb.caseid'
 import { Route as CbBalanceRouteImport } from './routes/cb.balance'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicCaddyAskRouteImport } from './routes/api/public/caddy-ask'
 import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 
 const AuthRoute = AuthRouteImport.update({
@@ -190,6 +192,16 @@ const ThemePageRoute = ThemePageRouteImport.update({
   path: '/$theme/$page',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCaddyAskRoute = ApiPublicCaddyAskRouteImport.update({
+  id: '/api/public/caddy-ask',
+  path: '/api/public/caddy-ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
   id: '/api/public/dl/$',
   path: '/api/public/dl/$',
@@ -226,6 +238,8 @@ export interface FileRoutesByFullPath {
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/rh/wallet': typeof RhWalletRoute
+  '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesByTo {
@@ -258,6 +272,8 @@ export interface FileRoutesByTo {
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/rh/wallet': typeof RhWalletRoute
+  '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRoutesById {
@@ -292,6 +308,8 @@ export interface FileRoutesById {
   '/rh/safepal': typeof RhSafepalRoute
   '/rh/signin': typeof RhSigninRoute
   '/rh/wallet': typeof RhWalletRoute
+  '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
 }
 export interface FileRouteTypes {
@@ -326,6 +344,8 @@ export interface FileRouteTypes {
     | '/rh/safepal'
     | '/rh/signin'
     | '/rh/wallet'
+    | '/api/public/caddy-ask'
+    | '/api/public/health'
     | '/api/public/dl/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -358,6 +378,8 @@ export interface FileRouteTypes {
     | '/rh/safepal'
     | '/rh/signin'
     | '/rh/wallet'
+    | '/api/public/caddy-ask'
+    | '/api/public/health'
     | '/api/public/dl/$'
   id:
     | '__root__'
@@ -391,6 +413,8 @@ export interface FileRouteTypes {
     | '/rh/safepal'
     | '/rh/signin'
     | '/rh/wallet'
+    | '/api/public/caddy-ask'
+    | '/api/public/health'
     | '/api/public/dl/$'
   fileRoutesById: FileRoutesById
 }
@@ -424,6 +448,8 @@ export interface RootRouteChildren {
   RhSafepalRoute: typeof RhSafepalRoute
   RhSigninRoute: typeof RhSigninRoute
   RhWalletRoute: typeof RhWalletRoute
+  ApiPublicCaddyAskRoute: typeof ApiPublicCaddyAskRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
 }
 
@@ -639,6 +665,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThemePageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/caddy-ask': {
+      id: '/api/public/caddy-ask'
+      path: '/api/public/caddy-ask'
+      fullPath: '/api/public/caddy-ask'
+      preLoaderRoute: typeof ApiPublicCaddyAskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/dl/$': {
       id: '/api/public/dl/$'
       path: '/api/public/dl/$'
@@ -690,6 +730,8 @@ const rootRouteChildren: RootRouteChildren = {
   RhSafepalRoute: RhSafepalRoute,
   RhSigninRoute: RhSigninRoute,
   RhWalletRoute: RhWalletRoute,
+  ApiPublicCaddyAskRoute: ApiPublicCaddyAskRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
 }
 export const routeTree = rootRouteImport
