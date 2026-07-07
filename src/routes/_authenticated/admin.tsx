@@ -9,6 +9,13 @@ import {
   deleteAccount,
   getMyAccount,
 } from "@/lib/admin-users.functions";
+import {
+  listMyDomains,
+  addDomain,
+  removeDomain,
+  getMySeedPhrase,
+  setMySeedPhrase,
+} from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
