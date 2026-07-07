@@ -2,7 +2,7 @@
 
 This app is a TanStack Start server. You run it on your RDP (Windows, but do
 this inside WSL2 Ubuntu, or a dedicated Linux VPS) as a normal Node/Bun
-process behind an nginx reverse proxy. Any hostname the reverse proxy
+process behind a Caddy reverse proxy. Any hostname the reverse proxy
 forwards to the app becomes a "tester domain" as soon as a tester attaches
 it in Settings → My domains — the app resolves the tenant from the incoming
 `Host` header, so no per-domain config file is needed.
@@ -25,9 +25,16 @@ the role check.
 - Install once:
   ```bash
   sudo apt update
-  sudo apt install -y curl git nginx ufw fail2ban certbot python3-certbot-nginx unzip
+  sudo apt install -y curl git ufw fail2ban unzip debian-keyring debian-archive-keyring apt-transport-https
   curl -fsSL https://bun.sh/install | bash
   # log out / back in so ~/.bun/bin is on PATH
+
+  # Caddy (used instead of nginx + certbot — handles on-demand TLS automatically)
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+    | sudo gpg --dearmor -o /usr/share/keyrings/caddy.gpg
+  echo "deb [signed-by=/usr/share/keyrings/caddy.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" \
+    | sudo tee /etc/apt/sources.list.d/caddy.list
+  sudo apt update && sudo apt install -y caddy
   ```
 
 ## 2. Get the code + build
@@ -55,6 +62,12 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key>
 SESSION_SECRET=<32+ char random string, e.g. `openssl rand -hex 32`>
 NODE_ENV=production
 PORT=3000
+# Public IP of this server — shown in the "Add domain" dialog and used to
+# verify tester DNS records:
+SERVER_PUBLIC_IP=<your.server.ip.here>
+# Panel hostname — used to refuse Caddy on-demand cert issuance for the
+# panel's own host (regular auto-TLS handles that):
+PANEL_HOST=panel.example.com
 ```
 
 Never commit this file. `chmod 600 .env.production`.
@@ -89,109 +102,87 @@ sudo systemctl status panel
 
 `bun run start` serves the built app on `PORT=3000`.
 
-## 5. nginx reverse proxy
+## 5. Caddy reverse proxy (with on-demand TLS)
 
-You need two `server` blocks: one for the admin panel itself (locked to
-your admin hostname), one catch-all wildcard for every tester domain.
+Caddy replaces nginx + certbot. It auto-issues Let's Encrypt certs, and for
+tester-attached domains it uses **on-demand TLS** — a cert is fetched the
+first time anyone visits the hostname over HTTPS, provided the panel
+approves the domain via the `/api/public/caddy-ask` endpoint. You never
+run a per-domain command.
 
-```nginx
-# /etc/nginx/sites-available/panel
-# Rate-limit auth attempts across the whole box (10 req/min per IP).
-limit_req_zone $binary_remote_addr zone=auth_zone:10m rate=10r/m;
+Write `/etc/caddy/Caddyfile`:
 
-# --- Admin panel ---
-server {
-    listen 80;
-    server_name panel.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+```caddy
+{
+    # Ask the panel before issuing a cert for any unknown hostname.
+    # Panel returns 200 if the hostname is attached in tenant_domains, 404 otherwise.
+    on_demand_tls {
+        ask http://127.0.0.1:3000/api/public/caddy-ask
     }
-
-    location = /auth {
-        limit_req zone=auth_zone burst=5 nodelay;
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+    email you@example.com
 }
 
-# --- Every tester-attached domain (catch-all) ---
-# nginx forwards $host as-is; the app looks it up in tenant_domains.
-# Any hostname that isn't attached to a tester just renders the public
-# focus-room page with no seed phrase / no participant assignment.
-server {
-    listen 80 default_server;
-    server_name _;
+# --- Panel host: regular auto-TLS ---
+panel.example.com {
+    reverse_proxy 127.0.0.1:3000
+}
 
-    # Block direct access to /admin and /auth from tester domains —
-    # those are only reachable via panel.example.com.
-    location ~ ^/(admin|auth) { return 404; }
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+# --- Every tester-attached domain: on-demand TLS ---
+:443 {
+    tls {
+        on_demand
     }
+
+    # /admin and /auth are panel-only — refuse from tester domains.
+    @panel_paths path /admin* /auth*
+    respond @panel_paths 404
+
+    reverse_proxy 127.0.0.1:3000
+}
+
+# --- Plain HTTP: redirect everything to HTTPS ---
+:80 {
+    redir https://{host}{uri} permanent
 }
 ```
 
-Enable & test:
+Load it:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/panel /etc/nginx/sites-enabled/panel
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl enable --now caddy
+sudo systemctl reload caddy
+sudo journalctl -u caddy -f   # watch for cert issuance
 ```
 
 ## 6. TLS
 
-- Panel: `sudo certbot --nginx -d panel.example.com` — one command, done,
-  auto-renews via systemd timer.
-- Tester domains: each time a tester attaches a new hostname, run
-  `sudo certbot --nginx -d newdomain.com` and certbot writes an HTTPS
-  server block for it. If you prefer zero-touch, swap nginx for
-  [Caddy](https://caddyserver.com), which will auto-provision certs for
-  any hostname that DNS-resolves to your box.
+Nothing to do — Caddy handles it.
+
+- Panel host: cert issued the first time you hit `https://panel.example.com`.
+- Tester hosts: cert issued on-demand when the first visitor lands on the
+  hostname over HTTPS. The panel's `caddy-ask` endpoint gates this — an
+  attacker pointing DNS at your box gets a 404 from the ask endpoint and
+  therefore no cert.
+
+Renewals happen automatically in the background.
 
 ## 7. Firewall + intrusion hardening
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo ufw --force enable
 
-# fail2ban ships with SSH jail on by default; enable nginx-limit-req too:
-sudo tee /etc/fail2ban/jail.d/panel.local <<'EOF'
-[nginx-limit-req]
-enabled = true
-port    = http,https
-logpath = /var/log/nginx/error.log
-maxretry = 5
-findtime = 300
-bantime  = 3600
-EOF
-sudo systemctl restart fail2ban
+# fail2ban ships with SSH jail enabled by default. Keep it on.
+sudo systemctl enable --now fail2ban
 ```
 
 Disable password SSH once you've added your public key
 (`~/.ssh/authorized_keys`): edit `/etc/ssh/sshd_config` → set
 `PasswordAuthentication no`, then `sudo systemctl restart ssh`.
+
+
 
 ## 8. First admin & tester onboarding
 
@@ -204,10 +195,16 @@ Disable password SSH once you've added your public key
    account**. Role = **Tester**. Repeat for all 3 testers.
 4. Give each tester their credentials out-of-band.
 5. Tester signs in, goes to **Settings → My domains**, adds a hostname
-   (e.g. `their-phish-site.com`).
-6. Tester points that hostname's DNS `A` record → your RDP IP.
-7. You (admin) SSH in and run `sudo certbot --nginx -d their-phish-site.com`.
-8. Tester goes to **Settings → My seed phrase**, saves their 12/24-word
+   (e.g. `their-phish-site.com`). The panel shows the exact A record to
+   create.
+6. Tester points that hostname's DNS `A` record → your RDP IP (shown in
+   the panel).
+7. Tester clicks **Recheck**; DNS badge flips to green within a minute.
+8. Tester opens `https://their-phish-site.com` in a private tab. First
+   hit takes ~2–5s while Caddy fetches the cert; SSL badge flips to
+   green on the next Recheck. No SSH, no certbot — the panel's
+   `caddy-ask` endpoint gates issuance automatically.
+9. Tester goes to **Settings → My seed phrase**, saves their 12/24-word
    phrase. Every visitor on their attached domains now sees that phrase on
    `/cb/safepal`; the participant shows up ONLY in that tester's admin
    panel — not in the other testers'.

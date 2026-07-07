@@ -15,6 +15,8 @@ import {
   removeDomain,
   getMySeedPhrase,
   setMySeedPhrase,
+  getServerConnectionInfo,
+  checkDomainStatus,
 } from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
@@ -1306,24 +1308,75 @@ function SettingsPane({
   );
 }
 
+type DomainRow = {
+  id: string;
+  hostname: string;
+  owner_id: string;
+  dns_status?: string | null;
+  ssl_status?: string | null;
+  last_checked_at?: string | null;
+  last_seen_at?: string | null;
+};
+
+function StatusBadge({ label, value }: { label: string; value: string | null | undefined }) {
+  const v = value ?? "pending";
+  const color =
+    v === "ok" || v === "issued"
+      ? "#1a7f37"
+      : v === "mismatch" || v === "failed"
+        ? "#b42318"
+        : "#8a6d00";
+  const bg =
+    v === "ok" || v === "issued"
+      ? "#e6f4ea"
+      : v === "mismatch" || v === "failed"
+        ? "#fde8e8"
+        : "#fef7e0";
+  return (
+    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: bg, color, fontWeight: 600 }}>
+      {label}: {v}
+    </span>
+  );
+}
+
+function fmtAgo(iso: string | null | undefined): string {
+  if (!iso) return "never";
+  const ms = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
   const list = useServerFn(listMyDomains);
   const add = useServerFn(addDomain);
   const remove = useServerFn(removeDomain);
-  const [rows, setRows] = useState<Array<{ id: string; hostname: string; owner_id: string }>>([]);
+  const getConn = useServerFn(getServerConnectionInfo);
+  const check = useServerFn(checkDomainStatus);
+  const [rows, setRows] = useState<DomainRow[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conn, setConn] = useState<{ ip: string; panelHost: string } | null>(null);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
 
   async function refresh() {
     try {
       const r = await list();
-      setRows(r as Array<{ id: string; hostname: string; owner_id: string }>);
+      setRows(r as DomainRow[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
     }
   }
-  useEffect(() => { void refresh(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    void refresh();
+    getConn().then((c) => setConn(c as { ip: string; panelHost: string })).catch(() => {});
+    /* eslint-disable-next-line */
+  }, []);
 
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -1352,14 +1405,44 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
+  async function onRecheck(id: string) {
+    setCheckingId(id);
+    setError(null);
+    try {
+      await check({ data: { id } });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Recheck failed");
+    } finally {
+      setCheckingId(null);
+    }
+  }
+
   return (
     <section className="admin-settings-group">
       <h2 className="admin-settings-group-title">
         {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
       </h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
-        Add every hostname you route participants through. Visitors landing on one of these hosts are pinned to your account, and your seed phrase below is what they'll see on the SafePal / phrase pages.
+        Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
       </p>
+      {conn?.ip ? (
+        <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
+          <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
+              Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{conn.ip}</strong>
+            </code>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => { void navigator.clipboard.writeText(conn.ip); }}
+            >
+              Copy IP
+            </button>
+          </div>
+        </div>
+      ) : null}
       <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <input
           value={input}
@@ -1381,8 +1464,22 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
               <div className="admin-acct-name-row">
                 <span className="admin-acct-name font-mono">{r.hostname}</span>
               </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                <StatusBadge label="DNS" value={r.dns_status} />
+                <StatusBadge label="SSL" value={r.ssl_status} />
+                <span style={{ fontSize: 11, color: "#71717a" }}>
+                  checked {fmtAgo(r.last_checked_at)} · last visit {fmtAgo(r.last_seen_at)}
+                </span>
+              </div>
             </div>
-            <div className="admin-acct-actions">
+            <div className="admin-acct-actions" style={{ display: "flex", gap: 6 }}>
+              <button
+                className="btn-secondary"
+                onClick={() => onRecheck(r.id)}
+                disabled={checkingId === r.id}
+              >
+                {checkingId === r.id ? "Checking…" : "Recheck"}
+              </button>
               <button className="admin-acct-delete" onClick={() => onDelete(r.id, r.hostname)}>
                 Detach
               </button>
@@ -1394,6 +1491,7 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
     </section>
   );
 }
+
 
 function MySeedPhraseSection() {
   const get = useServerFn(getMySeedPhrase);

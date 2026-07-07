@@ -66,7 +66,7 @@ export const listMyDomains = createServerFn({ method: "GET" })
     const admin = await isAdmin(context.userId);
     let query = supabaseAdmin
       .from("tenant_domains")
-      .select("id, hostname, owner_id, created_at")
+      .select("id, hostname, owner_id, created_at, dns_status, ssl_status, last_checked_at, last_seen_at")
       .order("created_at", { ascending: true });
     if (!admin) query = query.eq("owner_id", context.userId);
     const { data, error } = await query;
@@ -160,3 +160,75 @@ export const listAllDomainsWithOwners = createServerFn({ method: "GET" })
       created_at: d.created_at as string,
     }));
   });
+
+// Public — reads env only, no secrets. Used by the "Add domain" dialog.
+export const getServerConnectionInfo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
+    return {
+      ip: process.env.SERVER_PUBLIC_IP ?? "",
+      panelHost: process.env.PANEL_HOST ?? "",
+    };
+  });
+
+// Verifies (a) the hostname's A records point at SERVER_PUBLIC_IP and
+// (b) https://<host>/api/public/health returns 200 (proves Caddy has a cert).
+export const checkDomainStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
+    const admin = await isAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin.from("tenant_domains").select("id, hostname, owner_id").eq("id", data.id);
+    if (!admin) q = q.eq("owner_id", context.userId);
+    const { data: row } = await q.maybeSingle();
+    if (!row) throw new Error("Not found");
+    const host = row.hostname as string;
+    const expectIp = (process.env.SERVER_PUBLIC_IP ?? "").trim();
+
+    // DNS check via Cloudflare DoH (works in Worker + Node runtimes).
+    let dnsStatus: "ok" | "mismatch" | "pending" = "pending";
+    let resolvedIps: string[] = [];
+    try {
+      const doh = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, {
+        headers: { accept: "application/dns-json" },
+        signal: AbortSignal.timeout(5000),
+      });
+      const j = (await doh.json()) as { Answer?: Array<{ type: number; data: string }> };
+      resolvedIps = (j.Answer ?? []).filter((a) => a.type === 1).map((a) => a.data);
+      if (resolvedIps.length === 0) dnsStatus = "pending";
+      else if (!expectIp) dnsStatus = "ok"; // no IP configured; presume ok if resolves
+      else dnsStatus = resolvedIps.includes(expectIp) ? "ok" : "mismatch";
+    } catch {
+      dnsStatus = "pending";
+    }
+
+    // SSL / live check.
+    let sslStatus: "issued" | "pending" | "failed" = "pending";
+    try {
+      const probe = await fetch(`https://${host}/api/public/health`, {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (probe.ok) sslStatus = "issued";
+      else sslStatus = "failed";
+    } catch {
+      sslStatus = "pending";
+    }
+
+    const nowIso = new Date().toISOString();
+    await supabaseAdmin
+      .from("tenant_domains")
+      .update({ dns_status: dnsStatus, ssl_status: sslStatus, last_checked_at: nowIso })
+      .eq("id", data.id);
+
+    return {
+      dns_status: dnsStatus,
+      ssl_status: sslStatus,
+      resolved_ips: resolvedIps,
+      expected_ip: expectIp,
+      last_checked_at: nowIso,
+    };
+  });
+
