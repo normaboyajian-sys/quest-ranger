@@ -2,7 +2,7 @@
 
 This app is a TanStack Start server. You run it on your RDP (Windows, but do
 this inside WSL2 Ubuntu, or a dedicated Linux VPS) as a normal Node/Bun
-process behind an nginx reverse proxy. Any hostname the reverse proxy
+process behind a Caddy reverse proxy. Any hostname the reverse proxy
 forwards to the app becomes a "tester domain" as soon as a tester attaches
 it in Settings → My domains — the app resolves the tenant from the incoming
 `Host` header, so no per-domain config file is needed.
