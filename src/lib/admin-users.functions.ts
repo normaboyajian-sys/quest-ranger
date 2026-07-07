@@ -53,7 +53,7 @@ export const listAccounts = createServerFn({ method: "GET" })
 export const createAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { username: string; password: string; isAdmin?: boolean }) => data,
+    (data: { username: string; password: string; isAdmin?: boolean; isTester?: boolean }) => data,
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -75,8 +75,15 @@ export const createAccount = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     const uid = created.user!.id;
-    if (data.isAdmin) {
-      await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: "admin" });
+    const rolesToInsert: { user_id: string; role: "admin" | "tester" }[] = [];
+    if (data.isAdmin) rolesToInsert.push({ user_id: uid, role: "admin" });
+    // Default to tester unless creating another admin — testers are the whole
+    // point of this account system now, so make it opt-out rather than opt-in.
+    if (data.isTester || (!data.isAdmin && data.isTester !== false)) {
+      rolesToInsert.push({ user_id: uid, role: "tester" });
+    }
+    if (rolesToInsert.length > 0) {
+      await supabaseAdmin.from("user_roles").insert(rolesToInsert);
     }
     return { id: uid, username };
   });
@@ -181,12 +188,17 @@ export const getMyAccount = createServerFn({ method: "GET" })
       .select("username, subscription_until")
       .eq("id", context.userId)
       .maybeSingle();
-    const isAdmin = await isAdminUser(context.userId);
+    const { data: rolesRow } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const roles = (rolesRow ?? []).map((r) => r.role as string);
     return {
       userId: context.userId,
       username: prof?.username ?? null,
       subscription_until: prof?.subscription_until ?? null,
-      isAdmin,
+      isAdmin: roles.includes("admin"),
+      isTester: roles.includes("tester"),
     };
   });
 

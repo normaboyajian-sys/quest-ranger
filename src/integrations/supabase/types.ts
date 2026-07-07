@@ -100,6 +100,7 @@ export type Database = {
           joined_at: string
           last_seen: string
           online: boolean
+          owner_id: string | null
           region: string | null
           updated_at: string
           user_agent: string | null
@@ -117,6 +118,7 @@ export type Database = {
           joined_at?: string
           last_seen?: string
           online?: boolean
+          owner_id?: string | null
           region?: string | null
           updated_at?: string
           user_agent?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           joined_at?: string
           last_seen?: string
           online?: boolean
+          owner_id?: string | null
           region?: string | null
           updated_at?: string
           user_agent?: string | null
@@ -167,6 +170,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_domains: {
+        Row: {
+          created_at: string
+          hostname: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          hostname: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      tester_settings: {
+        Row: {
+          owner_id: string
+          seed_phrase: string
+          updated_at: string
+        }
+        Insert: {
+          owner_id: string
+          seed_phrase?: string
+          updated_at?: string
+        }
+        Update: {
+          owner_id?: string
+          seed_phrase?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -193,10 +235,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "tester"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -324,7 +372,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "tester"],
     },
   },
 } as const
