@@ -32,6 +32,7 @@ export type ParticipantRecord = {
   city: string | null;
   userAgent: string | null;
   host: string | null;
+  ownerId: string | null;
 };
 
 type ParticipantRow = {
@@ -49,6 +50,7 @@ type ParticipantRow = {
   city?: string | null;
   user_agent?: string | null;
   host?: string | null;
+  owner_id?: string | null;
 };
 
 function toRecord(row: ParticipantRow): ParticipantRecord {
@@ -67,18 +69,15 @@ function toRecord(row: ParticipantRow): ParticipantRecord {
     city: row.city ?? null,
     userAgent: row.user_agent ?? null,
     host: row.host ?? null,
+    ownerId: row.owner_id ?? null,
   };
 }
 
-const PARTICIPANT_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_seen,ip,country,country_code,region,city,user_agent,host";
-
 export async function loadParticipants(): Promise<ParticipantRecord[]> {
-  const { data, error } = await supabase
-    .from("participants")
-    .select(PARTICIPANT_COLS)
-    .order("joined_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((row) => toRecord(row as ParticipantRow));
+  // Tenant-scoped by the server function: admins get everyone,
+  // testers only get participants on their own domains.
+  const rows = await listParticipantsForCaller();
+  return (rows ?? []).map((row) => toRecord(row as ParticipantRow));
 }
 
 export async function loadParticipant(id: string): Promise<ParticipantRecord | null> {
