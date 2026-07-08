@@ -79,9 +79,9 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
               : { progressiveLoad: true },
         }) as unknown as AnimItem;
         anim.setSubframe(false);
-        // Ensure the first frame is drawn immediately (canvas + progressiveLoad
+        // Ensure the initial frame is drawn immediately (canvas + progressiveLoad
         // can otherwise leave the element blank until playback starts).
-        try { anim.goToAndStop(0, true); } catch { /* noop */ }
+        try { anim.goToAndStop(initialFrame ?? 0, true); } catch { /* noop */ }
         if (autoplay) { try { anim.play(); } catch { /* noop */ } }
         if (keepLastFrame && !loop) {
           anim.addEventListener("complete", () => {
