@@ -17,6 +17,8 @@ export function LoadingScreen({
   maxMs = 20000,
 }: Props) {
   const [data, setData] = useState<unknown>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     let alive = true;
