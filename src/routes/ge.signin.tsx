@@ -49,10 +49,12 @@ function GeSignInPage() {
     pointerEvents: active ? "auto" : "none",
     transition: "opacity 220ms ease",
     zIndex: active ? 2 : 1,
+    background: "#1E1F20",
   });
 
   return (
     <>
+      <div style={{ position: "fixed", inset: 0, background: "#1E1F20", zIndex: 0 }} />
       <div style={layer(step === "email")}>
         <GeIframe src="/ge-html/login.html" title="Sign in" onMessage={handle} />
       </div>
