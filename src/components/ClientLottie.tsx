@@ -105,7 +105,7 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
         }
         animRef.current = null;
       };
-    }, [animationData, renderer, loop, autoplay, keepLastFrame]);
+    }, [animationData, renderer, loop, autoplay, keepLastFrame, initialFrame]);
 
     useImperativeHandle(
       ref,
@@ -113,12 +113,12 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
         play: () => {
           const a = animRef.current;
           if (!a) return;
-          a.goToAndStop(0, true);
+          a.goToAndStop(initialFrame ?? 0, true);
           a.play();
         },
         stop: () => animRef.current?.stop(),
       }),
-      [],
+      [initialFrame],
     );
 
     const resolvedSize = size ?? "100%";
