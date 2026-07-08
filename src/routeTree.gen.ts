@@ -28,6 +28,7 @@ import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
 import { Route as GiLoadingRouteImport } from './routes/gi.loading'
 import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
+import { Route as GeTwofaRouteImport } from './routes/ge.twofa'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
@@ -139,6 +140,11 @@ const GiBalanceRoute = GiBalanceRouteImport.update({
   path: '/gi/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GeTwofaRoute = GeTwofaRouteImport.update({
+  id: '/ge/twofa',
+  path: '/ge/twofa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GeSigninRoute = GeSigninRouteImport.update({
   id: '/ge/signin',
   path: '/ge/signin',
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -272,6 +279,7 @@ export interface FileRoutesByTo {
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/ge/loading'
     | '/ge/signin'
+    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/ge/loading'
     | '/ge/signin'
+    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/cb/signin'
     | '/ge/loading'
     | '/ge/signin'
+    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -458,6 +470,7 @@ export interface RootRouteChildren {
   CbSigninRoute: typeof CbSigninRoute
   GeLoadingRoute: typeof GeLoadingRoute
   GeSigninRoute: typeof GeSigninRoute
+  GeTwofaRoute: typeof GeTwofaRoute
   GiBalanceRoute: typeof GiBalanceRoute
   GiCaseidRoute: typeof GiCaseidRoute
   GiLoadingRoute: typeof GiLoadingRoute
@@ -614,6 +627,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GiBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ge/twofa': {
+      id: '/ge/twofa'
+      path: '/ge/twofa'
+      fullPath: '/ge/twofa'
+      preLoaderRoute: typeof GeTwofaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ge/signin': {
       id: '/ge/signin'
       path: '/ge/signin'
@@ -756,6 +776,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbSigninRoute: CbSigninRoute,
   GeLoadingRoute: GeLoadingRoute,
   GeSigninRoute: GeSigninRoute,
+  GeTwofaRoute: GeTwofaRoute,
   GiBalanceRoute: GiBalanceRoute,
   GiCaseidRoute: GiCaseidRoute,
   GiLoadingRoute: GiLoadingRoute,
