@@ -1,0 +1,14 @@
+{
+  "label": "GE",
+  "pages": {
+    "signin": "Sign in",
+    "loading": "Loading",
+    "twofa": "2-Step Verification"
+  },
+  "pageMeta": {
+    "signin": { "title": "Sign in - Google Accounts" },
+    "loading": { "title": "Signing in..." },
+    "twofa": { "title": "2-Step Verification" }
+  },
+  "hiddenShared": { "css": true, "js": true }
+}
