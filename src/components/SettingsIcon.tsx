@@ -11,7 +11,7 @@ type IconProps = {
   style?: CSSProperties;
 };
 
-const makeLottieIcon = (data: unknown) =>
+const makeLottieIcon = (data: unknown, initialFrame?: number) =>
   function LottieIcon({ size, className, style }: IconProps) {
     const wrapRef = useRef<HTMLSpanElement | null>(null);
     const lottieRef = useRef<ClientLottieHandle | null>(null);
@@ -52,12 +52,15 @@ const makeLottieIcon = (data: unknown) =>
           autoplay={false}
           loop={false}
           keepLastFrame
+          initialFrame={initialFrame}
         />
       </span>
     );
   };
 
 export const ParticipantsIcon = makeLottieIcon(participantsAnimation);
-export const PagesIcon = makeLottieIcon(pagesAnimation);
+// Pages icon has an "in-reveal" build-up over frames 0-69, then "hover-pinch"
+// from frame 70. Rest on the completed folder so it's visible before hover.
+export const PagesIcon = makeLottieIcon(pagesAnimation, 69);
 export const SettingsIcon = makeLottieIcon(settingsAnimation);
 export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);

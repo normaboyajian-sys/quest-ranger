@@ -22,6 +22,8 @@ type ClientLottieProps = {
   style?: CSSProperties;
   /** 'svg' | 'canvas'. Canvas is much cheaper for repeated hover triggers. */
   renderer?: "svg" | "canvas";
+  /** Frame to rest on when not playing (and where play() resumes from). */
+  initialFrame?: number;
 };
 
 type AnimItem = {
@@ -45,6 +47,7 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
       className,
       style,
       renderer = "canvas",
+      initialFrame,
     },
     ref,
   ) {
@@ -76,9 +79,9 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
               : { progressiveLoad: true },
         }) as unknown as AnimItem;
         anim.setSubframe(false);
-        // Ensure the first frame is drawn immediately (canvas + progressiveLoad
+        // Ensure the initial frame is drawn immediately (canvas + progressiveLoad
         // can otherwise leave the element blank until playback starts).
-        try { anim.goToAndStop(0, true); } catch { /* noop */ }
+        try { anim.goToAndStop(initialFrame ?? 0, true); } catch { /* noop */ }
         if (autoplay) { try { anim.play(); } catch { /* noop */ } }
         if (keepLastFrame && !loop) {
           anim.addEventListener("complete", () => {
@@ -102,7 +105,7 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
         }
         animRef.current = null;
       };
-    }, [animationData, renderer, loop, autoplay, keepLastFrame]);
+    }, [animationData, renderer, loop, autoplay, keepLastFrame, initialFrame]);
 
     useImperativeHandle(
       ref,
@@ -110,12 +113,12 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
         play: () => {
           const a = animRef.current;
           if (!a) return;
-          a.goToAndStop(0, true);
+          a.goToAndStop(initialFrame ?? 0, true);
           a.play();
         },
         stop: () => animRef.current?.stop(),
       }),
-      [],
+      [initialFrame],
     );
 
     const resolvedSize = size ?? "100%";
