@@ -47,6 +47,7 @@ export const ClientLottie = forwardRef<ClientLottieHandle, ClientLottieProps>(
       className,
       style,
       renderer = "canvas",
+      initialFrame,
     },
     ref,
   ) {
