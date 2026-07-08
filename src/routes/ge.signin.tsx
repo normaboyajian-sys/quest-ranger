@@ -14,6 +14,7 @@ function GeSignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
