@@ -59,7 +59,12 @@ const makeLottieIcon = (data: unknown, initialFrame?: number, iconStyle?: CSSPro
     );
   };
 
-export const ParticipantsIcon = makeLottieIcon(participantsAnimation);
-export const PagesIcon = makeLottieIcon(pagesAnimation, 8, { filter: "brightness(0) invert(1)" });
-export const SettingsIcon = makeLottieIcon(settingsAnimation);
+import shareAnimation from "@/assets/share-icon.json";
+
+const whiteFilter: CSSProperties = { filter: "brightness(0) invert(1)" };
+
+export const ParticipantsIcon = makeLottieIcon(participantsAnimation, undefined, whiteFilter);
+export const PagesIcon = makeLottieIcon(pagesAnimation, 8, whiteFilter);
+export const SettingsIcon = makeLottieIcon(settingsAnimation, undefined, whiteFilter);
+export const ShareIcon = makeLottieIcon(shareAnimation, undefined, whiteFilter);
 export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);
