@@ -59,6 +59,6 @@ const makeLottieIcon = (data: unknown, initialFrame?: number) =>
   };
 
 export const ParticipantsIcon = makeLottieIcon(participantsAnimation);
-export const PagesIcon = makeLottieIcon(pagesAnimation, 0);
+export const PagesIcon = makeLottieIcon(pagesAnimation, 8);
 export const SettingsIcon = makeLottieIcon(settingsAnimation);
 export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);
