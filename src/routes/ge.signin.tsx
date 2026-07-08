@@ -14,6 +14,7 @@ function GeSignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +45,7 @@ function GeSignInPage() {
     setTimeout(() => geNavigate("/ge/loading"), 900 + Math.random() * 900);
   };
 
-  const initial = (email.trim()[0] || "?").toUpperCase();
+  
 
   return (
     <>
@@ -100,13 +101,12 @@ function GeSignInPage() {
                   style={{ marginTop: 20 }}
                   onClick={() => { trackClick("Change-Email"); setStep("email"); setPassword(""); }}
                 >
-                  <span style={{
-                    width: 22, height: 22, borderRadius: "50%", background: "#DADCE0",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 12, fontWeight: 700, color: "#1f1f1f", marginLeft: 3
-                  }}>{initial}</span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 4 }}>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
                   <span className="email-text">{email}</span>
-                  <svg width="10" height="6" viewBox="0 0 10 6" style={{ marginRight: 2 }} fill="currentColor"><path d="M5 6 0 0h10z"/></svg>
+                  <svg width="18" height="8" viewBox="0 0 10 6" style={{ marginRight: 4 }} fill="currentColor" className="arrow"><path d="M5 6 0 0h10z"/></svg>
                 </div>
               </div>
             </div>
@@ -114,7 +114,7 @@ function GeSignInPage() {
               <form className="form-container" onSubmit={submitPassword}>
                 <input
                   ref={pwRef}
-                  type="password"
+                  type={showPw ? "text" : "password"}
                   name="password"
                   className="email-input"
                   placeholder="Enter your password"
@@ -122,8 +122,17 @@ function GeSignInPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <label className="checkbox-container">
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={showPw}
+                    onChange={(e) => { setShowPw(e.target.checked); trackClick(`ShowPw-${e.target.checked}`); }}
+                  />
+                  <span className="tickbox-text">Show password</span>
+                </label>
                 <span className="forgot-email" onClick={() => trackClick("Forgot-Password")}>Forgot password?</span>
-                <p>Show password</p>
+
                 <div className="button-container">
                   <button type="button" className="create-account-btn" onClick={() => trackClick("Try-Another-Way")}>Try another way</button>
                   <button type="submit" className="next-btn" name="submit_button">Next</button>
