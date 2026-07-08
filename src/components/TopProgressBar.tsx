@@ -17,13 +17,13 @@ export function TopProgressBar() {
 
   useEffect(() => {
     let hideT: ReturnType<typeof setTimeout> | undefined;
-    if (isLoading) {
+    if (isLoading && onGe) {
       setVisible(true);
     } else if (visible) {
       hideT = setTimeout(() => setVisible(false), 350);
     }
     return () => { if (hideT) clearTimeout(hideT); };
-  }, [isLoading, visible]);
+  }, [isLoading, onGe, visible]);
 
   if (!visible) return null;
 
