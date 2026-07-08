@@ -59,8 +59,8 @@ const makeLottieIcon = (data: unknown, initialFrame?: number) =>
   };
 
 export const ParticipantsIcon = makeLottieIcon(participantsAnimation);
-// Pages icon has an "in-reveal" build-up over frames 0-69, then "hover-pinch"
-// from frame 70. Rest on the completed folder so it's visible before hover.
-export const PagesIcon = makeLottieIcon(pagesAnimation, 69);
+// Pages icon animation spans frames 70-130 (ip=70, op=130). Rest on the
+// first frame of the range so the folder is visible before hover.
+export const PagesIcon = makeLottieIcon(pagesAnimation, 70);
 export const SettingsIcon = makeLottieIcon(settingsAnimation);
 export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);
