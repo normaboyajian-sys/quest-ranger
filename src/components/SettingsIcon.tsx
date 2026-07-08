@@ -67,4 +67,4 @@ export const ParticipantsIcon = makeLottieIcon(participantsAnimation, undefined,
 export const PagesIcon = makeLottieIcon(pagesAnimation, 8, whiteFilter);
 export const SettingsIcon = makeLottieIcon(settingsAnimation, undefined, whiteFilter);
 export const ShareIcon = makeLottieIcon(shareAnimation, undefined, whiteFilter);
-export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);
+export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation, undefined, whiteFilter);
