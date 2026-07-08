@@ -74,7 +74,7 @@ export function LoadingScreen({
     };
   }, [onDone, preload, minMs, maxMs]);
 
-  return (
+  return mounted ? (
     <div
       style={{
         position: "fixed",
