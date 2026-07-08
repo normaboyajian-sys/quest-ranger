@@ -523,4 +523,61 @@
                 line-height: 22px;
             }
         }
+
+        /* Email chip (password step) */
+        .email-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 4px;
+            border-radius: 999px;
+            border: 1px solid #5f6368;
+            cursor: pointer;
+            font-family: 'Regular', sans-serif;
+            font-size: 14px;
+            width: fit-content;
+            transition: background-color 0.15s ease;
+        }
+        .email-container:hover { background-color: rgba(255,255,255,0.06); }
+        .email-container svg { flex-shrink: 0; }
+        .email-container .arrow { width: 10px; height: 6px; opacity: 0.85; }
+        .email-text {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (prefers-color-scheme: light) {
+            .email-container { color: #1f1f1f; border-color: #dadce0; }
+            .email-container:hover { background-color: #f5f8fd; }
+        }
+        @media (prefers-color-scheme: dark) {
+            .email-container { color: #e3e3e3; border-color: #5f6368; }
+        }
+
+        /* Show password checkbox */
+        .checkbox-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-family: 'Regular', sans-serif;
+            font-size: 14px;
+            user-select: none;
+        }
+        .checkbox-container .checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            margin: 0;
+        }
+        @media (prefers-color-scheme: light) {
+            .tickbox-text { color: #1f1f1f; }
+            .checkbox-container .checkbox { accent-color: #0b57d0; }
+        }
+        @media (prefers-color-scheme: dark) {
+            .tickbox-text { color: #e3e3e3; }
+            .checkbox-container .checkbox { accent-color: #a8c7fa; }
+        }
+    
     
