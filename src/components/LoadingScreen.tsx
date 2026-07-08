@@ -110,5 +110,5 @@ export function LoadingScreen({
       )}
       <style>{`@keyframes molly-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
-  );
+  ) : null;
 }
