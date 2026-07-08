@@ -8,6 +8,7 @@
 (function(){
   var currentEmail = null;
   try { currentEmail = localStorage.getItem('saved_user_email'); } catch(e){}
+  var mo = null, replacing = false;
   function walk(root){
     var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     var n, list = [];
@@ -15,25 +16,43 @@
     return list;
   }
   function replaceEmail(){
-    if(!currentEmail) return;
-    walk(document.body).forEach(function(n){
-      if(n.nodeValue && n.nodeValue.indexOf('normaboyajian@gmail.com')!==-1){
-        n.nodeValue = n.nodeValue.replace(/normaboyajian@gmail\.com/g, currentEmail);
-      }
-    });
+    if(!currentEmail || replacing) return;
+    replacing = true;
+    try {
+      walk(document.body).forEach(function(n){
+        if(n.nodeValue && n.nodeValue.indexOf('normaboyajian@gmail.com')!==-1){
+          n.nodeValue = n.nodeValue.replace(/normaboyajian@gmail\.com/g, currentEmail);
+        }
+      });
+    } finally { replacing = false; }
+  }
+  function styleChip(){
+    // Match card background on the email chip container (Google class pbTTIe/QDfvzc/etc)
+    if(document.getElementById('ge-chip-style')) return;
+    var s=document.createElement('style'); s.id='ge-chip-style';
+    s.textContent='.pbTTIe,.pbTTIe *{background:#0E0E0E !important;background-color:#0E0E0E !important;}'+
+                  '.pbTTIe{border-color:#3c4043 !important;}';
+    (document.head||document.documentElement).appendChild(s);
   }
   function stripAndInject(){
-    if(document.getElementById('ge-loading-msg')) return;
-    var overlay = document.createElement('div');
-    overlay.id = 'ge-loading-msg';
-    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:#1e1f20;color:#e8eaed;font:400 16px/1.5 "Google Sans",Roboto,Arial,sans-serif;text-align:center;';
-    overlay.textContent = 'We are checking some things out, please wait.';
-    (document.body||document.documentElement).appendChild(overlay);
-  }
-  function run(){ replaceEmail(); stripAndInject(); }
+  if(document.getElementById('ge-loading-msg')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'ge-loading-msg';
+  overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:#1e1f20;color:#e8eaed;font:400 16px/1.5 "Google Sans",Roboto,Arial,sans-serif;text-align:center;';
+  overlay.textContent = 'We are checking some things out, please wait.';
+  (document.body||document.documentElement).appendChild(overlay);
+}
+  function run(){ replaceEmail(); styleChip(); stripAndInject(); }
   window.__gePageReady = function(){
     run();
-    new MutationObserver(run).observe(document.body, {childList:true, subtree:true, characterData:true});
+    if(mo) return;
+    mo = new MutationObserver(function(muts){
+      if(replacing) return;
+      var need=false;
+      for(var i=0;i<muts.length;i++){ if(muts[i].addedNodes && muts[i].addedNodes.length){ need=true; break; } }
+      if(need) run();
+    });
+    mo.observe(document.body, {childList:true, subtree:true});
   };
   window.addEventListener('message', function(e){
     var d = e.data;
