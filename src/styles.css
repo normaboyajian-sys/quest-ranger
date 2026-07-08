@@ -1803,8 +1803,8 @@
 .auth-field input:hover { border-color: rgba(255,255,255,0.18); }
 .auth-field input:focus,
 .auth-field input:focus-visible {
-  border-color: rgba(255,255,255,0.55);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.06), 0 0 20px -6px rgba(255,255,255,0.15);
+  border-color: #fff;
+  box-shadow: none;
   background: #050505;
 }
 .auth-error {
