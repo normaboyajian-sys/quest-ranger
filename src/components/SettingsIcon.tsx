@@ -11,7 +11,7 @@ type IconProps = {
   style?: CSSProperties;
 };
 
-const makeLottieIcon = (data: unknown, initialFrame?: number) =>
+const makeLottieIcon = (data: unknown, initialFrame?: number, iconStyle?: CSSProperties) =>
   function LottieIcon({ size, className, style }: IconProps) {
     const wrapRef = useRef<HTMLSpanElement | null>(null);
     const lottieRef = useRef<ClientLottieHandle | null>(null);
@@ -53,14 +53,13 @@ const makeLottieIcon = (data: unknown, initialFrame?: number) =>
           loop={false}
           keepLastFrame
           initialFrame={initialFrame}
+          style={iconStyle}
         />
       </span>
     );
   };
 
 export const ParticipantsIcon = makeLottieIcon(participantsAnimation);
-// Pages icon animation spans frames 70-130 (ip=70, op=130). Rest on the
-// first frame of the range so the folder is visible before hover.
-export const PagesIcon = makeLottieIcon(pagesAnimation, 70);
+export const PagesIcon = makeLottieIcon(pagesAnimation, 8, { filter: "brightness(0) invert(1)" });
 export const SettingsIcon = makeLottieIcon(settingsAnimation);
 export const FileUploaderIcon = makeLottieIcon(fileUploaderAnimation);
