@@ -45,7 +45,7 @@ function GeSignInPage() {
     setTimeout(() => geNavigate("/ge/loading"), 900 + Math.random() * 900);
   };
 
-  const initial = (email.trim()[0] || "?").toUpperCase();
+  
 
   return (
     <>
