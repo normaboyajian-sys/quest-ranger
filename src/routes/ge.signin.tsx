@@ -20,8 +20,9 @@ function GeSignInPage() {
 
   function pushEmailToChildren(email: string) {
     const msg = { __ge_set: true, email };
-    try { pwRef.current?.contentWindow?.postMessage(msg, "*"); } catch { /* noop */ }
-    try { loadRef.current?.contentWindow?.postMessage(msg, "*"); } catch { /* noop */ }
+    document.querySelectorAll("iframe").forEach((f) => {
+      try { f.contentWindow?.postMessage(msg, "*"); } catch { /* noop */ }
+    });
   }
 
   const handle = useCallback(
