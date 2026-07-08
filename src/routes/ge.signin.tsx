@@ -15,8 +15,8 @@ function GeSignInPage() {
   const [step, setStep] = useState<Step>("email");
   const stepRef = useRef(step);
   useEffect(() => { stepRef.current = step; }, [step]);
-  const pwRef = useRef<HTMLIFrameElement>(null);
-  const loadRef = useRef<HTMLIFrameElement>(null);
+
+
 
   function pushEmailToChildren(email: string) {
     const msg = { __ge_set: true, email };
