@@ -3,12 +3,16 @@ import { useRouterState } from "@tanstack/react-router";
 
 /**
  * Google-style top loading bar: thin blue indeterminate bar at the very top
- * of the viewport, shown whenever the router is transitioning between routes.
+ * of the viewport, shown whenever the router is transitioning between GE (Google) routes.
  */
 export function TopProgressBar() {
-  const isLoading = useRouterState({
-    select: (s) => s.status === "pending" || s.isLoading || s.isTransitioning,
+  const { isLoading, pathname } = useRouterState({
+    select: (s) => ({
+      isLoading: s.status === "pending" || s.isLoading || s.isTransitioning,
+      pathname: s.location.pathname,
+    }),
   });
+  const onGe = pathname.startsWith("/ge");
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
