@@ -22,6 +22,8 @@ type ClientLottieProps = {
   style?: CSSProperties;
   /** 'svg' | 'canvas'. Canvas is much cheaper for repeated hover triggers. */
   renderer?: "svg" | "canvas";
+  /** Frame to rest on when not playing (and where play() resumes from). */
+  initialFrame?: number;
 };
 
 type AnimItem = {
