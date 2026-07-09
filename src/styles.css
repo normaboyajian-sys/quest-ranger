@@ -1574,6 +1574,7 @@
 .admin-card-detail-sub { color: #6a6a6a; }
 .admin-card-detail.is-warn .admin-card-detail-v { color: #ffb86b; }
 
+/* ====== Redirect picker (rd) — full GUI ====== */
 .rd { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .rd-header {
   display: flex; align-items: center; justify-content: space-between;
