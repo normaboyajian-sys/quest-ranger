@@ -1091,7 +1091,10 @@ function ParticipantCard({
           </CopyChip>
         </div>
       </div>
-      <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
+      <div className="admin-card-page-row">
+        <span className="admin-card-page-label">on</span>
+        <PageIndicator url={p.currentUrl} />
+      </div>
       <ParticipantGeoLine p={p} />
 
       {panels.has("redirect") && (
