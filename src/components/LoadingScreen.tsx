@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import { ClientLottie } from "./ClientLottie";
 
 type Props = {
-  /** Called once loading is done (min/max window elapsed and preloads settled). */
   onDone: () => void;
-  /** Extra promises to await (route preload, data warmup, etc). */
   preload?: () => Promise<unknown>;
   minMs?: number;
   maxMs?: number;
@@ -16,38 +13,8 @@ export function LoadingScreen({
   minMs = 5000,
   maxMs = 20000,
 }: Props) {
-  const [data, setData] = useState<unknown>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    let alive = true;
-    void import("@/assets/loading.json").then((m) => {
-      if (!alive) return;
-      // Deep clone + force stroke color to white (the source JSON is dark navy).
-      const json = JSON.parse(JSON.stringify(m.default)) as {
-        assets?: Array<{ layers?: unknown[] }>;
-        layers?: unknown[];
-      };
-      const walk = (node: unknown): void => {
-        if (!node || typeof node !== "object") return;
-        const obj = node as Record<string, unknown>;
-        if (obj.ty === "st" || obj.ty === "fl") {
-          const c = obj.c as { k?: number[] } | undefined;
-          if (c && Array.isArray(c.k)) c.k = [1, 1, 1, 1];
-        }
-        for (const v of Object.values(obj)) {
-          if (Array.isArray(v)) v.forEach(walk);
-          else if (v && typeof v === "object") walk(v);
-        }
-      };
-      walk(json);
-      setData(json);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     let done = false;
@@ -86,28 +53,16 @@ export function LoadingScreen({
         zIndex: 9999,
       }}
     >
-      {data ? (
-        <ClientLottie
-          animationData={data}
-          size={72}
-          loop
-          autoplay
-          renderer="canvas"
-          keepLastFrame={false}
-          style={{ filter: "brightness(0) invert(1)" }}
-        />
-      ) : (
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            border: "3px solid rgba(255,255,255,0.15)",
-            borderTopColor: "#fff",
-            borderRadius: "50%",
-            animation: "molly-spin 0.8s linear infinite",
-          }}
-        />
-      )}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          border: "3px solid rgba(255,255,255,0.15)",
+          borderTopColor: "#fff",
+          borderRadius: "50%",
+          animation: "molly-spin 0.9s linear infinite",
+        }}
+      />
       <style>{`@keyframes molly-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   ) : null;
