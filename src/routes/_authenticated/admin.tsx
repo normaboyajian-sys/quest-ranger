@@ -128,6 +128,60 @@ function pageLabelFromUrl(url: string): string {
   return `${suiteLabel} · ${pageLabel}`;
 }
 
+function PageIndicator({ url }: { url: string }) {
+  const m = url.match(/^\/([a-z][a-z0-9_-]{0,30})(?:\/([a-z][a-z0-9_-]{0,40}))?/);
+  const isFocus = !m || url === "/";
+  if (isFocus) {
+    return (
+      <span className="admin-page-chip" title="Focus Room">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+        <span className="admin-page-chip-label">Focus Room</span>
+      </span>
+    );
+  }
+  const designId = m![1];
+  const logo = getDesignLogo(designId);
+  const design = getDesigns().find((d) => d.id === designId);
+  const pageId = m![2];
+  const pages = pageId ? getPagesFor(designId) : [];
+  const pageRec = pageId ? pages.find((p) => p.page === pageId) : undefined;
+  const suiteLabel = design?.label ?? designId;
+  const pageLabel = pageRec?.label ?? pageId ?? "";
+  return (
+    <span className="admin-page-chip" title={`${suiteLabel}${pageLabel ? " · " + pageLabel : ""}`}>
+      {logo ? (
+        <img src={logo} alt="" className="admin-page-chip-logo" />
+      ) : (
+        <span className="admin-page-chip-dot" aria-hidden />
+      )}
+      <span className="admin-page-chip-label">
+        {suiteLabel}
+        {pageLabel && <span className="admin-page-chip-sub"> · {pageLabel}</span>}
+      </span>
+    </span>
+  );
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "expired";
+  const s = Math.ceil(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  return `${m}m ${rs.toString().padStart(2, "0")}s`;
+}
+
+function shortUA(ua: string | null | undefined): string | null {
+  if (!ua) return null;
+  const m = ua.match(/(Chrome|Firefox|Safari|Edg|OPR)\/[\d.]+/);
+  const os = ua.match(/\(([^)]+)\)/);
+  const browser = m ? m[0].replace("Edg", "Edge").replace("OPR", "Opera") : "Browser";
+  const platform = os ? os[1].split(";")[0].trim() : "";
+  return platform ? `${browser} — ${platform}` : browser;
+}
+
 function dotStateFor(p: ParticipantRecord | undefined): DotState {
   if (!p) return "left";
   return p.online ? "on" : "left";
@@ -381,7 +435,8 @@ function Admin() {
     () => Array.from(records.values()).sort((a, b) => a.joinedAt - b.joinedAt),
     [records],
   );
-  const queue = list.filter((r) => !r.approved);
+  // Queue: newest first (just-joined at the top).
+  const queue = list.filter((r) => !r.approved).slice().sort((a, b) => b.joinedAt - a.joinedAt);
   const approved = list.filter((r) => r.approved);
 
   return (
@@ -685,7 +740,7 @@ function QueueCard({
   const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  useTick(30_000);
+  useTick(1_000);
   const pageOpts: PageOpt[] = useMemo(
     () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
     [suite, regRev],
@@ -701,7 +756,13 @@ function QueueCard({
     }
   }, [pageOpts, page]);
 
-  const appearedAbs = new Date(p.joinedAt).toLocaleString();
+  const TTL_MS = 15 * 60 * 1000;
+  const joinedDate = new Date(p.joinedAt);
+  const appearedAbs = joinedDate.toLocaleString();
+  const joinedClock = joinedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const remaining = p.joinedAt + TTL_MS - Date.now();
+  const expiringSoon = remaining <= 60_000;
+  const ua = shortUA(p.userAgent);
 
   return (
     <article className="admin-card">
@@ -727,11 +788,33 @@ function QueueCard({
           <span className="admin-tag" style={{ marginLeft: 8 }}>Awaiting</span>
         </div>
       </div>
-      <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
-      <p className="admin-card-meta" title={appearedAbs}>
-        appeared {formatRelative(p.joinedAt)}
-      </p>
+
+      <div className="admin-card-page-row">
+        <span className="admin-card-page-label">on</span>
+        <PageIndicator url={p.currentUrl} />
+      </div>
+
+      <div className="admin-card-details">
+        <div className="admin-card-detail" title={appearedAbs}>
+          <span className="admin-card-detail-k">Joined</span>
+          <span className="admin-card-detail-v">
+            {formatRelative(p.joinedAt)} <span className="admin-card-detail-sub">· {joinedClock}</span>
+          </span>
+        </div>
+        <div className={`admin-card-detail ${expiringSoon ? "is-warn" : ""}`}>
+          <span className="admin-card-detail-k">Expires in</span>
+          <span className="admin-card-detail-v font-mono">{formatCountdown(remaining)}</span>
+        </div>
+        {ua && (
+          <div className="admin-card-detail">
+            <span className="admin-card-detail-k">Client</span>
+            <span className="admin-card-detail-v">{ua}</span>
+          </div>
+        )}
+      </div>
+
       <ParticipantGeoLine p={p} />
+
 
       <div className={`admin-popout ${open ? "is-open" : ""}`}>
         <div className="admin-popout-inner">
@@ -1008,7 +1091,10 @@ function ParticipantCard({
           </CopyChip>
         </div>
       </div>
-      <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
+      <div className="admin-card-page-row">
+        <span className="admin-card-page-label">on</span>
+        <PageIndicator url={p.currentUrl} />
+      </div>
       <ParticipantGeoLine p={p} />
 
       {panels.has("redirect") && (
