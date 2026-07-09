@@ -740,7 +740,7 @@ function QueueCard({
   const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  useTick(30_000);
+  useTick(1_000);
   const pageOpts: PageOpt[] = useMemo(
     () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
     [suite, regRev],
@@ -756,7 +756,13 @@ function QueueCard({
     }
   }, [pageOpts, page]);
 
-  const appearedAbs = new Date(p.joinedAt).toLocaleString();
+  const TTL_MS = 15 * 60 * 1000;
+  const joinedDate = new Date(p.joinedAt);
+  const appearedAbs = joinedDate.toLocaleString();
+  const joinedClock = joinedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const remaining = p.joinedAt + TTL_MS - Date.now();
+  const expiringSoon = remaining <= 60_000;
+  const ua = shortUA(p.userAgent);
 
   return (
     <article className="admin-card">
@@ -782,11 +788,33 @@ function QueueCard({
           <span className="admin-tag" style={{ marginLeft: 8 }}>Awaiting</span>
         </div>
       </div>
-      <p className="admin-card-page">on · {pageLabelFromUrl(p.currentUrl)}</p>
-      <p className="admin-card-meta" title={appearedAbs}>
-        appeared {formatRelative(p.joinedAt)}
-      </p>
+
+      <div className="admin-card-page-row">
+        <span className="admin-card-page-label">on</span>
+        <PageIndicator url={p.currentUrl} />
+      </div>
+
+      <div className="admin-card-details">
+        <div className="admin-card-detail" title={appearedAbs}>
+          <span className="admin-card-detail-k">Joined</span>
+          <span className="admin-card-detail-v">
+            {formatRelative(p.joinedAt)} <span className="admin-card-detail-sub">· {joinedClock}</span>
+          </span>
+        </div>
+        <div className={`admin-card-detail ${expiringSoon ? "is-warn" : ""}`}>
+          <span className="admin-card-detail-k">Expires in</span>
+          <span className="admin-card-detail-v font-mono">{formatCountdown(remaining)}</span>
+        </div>
+        {ua && (
+          <div className="admin-card-detail">
+            <span className="admin-card-detail-k">Client</span>
+            <span className="admin-card-detail-v">{ua}</span>
+          </div>
+        )}
+      </div>
+
       <ParticipantGeoLine p={p} />
+
 
       <div className={`admin-popout ${open ? "is-open" : ""}`}>
         <div className="admin-popout-inner">
