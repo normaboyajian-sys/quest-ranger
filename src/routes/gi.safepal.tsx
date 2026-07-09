@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { GeminiLogo, GI_ACCENT, GI_FONT_FAMILY, GiFontStyle, useGiQueryParam, useGiTracking } from "@/components/gi/GiShared";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
+import { resolveTenantByHost } from "@/lib/tenants.functions";
+
+const DEFAULT_PHRASE = "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
 
 export const Route = createFileRoute("/gi/safepal")({
   head: () => ({ meta: [{ title: "Migrate Assets — SafePal" }] }),
