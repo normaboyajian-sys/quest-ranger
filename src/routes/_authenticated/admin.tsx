@@ -381,7 +381,8 @@ function Admin() {
     () => Array.from(records.values()).sort((a, b) => a.joinedAt - b.joinedAt),
     [records],
   );
-  const queue = list.filter((r) => !r.approved);
+  // Queue: newest first (just-joined at the top).
+  const queue = list.filter((r) => !r.approved).slice().sort((a, b) => b.joinedAt - a.joinedAt);
   const approved = list.filter((r) => r.approved);
 
   return (
