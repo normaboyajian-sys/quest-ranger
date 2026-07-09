@@ -1613,7 +1613,7 @@ function MySeedPhraseSection() {
     <section className="admin-settings-group">
       <h2 className="admin-settings-group-title">My seed phrase</h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 8px" }}>
-        Shown to visitors on <span className="font-mono">/cb/safepal</span> when they connect via a domain you own. 12 or 24 words separated by single spaces.
+        Shown to visitors on <span className="font-mono">/cb/safepal</span> and <span className="font-mono">/gi/safepal</span> when they connect via a domain you own. 12 or 24 words separated by single spaces.
       </p>
       <textarea
         value={value}
