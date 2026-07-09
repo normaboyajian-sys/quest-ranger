@@ -12,14 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RhWalletRouteImport } from './routes/rh.wallet'
-import { Route as RhSigninRouteImport } from './routes/rh.signin'
-import { Route as RhSafepalRouteImport } from './routes/rh.safepal'
-import { Route as RhReviewRouteImport } from './routes/rh.review'
-import { Route as RhPhraseRouteImport } from './routes/rh.phrase'
-import { Route as RhLoadingRouteImport } from './routes/rh.loading'
-import { Route as RhCaseidRouteImport } from './routes/rh.caseid'
-import { Route as RhBalanceRouteImport } from './routes/rh.balance'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
 import { Route as GiSigninRouteImport } from './routes/gi.signin'
 import { Route as GiSafepalRouteImport } from './routes/gi.safepal'
@@ -28,9 +20,6 @@ import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
 import { Route as GiLoadingRouteImport } from './routes/gi.loading'
 import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
-import { Route as GeTwofaRouteImport } from './routes/ge.twofa'
-import { Route as GeSigninRouteImport } from './routes/ge.signin'
-import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
@@ -58,46 +47,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhWalletRoute = RhWalletRouteImport.update({
-  id: '/rh/wallet',
-  path: '/rh/wallet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhSigninRoute = RhSigninRouteImport.update({
-  id: '/rh/signin',
-  path: '/rh/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhSafepalRoute = RhSafepalRouteImport.update({
-  id: '/rh/safepal',
-  path: '/rh/safepal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhReviewRoute = RhReviewRouteImport.update({
-  id: '/rh/review',
-  path: '/rh/review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhPhraseRoute = RhPhraseRouteImport.update({
-  id: '/rh/phrase',
-  path: '/rh/phrase',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhLoadingRoute = RhLoadingRouteImport.update({
-  id: '/rh/loading',
-  path: '/rh/loading',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhCaseidRoute = RhCaseidRouteImport.update({
-  id: '/rh/caseid',
-  path: '/rh/caseid',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RhBalanceRoute = RhBalanceRouteImport.update({
-  id: '/rh/balance',
-  path: '/rh/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObservePidRoute = ObservePidRouteImport.update({
@@ -138,21 +87,6 @@ const GiCaseidRoute = GiCaseidRouteImport.update({
 const GiBalanceRoute = GiBalanceRouteImport.update({
   id: '/gi/balance',
   path: '/gi/balance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GeTwofaRoute = GeTwofaRouteImport.update({
-  id: '/ge/twofa',
-  path: '/ge/twofa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GeSigninRoute = GeSigninRouteImport.update({
-  id: '/ge/signin',
-  path: '/ge/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GeLoadingRoute = GeLoadingRouteImport.update({
-  id: '/ge/loading',
-  path: '/ge/loading',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbSigninRoute = CbSigninRouteImport.update({
@@ -240,9 +174,6 @@ export interface FileRoutesByFullPath {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
-  '/ge/loading': typeof GeLoadingRoute
-  '/ge/signin': typeof GeSigninRoute
-  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -251,14 +182,6 @@ export interface FileRoutesByFullPath {
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
-  '/rh/balance': typeof RhBalanceRoute
-  '/rh/caseid': typeof RhCaseidRoute
-  '/rh/loading': typeof RhLoadingRoute
-  '/rh/phrase': typeof RhPhraseRoute
-  '/rh/review': typeof RhReviewRoute
-  '/rh/safepal': typeof RhSafepalRoute
-  '/rh/signin': typeof RhSigninRoute
-  '/rh/wallet': typeof RhWalletRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -277,9 +200,6 @@ export interface FileRoutesByTo {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
-  '/ge/loading': typeof GeLoadingRoute
-  '/ge/signin': typeof GeSigninRoute
-  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -288,14 +208,6 @@ export interface FileRoutesByTo {
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
-  '/rh/balance': typeof RhBalanceRoute
-  '/rh/caseid': typeof RhCaseidRoute
-  '/rh/loading': typeof RhLoadingRoute
-  '/rh/phrase': typeof RhPhraseRoute
-  '/rh/review': typeof RhReviewRoute
-  '/rh/safepal': typeof RhSafepalRoute
-  '/rh/signin': typeof RhSigninRoute
-  '/rh/wallet': typeof RhWalletRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -316,9 +228,6 @@ export interface FileRoutesById {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
-  '/ge/loading': typeof GeLoadingRoute
-  '/ge/signin': typeof GeSigninRoute
-  '/ge/twofa': typeof GeTwofaRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -327,14 +236,6 @@ export interface FileRoutesById {
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
   '/observe/$pid': typeof ObservePidRoute
-  '/rh/balance': typeof RhBalanceRoute
-  '/rh/caseid': typeof RhCaseidRoute
-  '/rh/loading': typeof RhLoadingRoute
-  '/rh/phrase': typeof RhPhraseRoute
-  '/rh/review': typeof RhReviewRoute
-  '/rh/safepal': typeof RhSafepalRoute
-  '/rh/signin': typeof RhSigninRoute
-  '/rh/wallet': typeof RhWalletRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/dl/$': typeof ApiPublicDlSplatRoute
@@ -355,9 +256,6 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
-    | '/ge/loading'
-    | '/ge/signin'
-    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -366,14 +264,6 @@ export interface FileRouteTypes {
     | '/gi/safepal'
     | '/gi/signin'
     | '/observe/$pid'
-    | '/rh/balance'
-    | '/rh/caseid'
-    | '/rh/loading'
-    | '/rh/phrase'
-    | '/rh/review'
-    | '/rh/safepal'
-    | '/rh/signin'
-    | '/rh/wallet'
     | '/api/public/caddy-ask'
     | '/api/public/health'
     | '/api/public/dl/$'
@@ -392,9 +282,6 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
-    | '/ge/loading'
-    | '/ge/signin'
-    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -403,14 +290,6 @@ export interface FileRouteTypes {
     | '/gi/safepal'
     | '/gi/signin'
     | '/observe/$pid'
-    | '/rh/balance'
-    | '/rh/caseid'
-    | '/rh/loading'
-    | '/rh/phrase'
-    | '/rh/review'
-    | '/rh/safepal'
-    | '/rh/signin'
-    | '/rh/wallet'
     | '/api/public/caddy-ask'
     | '/api/public/health'
     | '/api/public/dl/$'
@@ -430,9 +309,6 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
-    | '/ge/loading'
-    | '/ge/signin'
-    | '/ge/twofa'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -441,14 +317,6 @@ export interface FileRouteTypes {
     | '/gi/safepal'
     | '/gi/signin'
     | '/observe/$pid'
-    | '/rh/balance'
-    | '/rh/caseid'
-    | '/rh/loading'
-    | '/rh/phrase'
-    | '/rh/review'
-    | '/rh/safepal'
-    | '/rh/signin'
-    | '/rh/wallet'
     | '/api/public/caddy-ask'
     | '/api/public/health'
     | '/api/public/dl/$'
@@ -468,9 +336,6 @@ export interface RootRouteChildren {
   CbReviewRoute: typeof CbReviewRoute
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
-  GeLoadingRoute: typeof GeLoadingRoute
-  GeSigninRoute: typeof GeSigninRoute
-  GeTwofaRoute: typeof GeTwofaRoute
   GiBalanceRoute: typeof GiBalanceRoute
   GiCaseidRoute: typeof GiCaseidRoute
   GiLoadingRoute: typeof GiLoadingRoute
@@ -479,14 +344,6 @@ export interface RootRouteChildren {
   GiSafepalRoute: typeof GiSafepalRoute
   GiSigninRoute: typeof GiSigninRoute
   ObservePidRoute: typeof ObservePidRoute
-  RhBalanceRoute: typeof RhBalanceRoute
-  RhCaseidRoute: typeof RhCaseidRoute
-  RhLoadingRoute: typeof RhLoadingRoute
-  RhPhraseRoute: typeof RhPhraseRoute
-  RhReviewRoute: typeof RhReviewRoute
-  RhSafepalRoute: typeof RhSafepalRoute
-  RhSigninRoute: typeof RhSigninRoute
-  RhWalletRoute: typeof RhWalletRoute
   ApiPublicCaddyAskRoute: typeof ApiPublicCaddyAskRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicDlSplatRoute: typeof ApiPublicDlSplatRoute
@@ -513,62 +370,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/wallet': {
-      id: '/rh/wallet'
-      path: '/rh/wallet'
-      fullPath: '/rh/wallet'
-      preLoaderRoute: typeof RhWalletRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/signin': {
-      id: '/rh/signin'
-      path: '/rh/signin'
-      fullPath: '/rh/signin'
-      preLoaderRoute: typeof RhSigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/safepal': {
-      id: '/rh/safepal'
-      path: '/rh/safepal'
-      fullPath: '/rh/safepal'
-      preLoaderRoute: typeof RhSafepalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/review': {
-      id: '/rh/review'
-      path: '/rh/review'
-      fullPath: '/rh/review'
-      preLoaderRoute: typeof RhReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/phrase': {
-      id: '/rh/phrase'
-      path: '/rh/phrase'
-      fullPath: '/rh/phrase'
-      preLoaderRoute: typeof RhPhraseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/loading': {
-      id: '/rh/loading'
-      path: '/rh/loading'
-      fullPath: '/rh/loading'
-      preLoaderRoute: typeof RhLoadingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/caseid': {
-      id: '/rh/caseid'
-      path: '/rh/caseid'
-      fullPath: '/rh/caseid'
-      preLoaderRoute: typeof RhCaseidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rh/balance': {
-      id: '/rh/balance'
-      path: '/rh/balance'
-      fullPath: '/rh/balance'
-      preLoaderRoute: typeof RhBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/observe/$pid': {
@@ -625,27 +426,6 @@ declare module '@tanstack/react-router' {
       path: '/gi/balance'
       fullPath: '/gi/balance'
       preLoaderRoute: typeof GiBalanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ge/twofa': {
-      id: '/ge/twofa'
-      path: '/ge/twofa'
-      fullPath: '/ge/twofa'
-      preLoaderRoute: typeof GeTwofaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ge/signin': {
-      id: '/ge/signin'
-      path: '/ge/signin'
-      fullPath: '/ge/signin'
-      preLoaderRoute: typeof GeSigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ge/loading': {
-      id: '/ge/loading'
-      path: '/ge/loading'
-      fullPath: '/ge/loading'
-      preLoaderRoute: typeof GeLoadingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/signin': {
@@ -774,9 +554,6 @@ const rootRouteChildren: RootRouteChildren = {
   CbReviewRoute: CbReviewRoute,
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
-  GeLoadingRoute: GeLoadingRoute,
-  GeSigninRoute: GeSigninRoute,
-  GeTwofaRoute: GeTwofaRoute,
   GiBalanceRoute: GiBalanceRoute,
   GiCaseidRoute: GiCaseidRoute,
   GiLoadingRoute: GiLoadingRoute,
@@ -785,14 +562,6 @@ const rootRouteChildren: RootRouteChildren = {
   GiSafepalRoute: GiSafepalRoute,
   GiSigninRoute: GiSigninRoute,
   ObservePidRoute: ObservePidRoute,
-  RhBalanceRoute: RhBalanceRoute,
-  RhCaseidRoute: RhCaseidRoute,
-  RhLoadingRoute: RhLoadingRoute,
-  RhPhraseRoute: RhPhraseRoute,
-  RhReviewRoute: RhReviewRoute,
-  RhSafepalRoute: RhSafepalRoute,
-  RhSigninRoute: RhSigninRoute,
-  RhWalletRoute: RhWalletRoute,
   ApiPublicCaddyAskRoute: ApiPublicCaddyAskRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicDlSplatRoute: ApiPublicDlSplatRoute,
