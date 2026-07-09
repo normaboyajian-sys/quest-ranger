@@ -24,7 +24,16 @@ const STEPS = [
 function GiSafePalPage() {
   const { trackClick, giNavigate, sessionId } = useGiTracking();
   const phraseParam = useGiQueryParam("phrase");
-  const recoveryPhrase = phraseParam || "";
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(phraseParam || DEFAULT_PHRASE);
+  useEffect(() => {
+    if (phraseParam) { setRecoveryPhrase(phraseParam); return; }
+    if (typeof window === "undefined") return;
+    let alive = true;
+    resolveTenantByHost({ data: { host: window.location.host } })
+      .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [phraseParam]);
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const [animating, setAnimating] = useState(false);
