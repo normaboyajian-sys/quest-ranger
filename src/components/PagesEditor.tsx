@@ -11,12 +11,14 @@ import {
   defaultContent,
   deleteDesign,
   deletePage,
+  getDesignSourcePath,
   getDesigns,
   getDesignLogo,
   getHiddenShared,
   getPageIcon,
   getPageMeta,
   getPagesFor,
+  isReactDesign,
   isPageHidden,
   loadFile,
   loadFileCached,
@@ -295,6 +297,9 @@ export function PagesEditor() {
 
   const extension = useMemo(() => {
     if (!active) return [];
+    if (active.kind === "html" && isReactDesign(active.design)) {
+      return [jsLang({ jsx: true, typescript: true })];
+    }
     if (active.kind === "html") return [htmlLang()];
     if (active.kind === "css") return [cssLang()];
     return [jsLang()];
@@ -303,20 +308,13 @@ export function PagesEditor() {
   const pathLabel = active
     ? `${designs.find((d) => d.id === active.design)?.label ?? active.design} / ${fileLabel(active)}`
     : "Select a file";
+  const sourcePath = active ? getDesignSourcePath(active) : "";
 
   return (
     <div className="admin-pages">
       <aside className="admin-pages-tree">
         <div className="admin-pages-tree-head">
           <span>Designs</span>
-          <button
-            type="button"
-            className="admin-tree-btn"
-            title="Add design"
-            onClick={() => void onAddDesign()}
-          >
-            +
-          </button>
         </div>
 
         {designs.length === 0 && (
@@ -350,30 +348,34 @@ export function PagesEditor() {
                   <span className="admin-pages-folder-label">{folder.label}</span>
                 </button>
                 <div className="admin-pages-folder-actions">
-                  <button
-                    type="button"
-                    className="admin-tree-btn"
-                    title="Add page"
-                    onClick={() => void onAddPage(folder.id)}
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-tree-btn"
-                    title="Rename design"
-                    onClick={() => void onRenameDesign(folder.id, folder.label)}
-                  >
-                    ✎
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-tree-btn admin-tree-btn-danger"
-                    title="Delete design"
-                    onClick={() => void onDeleteDesign(folder.id, folder.label)}
-                  >
-                    ×
-                  </button>
+                  {!isReactDesign(folder.id) && (
+                    <>
+                      <button
+                        type="button"
+                        className="admin-tree-btn"
+                        title="Add page"
+                        onClick={() => void onAddPage(folder.id)}
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-tree-btn"
+                        title="Rename design"
+                        onClick={() => void onRenameDesign(folder.id, folder.label)}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-tree-btn admin-tree-btn-danger"
+                        title="Delete design"
+                        onClick={() => void onDeleteDesign(folder.id, folder.label)}
+                      >
+                        ×
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               {open && (
@@ -409,7 +411,7 @@ export function PagesEditor() {
                                 <span className="admin-pages-file-icon">{hidden ? "◌" : "·"}</span>
                               );
                             })()}
-                            {pg.label ?? pg.page}.html
+                            {pg.label ?? pg.page}{isReactDesign(folder.id) ? ".tsx" : ".html"}
                           </button>
                           <div className="admin-pages-file-actions">
                             <button
@@ -507,6 +509,11 @@ export function PagesEditor() {
         <div className="admin-pages-bar">
           <div className="admin-pages-path">
             {pathLabel}
+            {sourcePath && (
+              <span className="admin-pages-source" style={{ marginLeft: 8, color: "#888", fontSize: 12 }}>
+                {sourcePath}
+              </span>
+            )}
             {dirty ? " ·" : ""}
             {active && (
               <a
@@ -568,7 +575,8 @@ function fileLabel(f: DesignFile): string {
   if (f.page === "shared")
     return f.kind === "css" ? "styles.css" : "script.js";
   const pageRow = getPagesFor(f.design).find((p) => p.page === f.page);
-  return `${pageRow?.label ?? f.page}.html`;
+  const ext = isReactDesign(f.design) ? "tsx" : "html";
+  return `${pageRow?.label ?? f.page}.${ext}`;
 }
 
 function PageSettingsPanel({
@@ -649,7 +657,7 @@ function PageSettingsPanel({
   return (
     <div className="admin-page-panel" role="dialog" aria-label={`${label} settings`}>
       <div className="admin-page-panel-head">
-        <span className="admin-page-panel-title">{label}.html</span>
+        <span className="admin-page-panel-title">{label}{isReactDesign(design) ? ".tsx" : ".html"}</span>
         <button className="admin-page-panel-close" onClick={onClose} aria-label="Close">×</button>
       </div>
 
@@ -726,10 +734,10 @@ function PageSettingsPanel({
         <button className="admin-btn admin-btn-ghost" onClick={onToggleHidden}>
           {hidden ? "◌  Show in redirect" : "◉  Hide from redirect"}
         </button>
-        <button className="admin-btn admin-btn-ghost" onClick={onRename}>
+        <button className="admin-btn admin-btn-ghost" onClick={onRename} disabled={isReactDesign(design)}>
           ✎  Rename
         </button>
-        <button className="admin-btn admin-btn-ghost admin-btn-danger" onClick={onDelete}>
+        <button className="admin-btn admin-btn-ghost admin-btn-danger" onClick={onDelete} disabled={isReactDesign(design)}>
           ×  Delete page
         </button>
       </div>
