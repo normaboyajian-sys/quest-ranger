@@ -161,15 +161,49 @@ export const listAllDomainsWithOwners = createServerFn({ method: "GET" })
     }));
   });
 
-// Public — reads env only, no secrets. Used by the "Add domain" dialog.
+async function readServerPublicIp(): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "server_public_ip")
+    .maybeSingle();
+  const stored = (data?.value as { ip?: string } | null)?.ip;
+  if (stored && stored.trim()) return stored.trim();
+  const env = (process.env.SERVER_PUBLIC_IP ?? "").trim();
+  return env || "0.0.0.0";
+}
+
+// Used by the "Add domain" dialog. Returns the IP configured in admin settings
+// (falls back to SERVER_PUBLIC_IP env, then "0.0.0.0").
 export const getServerConnectionInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
     return {
-      ip: process.env.SERVER_PUBLIC_IP ?? "",
+      ip: await readServerPublicIp(),
       panelHost: process.env.PANEL_HOST ?? "",
     };
+  });
+
+// Admin-only: update the server IP shown to testers when they add a domain.
+export const setServerPublicIp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ ip: z.string().trim().max(64) }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await isAdmin(context.userId))) throw new Error("Forbidden");
+    const ip = data.ip.trim();
+    // Accept IPv4 / IPv6 / empty (to reset to default).
+    if (ip && !/^[0-9a-fA-F:.]+$/.test(ip)) throw new Error("Invalid IP");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert(
+        { key: "server_public_ip", value: { ip }, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true as const, ip: ip || "0.0.0.0" };
   });
 
 // Verifies (a) the hostname's A records point at SERVER_PUBLIC_IP and
