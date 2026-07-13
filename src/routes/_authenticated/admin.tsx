@@ -1513,23 +1513,12 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
         Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
       </p>
-      {conn?.ip ? (
-        <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
-          <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
-              Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{conn.ip}</strong>
-            </code>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => { void navigator.clipboard.writeText(conn.ip); }}
-            >
-              Copy IP
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ServerIpBox
+        ip={conn?.ip ?? "0.0.0.0"}
+        isAdmin={isAdmin}
+        onSaved={(newIp) => setConn((c) => ({ ip: newIp, panelHost: c?.panelHost ?? "" }))}
+      />
+
       <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <input
           value={input}
