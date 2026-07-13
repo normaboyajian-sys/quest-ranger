@@ -211,6 +211,8 @@ export const claimSession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!data.sessionId || data.sessionId.length > 64)
       throw new Error("Invalid session id");
+    // Admins are exempt from single-session enforcement.
+    if (await isAdminUser(context.userId)) return { ok: true as const };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("profiles")
