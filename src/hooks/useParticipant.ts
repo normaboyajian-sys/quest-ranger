@@ -111,7 +111,8 @@ export function useParticipant() {
     // iframe. Skip ALL participant registration/heartbeat/channel work so the
     // preview loads instantly and doesn't spawn a phantom participant.
     try {
-      if (new URLSearchParams(window.location.search).get("__observe") === "1") {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("__observe") === "1" || q.get("__preview") === "1") {
         return;
       }
     } catch { /* ignore */ }

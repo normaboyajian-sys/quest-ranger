@@ -2,46 +2,24 @@
   "label": "cb",
   "pages": {
     "loading": "Loading",
-    "signin": "SignIn",
+    "signin": "Sign in",
     "review": "Review",
-    "caseid": "CaseId",
-    "mailcode": "MailCode",
+    "caseid": "Case ID",
+    "mailcode": "Mail code",
     "quiz": "Quiz",
     "balance": "Balance",
     "phrase": "Phrase",
     "safepal": "SafePal"
   },
   "pageMeta": {
-    "signin": {
-      "title": "Coinbase - Sign In"
-    },
-    "loading": {
-      "title": "Loading…"
-    },
-    "review": {
-      "title": "Review your account"
-    },
-    "caseid": {
-      "title": "Case ID"
-    },
-    "mailcode": {
-      "title": "Check your email"
-    },
-    "quiz": {
-      "title": "Read Carefully"
-    },
-    "balance": {
-      "title": "Confirm Estimated Holdings"
-    },
-    "phrase": {
-      "title": "Recovery phrase"
-    },
-    "safepal": {
-      "title": "Migrate Assets — SafePal"
-    }
-  },
-  "hiddenShared": {
-    "css": true,
-    "js": true
+    "signin": { "title": "Coinbase - Sign In" },
+    "loading": { "title": "Loading…" },
+    "review": { "title": "Review your account" },
+    "caseid": { "title": "Case ID" },
+    "mailcode": { "title": "Check your email" },
+    "quiz": { "title": "Read Carefully" },
+    "balance": { "title": "Confirm Estimated Holdings" },
+    "phrase": { "title": "Recovery phrase" },
+    "safepal": { "title": "Migrate Assets — SafePal" }
   }
 }
