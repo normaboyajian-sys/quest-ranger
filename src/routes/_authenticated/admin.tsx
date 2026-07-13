@@ -16,6 +16,7 @@ import {
   getMySeedPhrase,
   setMySeedPhrase,
   getServerConnectionInfo,
+  setServerPublicIp,
   checkDomainStatus,
 } from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -1437,6 +1438,61 @@ function fmtAgo(iso: string | null | undefined): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; onSaved: (ip: string) => void }) {
+  const save = useServerFn(setServerPublicIp);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(ip);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { setValue(ip); }, [ip]);
+  async function onSave() {
+    setErr(null); setBusy(true);
+    try {
+      const r = await save({ data: { ip: value.trim() } }) as { ip: string };
+      onSaved(r.ip);
+      setEditing(false);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  }
+  return (
+    <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
+      <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {!editing ? (
+          <>
+            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
+              Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{ip || "0.0.0.0"}</strong>
+            </code>
+            <button type="button" className="btn-secondary" onClick={() => { void navigator.clipboard.writeText(ip || "0.0.0.0"); }}>Copy IP</button>
+            {isAdmin && (
+              <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>Edit IP</button>
+            )}
+          </>
+        ) : (
+          <>
+            <input
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="0.0.0.0"
+              autoCapitalize="off"
+              spellCheck={false}
+              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7", fontFamily: "monospace", minWidth: 180 }}
+            />
+            <button type="button" className="btn-primary" onClick={onSave} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+            <button type="button" className="btn-secondary" onClick={() => { setEditing(false); setValue(ip); setErr(null); }}>Cancel</button>
+          </>
+        )}
+      </div>
+      {err && <div className="auth-error" style={{ marginTop: 6 }}>{err}</div>}
+      {isAdmin && !editing && (
+        <div style={{ marginTop: 6, color: "#71717a", fontSize: 11 }}>
+          Admins can change the server IP shown to testers. Leave blank to reset.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
   const list = useServerFn(listMyDomains);
   const add = useServerFn(addDomain);
@@ -1512,23 +1568,12 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
         Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
       </p>
-      {conn?.ip ? (
-        <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
-          <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
-              Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{conn.ip}</strong>
-            </code>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => { void navigator.clipboard.writeText(conn.ip); }}
-            >
-              Copy IP
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ServerIpBox
+        ip={conn?.ip ?? "0.0.0.0"}
+        isAdmin={isAdmin}
+        onSaved={(newIp) => setConn((c) => ({ ip: newIp, panelHost: c?.panelHost ?? "" }))}
+      />
+
       <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <input
           value={input}
