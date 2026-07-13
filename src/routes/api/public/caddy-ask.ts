@@ -4,7 +4,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 function normalizeHost(input: string): string {
-  return input.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "");
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\.$/, "");
+}
+
+function hostAliases(host: string): string[] {
+  const h = normalizeHost(host);
+  if (!h) return [];
+  const out = [h];
+  if (h.startsWith("www.")) out.push(h.slice(4));
+  else out.push(`www.${h}`);
+  return Array.from(new Set(out.filter(Boolean)));
 }
 
 export const Route = createFileRoute("/api/public/caddy-ask")({
@@ -23,10 +38,12 @@ export const Route = createFileRoute("/api/public/caddy-ask")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const aliases = hostAliases(host);
         const { data } = await supabaseAdmin
           .from("tenant_domains")
-          .select("id")
-          .eq("hostname", host)
+          .select("id, hostname")
+          .in("hostname", aliases)
+          .limit(1)
           .maybeSingle();
         if (!data) return new Response("not allowed", { status: 404 });
 
@@ -34,7 +51,7 @@ export const Route = createFileRoute("/api/public/caddy-ask")({
         void supabaseAdmin
           .from("tenant_domains")
           .update({ ssl_status: "issued", last_checked_at: new Date().toISOString() })
-          .eq("id", data.id);
+          .in("hostname", aliases);
 
         return new Response("ok", { status: 200 });
       },

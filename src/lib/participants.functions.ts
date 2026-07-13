@@ -38,8 +38,21 @@ const SAFE_COLS = "id,current_url,assigned_url,approved,online,joined_at,last_se
 
 function normalizeHost(input: string | null | undefined): string | null {
   if (!input) return null;
-  const h = input.trim().toLowerCase().replace(/:\d+$/, "");
+  const h = input
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\.$/, "");
   return h || null;
+}
+
+function hostAliases(host: string): string[] {
+  const out = [host];
+  if (host.startsWith("www.")) out.push(host.slice(4));
+  else out.push(`www.${host}`);
+  return Array.from(new Set(out));
 }
 
 export const touchParticipantSelf = createServerFn({ method: "POST" })
@@ -72,7 +85,8 @@ export const touchParticipantSelf = createServerFn({ method: "POST" })
         const { data: dom } = await supabaseAdmin
           .from("tenant_domains")
           .select("owner_id")
-          .eq("hostname", host)
+          .in("hostname", hostAliases(host))
+          .limit(1)
           .maybeSingle();
         ownerId = (dom?.owner_id as string) ?? null;
       }

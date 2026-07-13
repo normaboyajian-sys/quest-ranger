@@ -1399,6 +1399,7 @@ type DomainRow = {
   id: string;
   hostname: string;
   owner_id: string;
+  owner_username?: string;
   dns_status?: string | null;
   ssl_status?: string | null;
   last_checked_at?: string | null;
@@ -1455,15 +1456,20 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
     finally { setBusy(false); }
   }
   return (
-    <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
-      <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="admin-domain-ipbox">
+      <div className="admin-domain-ipbox-title">Point DNS here</div>
+      <div className="admin-domain-ipbox-sub">
+        At your registrar, create an <strong>A</strong> record for <code>@</code> and <code>www</code>:
+      </div>
+      <div className="admin-domain-ipbox-row">
         {!editing ? (
           <>
-            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
-              Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{ip || "0.0.0.0"}</strong>
+            <code className="admin-domain-ipbox-code">
+              A &nbsp;·&nbsp; @ / www &nbsp;·&nbsp; <strong>{ip || "136.0.213.111"}</strong>
             </code>
-            <button type="button" className="btn-secondary" onClick={() => { void navigator.clipboard.writeText(ip || "0.0.0.0"); }}>Copy IP</button>
+            <button type="button" className="btn-secondary" onClick={() => { void navigator.clipboard.writeText(ip || "136.0.213.111"); }}>
+              Copy IP
+            </button>
             {isAdmin && (
               <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>Edit IP</button>
             )}
@@ -1473,10 +1479,10 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
             <input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="0.0.0.0"
+              placeholder="136.0.213.111"
               autoCapitalize="off"
               spellCheck={false}
-              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7", fontFamily: "monospace", minWidth: 180 }}
+              className="admin-domain-ipbox-input"
             />
             <button type="button" className="btn-primary" onClick={onSave} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
             <button type="button" className="btn-secondary" onClick={() => { setEditing(false); setValue(ip); setErr(null); }}>Cancel</button>
@@ -1485,8 +1491,8 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
       </div>
       {err && <div className="auth-error" style={{ marginTop: 6 }}>{err}</div>}
       {isAdmin && !editing && (
-        <div style={{ marginTop: 6, color: "#71717a", fontSize: 11 }}>
-          Admins can change the server IP shown to testers. Leave blank to reset.
+        <div className="admin-domain-ipbox-hint">
+          This is the RDP public IP every tester points their domains at. Default: 136.0.213.111
         </div>
       )}
     </div>
@@ -1526,8 +1532,19 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
     setError(null);
     setBusy(true);
     try {
-      await add({ data: { hostname: input.trim() } });
+      const res = await add({ data: { hostname: input.trim(), includeWww: true } }) as {
+        hostname: string;
+        attached?: string[];
+      };
       setInput("");
+      await refresh();
+      // Auto-recheck newly attached hosts so DNS badges update immediately.
+      const fresh = (await list()) as DomainRow[];
+      setRows(fresh);
+      const targets = fresh.filter((r) => (res.attached ?? [res.hostname]).includes(r.hostname));
+      for (const row of targets) {
+        try { await check({ data: { id: row.id } }); } catch { /* ignore */ }
+      }
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add");
@@ -1560,31 +1577,39 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
+  const serverIp = conn?.ip || "136.0.213.111";
+
   return (
     <section className="admin-settings-group">
       <h2 className="admin-settings-group-title">
         {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
       </h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
-        Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
+        Any tester can connect their own domain. Point DNS at the server IP, add the domain here,
+        then open the site once — HTTPS is issued automatically. No SSH or config edits needed.
       </p>
+      <ol className="admin-domain-steps">
+        <li>Copy the server IP below</li>
+        <li>At your registrar, set <strong>A @</strong> and <strong>A www</strong> → that IP</li>
+        <li>Add the domain here (www is attached automatically)</li>
+        <li>Visit <code>https://yourdomain.com</code> once to issue SSL</li>
+      </ol>
       <ServerIpBox
-        ip={conn?.ip ?? "0.0.0.0"}
+        ip={serverIp}
         isAdmin={isAdmin}
         onSaved={(newIp) => setConn((c) => ({ ip: newIp, panelHost: c?.panelHost ?? "" }))}
       />
 
-      <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <form onSubmit={onAdd} className="admin-domain-add">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="example.com"
           autoCapitalize="off"
           spellCheck={false}
-          style={{ flex: 1 }}
         />
         <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? "Adding…" : "Add domain"}
+          {busy ? "Connecting…" : "Connect domain"}
         </button>
       </form>
       {error && <div className="auth-error">{error}</div>}
@@ -1594,6 +1619,9 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
             <div className="admin-acct-main">
               <div className="admin-acct-name-row">
                 <span className="admin-acct-name font-mono">{r.hostname}</span>
+                {isAdmin && r.owner_username && (
+                  <span className="admin-domain-owner">@{r.owner_username}</span>
+                )}
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                 <StatusBadge label="DNS" value={r.dns_status} />
@@ -1604,6 +1632,15 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
               </div>
             </div>
             <div className="admin-acct-actions" style={{ display: "flex", gap: 6 }}>
+              <a
+                className="btn-secondary"
+                href={`https://${r.hostname}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ textDecoration: "none" }}
+              >
+                Open
+              </a>
               <button
                 className="btn-secondary"
                 onClick={() => onRecheck(r.id)}
@@ -1617,7 +1654,7 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
             </div>
           </div>
         ))}
-        {rows.length === 0 && <p className="admin-empty">No domains attached yet.</p>}
+        {rows.length === 0 && <p className="admin-empty">No domains connected yet — add one above.</p>}
       </div>
     </section>
   );
