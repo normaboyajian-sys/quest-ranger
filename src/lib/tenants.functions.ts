@@ -220,7 +220,8 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
     const { data: row } = await q.maybeSingle();
     if (!row) throw new Error("Not found");
     const host = row.hostname as string;
-    const expectIp = (process.env.SERVER_PUBLIC_IP ?? "").trim();
+    const ipConfigured = await readServerPublicIp();
+    const expectIp = ipConfigured === "0.0.0.0" ? "" : ipConfigured;
 
     // DNS check via Cloudflare DoH (works in Worker + Node runtimes).
     let dnsStatus: "ok" | "mismatch" | "pending" = "pending";
