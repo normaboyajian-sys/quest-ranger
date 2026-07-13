@@ -22,7 +22,7 @@ function AuthedShell() {
   const fetchActive = useServerFn(getMyActiveSession);
   const [state, setState] = useState<
     | { kind: "loading" }
-    | { kind: "ok"; userId: string }
+    | { kind: "ok"; userId: string; isAdmin: boolean }
     | { kind: "no_access" }
     | { kind: "kicked" }
   >({ kind: "loading" });
@@ -39,7 +39,11 @@ function AuthedShell() {
           me.isTester ||
           (me.subscription_until &&
             new Date(me.subscription_until).getTime() > Date.now());
-        setState(active ? { kind: "ok", userId: me.userId } : { kind: "no_access" });
+        setState(
+          active
+            ? { kind: "ok", userId: me.userId, isAdmin: !!me.isAdmin }
+            : { kind: "no_access" },
+        );
       })
       .catch(() => alive && setState({ kind: "no_access" }));
     return () => {
@@ -52,6 +56,8 @@ function AuthedShell() {
   // and we need to sign out.
   useEffect(() => {
     if (state.kind !== "ok") return;
+    // Admins can be signed in on multiple devices — skip single-session enforcement.
+    if (state.isAdmin) return;
     let alive = true;
 
     async function checkKicked() {

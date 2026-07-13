@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ConsentModal } from "@/components/ConsentModal";
 import { useParticipant } from "@/hooks/useParticipant";
 
 export const Route = createFileRoute("/")({
@@ -10,7 +9,7 @@ export const Route = createFileRoute("/")({
 });
 
 function FocusRoom() {
-  // Keep the participant gate / consent / heartbeat running — just hide the UI.
+  // Keep the participant gate / heartbeat running — just hide the UI.
   useParticipant();
   return (
     <div
@@ -20,7 +19,6 @@ function FocusRoom() {
         background: "#000",
       }}
     >
-      <ConsentModal />
     </div>
   );
 }
