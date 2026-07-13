@@ -16,6 +16,7 @@ import {
   getMySeedPhrase,
   setMySeedPhrase,
   getServerConnectionInfo,
+  setServerPublicIp,
   checkDomainStatus,
 } from "@/lib/tenants.functions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
