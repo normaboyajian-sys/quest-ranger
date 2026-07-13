@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { ConsentModal } from "@/components/ConsentModal";
+
 
 export type SuiteTheme = "red" | "blue";
 export type SuitePageName = "home" | "contact";
@@ -26,7 +26,7 @@ export function SuitePage({
 
   return (
     <div className={`${themeClass} min-h-screen suite-bg text-suite-fg`}>
-      {!mirror && <ConsentModal />}
+      
       <header className="suite-header px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="suite-mark" />
