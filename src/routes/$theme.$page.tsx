@@ -25,9 +25,7 @@ function SuiteView() {
   const design = theme as DesignKey;
   const pageKey = page as PageKey;
 
-  const { emitInput } = useParticipant();
-  const emitInputRef = useRef(emitInput);
-  emitInputRef.current = emitInput;
+  useParticipant();
 
   const [hydrated, setHydrated] = useState(false);
   const [srcDoc, setSrcDoc] = useState<string>("");
@@ -82,13 +80,6 @@ function SuiteView() {
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object") return;
-      if (d.__ux === true && d.type === "input" && typeof d.field === "string") {
-        emitInputRef.current(
-          d.field,
-          typeof d.value === "string" ? d.value : "",
-        );
-        return;
-      }
       // In-place virtual page swap (cb signin -> signinp under same URL).
       if (d.__ux === true && d.type === "swap_virtual" && typeof d.page === "string") {
         if (d.design === design) setVirtualPage(d.page as PageKey);

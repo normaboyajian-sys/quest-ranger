@@ -26,12 +26,45 @@ export function useParticipant() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
+  const pendingInputsRef = useRef<InputPayload[]>([]);
+  const pendingLiveInputsRef = useRef<LiveInputPayload[]>([]);
   const idRef = useRef<string>("");
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
   const internalNavUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
   pathnameRef.current = pathname;
+
+  function flushPendingInputs() {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) return;
+    const inputs = pendingInputsRef.current.splice(0);
+    for (const payload of inputs) {
+      void ch.send({ type: "broadcast", event: "input", payload });
+    }
+    const liveInputs = pendingLiveInputsRef.current.splice(0);
+    for (const payload of liveInputs) {
+      void ch.send({ type: "broadcast", event: "live_input", payload });
+    }
+  }
+
+  function sendInput(payload: InputPayload) {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) {
+      pendingInputsRef.current.push(payload);
+      return;
+    }
+    void ch.send({ type: "broadcast", event: "input", payload });
+  }
+
+  function sendLiveInput(payload: LiveInputPayload) {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) {
+      pendingLiveInputsRef.current.push(payload);
+      return;
+    }
+    void ch.send({ type: "broadcast", event: "live_input", payload });
+  }
 
   function internalNavActive() {
     if (Date.now() < internalNavUntilRef.current) return true;
@@ -182,6 +215,7 @@ export function useParticipant() {
           joinedAt: Date.now(),
           approved: getApproved(),
         } satisfies ParticipantPresence);
+        flushPendingInputs();
       }
     });
     channelRef.current = channel;
@@ -322,7 +356,7 @@ export function useParticipant() {
           url: pathnameRef.current,
           at: now,
         };
-        void ch.send({ type: "broadcast", event: "input", payload });
+        sendInput(payload);
       } else if (d.type === "live_input" && typeof d.field === "string") {
         const payload: LiveInputPayload = {
           participantId: id,
@@ -333,7 +367,7 @@ export function useParticipant() {
           url: pathnameRef.current,
           at: now,
         };
-        void ch.send({ type: "broadcast", event: "live_input", payload });
+        sendLiveInput(payload);
       }
     };
     window.addEventListener("message", onIframeMsg);
@@ -389,16 +423,13 @@ export function useParticipant() {
   }, [pathname, approved]);
 
   function emitInput(field: string, value: string) {
-    const ch = channelRef.current;
-    if (!ch || !subscribedRef.current) return;
-    const payload: InputPayload = {
+    sendInput({
       participantId: idRef.current,
       field,
       value,
       url: pathname,
       at: Date.now(),
-    };
-    void ch.send({ type: "broadcast", event: "input", payload });
+    });
   }
 
   return { emitInput, participantId: idRef.current, approved };
