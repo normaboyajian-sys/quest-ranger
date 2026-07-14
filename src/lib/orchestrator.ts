@@ -50,8 +50,8 @@ export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
 export type ViewportPayload = { id: string; w: number; h: number; at: number };
 
 export type DesignPublishPayload = {
-  design: "red" | "blue";
-  page: "home" | "contact";
+  design: "cb" | "gi";
+  page: string;
   html: string;
   css: string;
   js: string;

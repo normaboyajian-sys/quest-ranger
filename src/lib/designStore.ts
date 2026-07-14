@@ -107,6 +107,10 @@ const _hiddenBundledDesigns = new Set<string>();
 const _tombstones = new Set<string>(); // key = design:page:kind — never resurrect
 let _indexOverride: { order: string[] } | null = null;
 
+/** Only these designs ship / appear in the admin Pages tree + redirect picker. */
+const ALLOWED_DESIGNS = new Set(["cb", "gi"]);
+const REMOVED_DESIGNS = ["go", "blue", "red", "google"];
+
 function persistTombstones() {
   if (typeof window === "undefined") return;
   try {
@@ -191,13 +195,40 @@ runMigrations();
 
 function runMigrations() {
   if (typeof window === "undefined") return;
-  const MIGRATION_KEY = "design_migration_v3";
+  const MIGRATION_KEY = "design_migration_v4";
   try {
     if (window.localStorage.getItem(MIGRATION_KEY) === "1") return;
+    // Drop removed designs (go/blue/red/google) from any local overrides so
+    // they never reappear in the Pages tree after a prior install.
+    for (const d of REMOVED_DESIGNS) {
+      _metaOverrides.delete(d);
+      _hiddenBundledDesigns.add(d);
+      try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
+      for (const key of Array.from(_contentOverrides.keys())) {
+        if (key.startsWith(`${d}:`)) {
+          _contentOverrides.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+    }
+    try {
+      window.localStorage.setItem(
+        HIDDEN_DESIGNS_KEY,
+        JSON.stringify(Array.from(_hiddenBundledDesigns)),
+      );
+    } catch { /* ignore */ }
+    if (_indexOverride) {
+      _indexOverride = {
+        order: _indexOverride.order.filter((id) => ALLOWED_DESIGNS.has(id)),
+      };
+      try {
+        window.localStorage.setItem(INDEX_KEY, JSON.stringify(_indexOverride));
+      } catch { /* ignore */ }
+    }
     // Wipe stale meta + content overrides + tombstones for bundled designs that
     // were renamed (sign-in -> signin, signinaddon -> signinp).
     const stalePages = ["sign-in", "signinaddon", "signin-in", "signinp-addon"];
-    const designsToClean = ["cb", "blue", "red"];
+    const designsToClean = ["cb", "gi"];
     for (const d of designsToClean) {
       _metaOverrides.delete(d);
       try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
@@ -441,19 +472,26 @@ function currentIndex(): { order: string[] } {
 // ---- Public registry accessors ----
 
 export function getDesigns(): DesignRecord[] {
-  const order = currentIndex().order.filter((id) => !_hiddenBundledDesigns.has(id));
-  // Include any design that has a meta override or a bundled meta but isn't in
-  // the index (defensive).
+  const order = currentIndex().order.filter(
+    (id) => ALLOWED_DESIGNS.has(id) && !_hiddenBundledDesigns.has(id),
+  );
+  // Include any allowed design that has a meta override or a bundled meta but
+  // isn't in the index (defensive). Never surface removed designs (go/blue/red).
   const seen = new Set(order);
   for (const k of Object.keys(META_FILES)) {
     const id = k.split("/")[3];
-    if (id && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
+    if (
+      id &&
+      ALLOWED_DESIGNS.has(id) &&
+      !seen.has(id) &&
+      !_hiddenBundledDesigns.has(id)
+    ) {
       order.push(id);
       seen.add(id);
     }
   }
   for (const id of _metaOverrides.keys()) {
-    if (!seen.has(id)) {
+    if (ALLOWED_DESIGNS.has(id) && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
       order.push(id);
       seen.add(id);
     }
