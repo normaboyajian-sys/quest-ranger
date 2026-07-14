@@ -1938,6 +1938,28 @@
   text-underline-offset: 2px;
 }
 .admin-seed-link:hover { color: #fff; }
+.admin-domain-add {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+.admin-domain-input {
+  flex: 1;
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px dashed #3a3a3a;
+  background: transparent;
+  color: #e5e5e5;
+  font-size: 14px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.admin-domain-input::placeholder { color: #5a5a5a; }
+.admin-domain-input:focus {
+  outline: none;
+  border-color: #5a5a5a;
+}
 
 /* ====== Auth page ====== */
 .auth-page {

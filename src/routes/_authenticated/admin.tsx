@@ -1576,14 +1576,14 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
         onSaved={(newIp) => setConn((c) => ({ ip: newIp, panelHost: c?.panelHost ?? "" }))}
       />
 
-      <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <form onSubmit={onAdd} className="admin-domain-add">
         <input
+          className="admin-domain-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="example.com"
           autoCapitalize="off"
           spellCheck={false}
-          style={{ flex: 1 }}
         />
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? "Adding…" : "Add domain"}
