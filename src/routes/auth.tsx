@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -9,7 +9,6 @@ import {
   usernameToEmail,
 } from "@/lib/admin-users.functions";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 
 const SESSION_KEY = "molly_active_session_id";
 function newSessionId() {
@@ -33,7 +32,6 @@ function AuthPage() {
   const checkAdmin = useServerFn(hasAnyAdmin);
   const setup = useServerFn(initialAdminSetup);
   const claim = useServerFn(claimSession);
-  const mollyRef = useRef<MollyLogoHandle>(null);
   const [mode, setMode] = useState<"loading" | "setup" | "signin">("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -79,7 +77,6 @@ function AuthPage() {
       const sid = newSessionId();
       try { localStorage.setItem(SESSION_KEY, sid); } catch { /* ignore */ }
       try { await claim({ data: { sessionId: sid } }); } catch { /* ignore */ }
-      // Keep the button (spinner) — preload in the background, then go.
       await preloadAdmin().catch(() => undefined);
       navigate({ to: "/panel" });
     } catch (err) {
@@ -94,27 +91,6 @@ function AuthPage() {
   return (
     <div className="auth-page admin-noir">
       <div className="auth-stage">
-        <div className="auth-card-head auth-card-head-top">
-          <h1 className="auth-h1">
-            {mode === "setup" ? "Create admin" : "Welcome back"}
-          </h1>
-          <p className="auth-lede">
-            {mode === "setup"
-              ? "First-time setup. Choose a username and a strong password."
-              : "Sign in to open the control panel."}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="auth-sticker"
-          onMouseEnter={() => mollyRef.current?.play()}
-          onClick={() => mollyRef.current?.play()}
-          aria-label="Molly sticker"
-        >
-          <MollyLogo ref={mollyRef} size={160} />
-        </button>
-
         <form className="auth-card" onSubmit={submit}>
           <label className="auth-field">
             <span>Username</span>
@@ -170,8 +146,6 @@ function AuthPage() {
             )}
           </button>
         </form>
-
-        <p className="auth-foot">ilovemolly.com</p>
       </div>
     </div>
   );

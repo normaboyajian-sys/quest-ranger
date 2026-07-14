@@ -1977,31 +1977,6 @@
   align-items: center;
   gap: 22px;
 }
-.auth-card-head-top {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: auth-card-in 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-.auth-sticker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 168px;
-  height: 168px;
-  padding: 0;
-  margin: 4px 0 2px;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  animation: auth-card-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: 40ms;
-}
-.auth-sticker .molly-logo-tgs {
-  width: 160px !important;
-  height: 160px !important;
-}
 .auth-card {
   width: 100%;
   background: transparent;
@@ -2014,30 +1989,10 @@
   color: #d8d8d8;
   font-family: "Syne Mono", ui-monospace, monospace;
   animation: auth-card-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: 80ms;
 }
 @keyframes auth-card-in {
   from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
   to   { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-.auth-card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.auth-h1 {
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-.auth-lede {
-  font-size: 12.5px;
-  color: #7a7a7a;
-  margin: 0;
-  line-height: 1.45;
 }
 .auth-field {
   display: flex;
@@ -2114,17 +2069,6 @@
 }
 @keyframes molly-spin {
   to { transform: rotate(360deg); }
-}
-.auth-foot {
-  margin: 0;
-  text-align: center;
-  font-size: 11px;
-  color: #3a3a3a;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family: "Syne Mono", ui-monospace, monospace;
-  animation: auth-card-in 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: 120ms;
 }
 .molly-logo-tgs {
   display: block;
