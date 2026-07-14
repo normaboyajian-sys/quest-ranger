@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -9,6 +9,7 @@ import {
   usernameToEmail,
 } from "@/lib/admin-users.functions";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 
 const SESSION_KEY = "molly_active_session_id";
 function newSessionId() {
@@ -32,6 +33,7 @@ function AuthPage() {
   const checkAdmin = useServerFn(hasAnyAdmin);
   const setup = useServerFn(initialAdminSetup);
   const claim = useServerFn(claimSession);
+  const mollyRef = useRef<MollyLogoHandle>(null);
   const [mode, setMode] = useState<"loading" | "setup" | "signin">("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -47,8 +49,6 @@ function AuthPage() {
   }, [checkAdmin]);
 
   const preloadAdmin = useCallback(async () => {
-    // Warm the admin route + its heavy chunks in the background so the
-    // authenticated shell can render instantly without another loading gap.
     await Promise.allSettled([
       router.preloadRoute({ to: "/panel" }),
       import("@/routes/_authenticated/panel"),
@@ -77,7 +77,6 @@ function AuthPage() {
         password,
       });
       if (sErr) throw sErr;
-      // Stamp this device as the active session — kicks any older login.
       const sid = newSessionId();
       try { localStorage.setItem(SESSION_KEY, sid); } catch { /* ignore */ }
       try { await claim({ data: { sessionId: sid } }); } catch { /* ignore */ }
@@ -103,63 +102,85 @@ function AuthPage() {
     return <LoadingScreen onDone={() => {}} minMs={5000} maxMs={20000} />;
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={submit}>
-        <h1 className="auth-h1">
-          {mode === "setup" ? "Create admin account" : "Sign in"}
-        </h1>
-        <p className="auth-lede">
-          {mode === "setup"
-            ? "No admin exists yet. Set up the first admin account."
-            : "Sign in with your username and password."}
-        </p>
-        <label className="auth-field">
-          <span>Username</span>
-          <input
-            autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            minLength={2}
-            maxLength={32}
-            pattern="[a-zA-Z0-9_\-]+"
-          />
-        </label>
-        <label className="auth-field">
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={mode === "setup" ? 8 : 6}
-          />
-        </label>
-        {mode === "setup" && (
+    <div className="auth-page admin-noir">
+      <div className="auth-stage">
+        <button
+          type="button"
+          className="auth-brand"
+          onMouseEnter={() => mollyRef.current?.play()}
+          onClick={() => mollyRef.current?.play()}
+          aria-label="Molly"
+        >
+          <span className="admin-avatar">
+            <MollyLogo ref={mollyRef} size={36} />
+          </span>
+          <span className="admin-brand-name">Molly</span>
+        </button>
+
+        <form className="auth-card" onSubmit={submit}>
+          <div className="auth-card-head">
+            <h1 className="auth-h1">
+              {mode === "setup" ? "Create admin" : "Welcome back"}
+            </h1>
+            <p className="auth-lede">
+              {mode === "setup"
+                ? "First-time setup. Choose a username and a strong password."
+                : "Sign in to open the control panel."}
+            </p>
+          </div>
+
           <label className="auth-field">
-            <span>Setup token</span>
+            <span>Username</span>
             <input
-              type="password"
-              value={setupToken}
-              onChange={(e) => setSetupToken(e.target.value)}
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               autoCapitalize="off"
+              autoCorrect="off"
               spellCheck={false}
-              placeholder="Required if SETUP_TOKEN is set on the server"
+              required
+              minLength={2}
+              maxLength={32}
+              pattern="[a-zA-Z0-9_\-]+"
+              placeholder="admin"
             />
           </label>
-        )}
-        {error && <div className="auth-error">{error}</div>}
-        <button className="auth-btn" disabled={busy} type="submit">
-          {busy
-            ? "Please wait…"
-            : mode === "setup"
-              ? "Create admin & sign in"
-              : "Sign in"}
-        </button>
-      </form>
+          <label className="auth-field">
+            <span>Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={mode === "setup" ? 8 : 6}
+              placeholder="••••••••"
+            />
+          </label>
+          {mode === "setup" && (
+            <label className="auth-field">
+              <span>Setup token</span>
+              <input
+                type="password"
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+                autoCapitalize="off"
+                spellCheck={false}
+                placeholder="From SETUP_TOKEN on the server"
+              />
+            </label>
+          )}
+          {error && <div className="auth-error">{error}</div>}
+          <button className="auth-btn" disabled={busy} type="submit">
+            {busy
+              ? "Please wait…"
+              : mode === "setup"
+                ? "Create admin & sign in"
+                : "Sign in"}
+          </button>
+        </form>
+
+        <p className="auth-foot">ilovemolly.com</p>
+      </div>
     </div>
   );
 }

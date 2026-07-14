@@ -18,6 +18,8 @@ export const MollyLogo = forwardRef<MollyLogoHandle, { size?: number }>(function
     [],
   );
 
+  // molly.json is a Telegram sticker (TGS) exported as Lottie JSON — render
+  // with canvas (not SVG) so the sticker frames play correctly.
   return (
     <ClientLottie
       ref={innerRef}
@@ -26,6 +28,8 @@ export const MollyLogo = forwardRef<MollyLogoHandle, { size?: number }>(function
       autoplay
       loop={false}
       keepLastFrame
+      renderer="canvas"
+      className="molly-logo-tgs"
     />
   );
 });
