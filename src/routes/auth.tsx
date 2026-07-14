@@ -35,6 +35,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"loading" | "setup" | "signin">("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [setupToken, setSetupToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warming, setWarming] = useState(false);
@@ -69,7 +70,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "setup") {
-        await setup({ data: { username, password } });
+        await setup({ data: { username, password, setupToken: setupToken || undefined } });
       }
       const { error: sErr } = await supabase.auth.signInWithPassword({
         email: usernameToEmail(username),
@@ -134,9 +135,22 @@ function AuthPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={mode === "setup" ? 8 : 6}
           />
         </label>
+        {mode === "setup" && (
+          <label className="auth-field">
+            <span>Setup token</span>
+            <input
+              type="password"
+              value={setupToken}
+              onChange={(e) => setSetupToken(e.target.value)}
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="Required if SETUP_TOKEN is set on the server"
+            />
+          </label>
+        )}
         {error && <div className="auth-error">{error}</div>}
         <button className="auth-btn" disabled={busy} type="submit">
           {busy

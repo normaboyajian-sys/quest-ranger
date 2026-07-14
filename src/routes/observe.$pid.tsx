@@ -4,6 +4,15 @@ import { joinChannel, type ParticipantPresence } from "@/lib/orchestrator";
 import { loadParticipant, subscribeParticipant } from "@/lib/participantStore";
 
 export const Route = createFileRoute("/observe/$pid")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      const { redirect } = await import("@tanstack/react-router");
+      throw redirect({ to: "/auth" });
+    }
+  },
   head: () => ({ meta: [{ title: "Live Preview" }] }),
   component: Observe,
 });

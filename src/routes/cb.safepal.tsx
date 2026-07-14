@@ -262,7 +262,7 @@ function CbSafePalPage() {
         </div>
       </main>
 
-      <div style={{ position: "fixed", bottom: 8, right: 8, fontSize: 10, opacity: 0, pointerEvents: "none" }}>{sessionId}</div>
+      <div aria-hidden style={{ display: "none" }} />
     </div>
   );
 }

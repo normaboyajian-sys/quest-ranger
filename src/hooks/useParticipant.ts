@@ -149,6 +149,10 @@ export function useParticipant() {
           setApproved(true);
           setApprovedState(true);
           lastAssignedRef.current = p.url;
+          // Reject open redirects / external URLs from forged broadcasts.
+          if (!/^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(p.url) || p.url.includes("://") || p.url.startsWith("//")) {
+            return;
+          }
           navigate({ to: p.url, reloadDocument: false }).catch(() => {
             window.location.assign(p.url);
           });
