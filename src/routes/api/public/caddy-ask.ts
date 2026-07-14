@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/caddy-ask")({
         const host = normalizeHost(raw);
         if (!host || host.length > 253) return new Response("bad request", { status: 400 });
 
-        const panelHost = normalizeHost(process.env.PANEL_HOST ?? "");
+        const panelHost = normalizeHost(process.env.PANEL_HOST || "ilovemolly.com");
         if (panelHost && (host === panelHost || host.endsWith("." + panelHost))) {
           return new Response("not allowed", { status: 404 });
         }

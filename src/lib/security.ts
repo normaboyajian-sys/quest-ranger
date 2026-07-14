@@ -1,5 +1,8 @@
 import { getRequest } from "@tanstack/react-start/server";
 
+/** Canonical host for the control panel (dashboard + auth). */
+export const DEFAULT_PANEL_HOST = "ilovemolly.com";
+
 /** Security headers applied to every HTTP response. */
 export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
@@ -9,8 +12,6 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   "X-DNS-Prefetch-Control": "off",
-  // Tight CSP: allow self + supabase + inline styles the designs need.
-  // script-src keeps 'unsafe-inline' for design pages; object/base blocked.
   "Content-Security-Policy": [
     "default-src 'self'",
     "base-uri 'self'",
@@ -32,7 +33,6 @@ export function withSecurityHeaders(response: Response): Response {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
     if (!headers.has(k)) headers.set(k, v);
   }
-  // Never leak server tech
   headers.delete("x-powered-by");
   headers.set("Server", "molly");
   return new Response(response.body, {
@@ -54,9 +54,28 @@ export function requestHost(): string {
   }
 }
 
-/** True if path is panel-only (/admin, /auth, /observe). */
+export function getPanelHost(): string {
+  const raw = (process.env.PANEL_HOST || DEFAULT_PANEL_HOST).trim().toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "");
+  return raw || DEFAULT_PANEL_HOST;
+}
+
+/** Hosts allowed to serve the control panel. */
+export function panelHostAliases(): string[] {
+  const panel = getPanelHost();
+  const set = new Set<string>([panel]);
+  if (panel.startsWith("www.")) set.add(panel.slice(4));
+  else set.add(`www.${panel}`);
+  return Array.from(set);
+}
+
+/** True if path is control-panel only (/panel, /auth, /observe, legacy /admin). */
 export function isPanelOnlyPath(pathname: string): boolean {
   return (
+    pathname === "/panel" ||
+    pathname.startsWith("/panel/") ||
     pathname === "/admin" ||
     pathname.startsWith("/admin/") ||
     pathname === "/auth" ||
@@ -67,24 +86,19 @@ export function isPanelOnlyPath(pathname: string): boolean {
 }
 
 /**
- * Panel host from env (IP or hostname). Empty = allow all (dev).
- * When set, panel-only paths are refused on other hosts.
+ * Control panel (/panel, /auth, …) is only reachable on PANEL_HOST
+ * (default: ilovemolly.com). Every other domain gets 404.
  */
 export function panelHostAllowed(requestHostname: string): boolean {
-  const panel = (process.env.PANEL_HOST || "").trim().toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/:\d+$/, "");
-  if (!panel) return true;
-  // Allow localhost / loopback always for ops
   if (
     requestHostname === "localhost" ||
     requestHostname === "127.0.0.1" ||
     requestHostname === "::1"
   ) {
-    return true;
+    // Local tooling only — never for public IPs.
+    return process.env.NODE_ENV !== "production";
   }
-  return requestHostname === panel || requestHostname.endsWith("." + panel);
+  return panelHostAliases().includes(requestHostname);
 }
 
 /** Only allow in-app relative paths for participant navigations. */
@@ -94,6 +108,5 @@ export function isSafeInternalPath(url: string): boolean {
   if (url.startsWith("//")) return false;
   if (url.includes("://")) return false;
   if (url.includes("\\")) return false;
-  // /cb/signin, /gi/safepal, etc.
   return /^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(url);
 }

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
@@ -29,7 +30,7 @@ import { Route as CbMailcodeRouteImport } from './routes/cb.mailcode'
 import { Route as CbLoadingRouteImport } from './routes/cb.loading'
 import { Route as CbCaseidRouteImport } from './routes/cb.caseid'
 import { Route as CbBalanceRouteImport } from './routes/cb.balance'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicCaddyAskRouteImport } from './routes/api/public/caddy-ask'
@@ -38,6 +39,11 @@ import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -134,9 +140,9 @@ const CbBalanceRoute = CbBalanceRouteImport.update({
   path: '/cb/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ThemePageRoute = ThemePageRouteImport.update({
@@ -162,9 +168,10 @@ const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -188,9 +195,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -216,9 +224,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/$theme/$page': typeof ThemePageRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -244,9 +253,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/$theme/$page'
-    | '/admin'
+    | '/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -270,9 +280,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/auth'
     | '/$theme/$page'
-    | '/admin'
+    | '/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -297,9 +308,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin'
     | '/auth'
     | '/$theme/$page'
-    | '/_authenticated/admin'
+    | '/_authenticated/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -325,6 +337,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   ThemePageRoute: typeof ThemePageRoute
   CbBalanceRoute: typeof CbBalanceRoute
@@ -356,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -491,11 +511,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/panel': {
+      id: '/_authenticated/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AuthenticatedPanelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/$theme/$page': {
@@ -530,11 +550,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedPanelRoute: AuthenticatedPanelRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -543,6 +563,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   ThemePageRoute: ThemePageRoute,
   CbBalanceRoute: CbBalanceRoute,

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — Molly" }] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/admin" });
+    if (data.user) throw redirect({ to: "/panel" });
   },
   component: AuthPage,
 });
@@ -50,8 +50,8 @@ function AuthPage() {
     // Warm the admin route + its heavy chunks in the background so the
     // authenticated shell can render instantly without another loading gap.
     await Promise.allSettled([
-      router.preloadRoute({ to: "/admin" }),
-      import("@/routes/_authenticated/admin"),
+      router.preloadRoute({ to: "/panel" }),
+      import("@/routes/_authenticated/panel"),
       import("@/components/PagesEditor"),
       import("@/components/FileUploader"),
       import("@/components/LivePreview"),
@@ -94,7 +94,7 @@ function AuthPage() {
         preload={preloadAdmin}
         minMs={5000}
         maxMs={20000}
-        onDone={() => navigate({ to: "/admin" })}
+        onDone={() => navigate({ to: "/panel" })}
       />
     );
   }

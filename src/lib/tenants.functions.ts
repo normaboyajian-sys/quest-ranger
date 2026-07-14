@@ -215,7 +215,7 @@ export const getServerConnectionInfo = createServerFn({ method: "GET" })
     if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
     return {
       ip: await readServerPublicIp(),
-      panelHost: process.env.PANEL_HOST ?? "",
+      panelHost: process.env.PANEL_HOST || "ilovemolly.com",
     };
   });
 

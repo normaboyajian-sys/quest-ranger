@@ -98,7 +98,7 @@ function ParticipantGeoLine({ p }: { p: LiveRecord }) {
 
 
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/panel")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
   component: Admin,
 });

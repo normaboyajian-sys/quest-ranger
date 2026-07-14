@@ -115,8 +115,8 @@ Write `/etc/caddy/Caddyfile`:
     email you@example.com
 }
 
-# --- Panel host: regular auto-TLS ---
-panel.example.com {
+# --- Panel host: regular auto-TLS (control panel ONLY here) ---
+ilovemolly.com, www.ilovemolly.com {
     reverse_proxy 127.0.0.1:3000
 }
 
@@ -126,8 +126,8 @@ panel.example.com {
         on_demand
     }
 
-    # /admin and /auth are panel-only — refuse from tester domains.
-    @panel_paths path /admin* /auth*
+    # Control panel paths are panel-host only — refuse from tester domains.
+    @panel_paths path /panel* /admin* /auth* /observe*
     respond @panel_paths 404
 
     reverse_proxy 127.0.0.1:3000
