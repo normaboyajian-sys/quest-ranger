@@ -29,11 +29,16 @@ function GiSafePalPage() {
     if (phraseParam) { setRecoveryPhrase(phraseParam); return; }
     if (typeof window === "undefined") return;
     let alive = true;
-    resolveTenantByHost({ data: { host: window.location.host } })
+    resolveTenantByHost({
+      data: {
+        host: window.location.host,
+        participantId: sessionId || undefined,
+      },
+    })
       .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [phraseParam]);
+  }, [phraseParam, sessionId]);
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const [animating, setAnimating] = useState(false);

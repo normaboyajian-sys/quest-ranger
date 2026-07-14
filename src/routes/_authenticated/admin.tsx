@@ -1660,9 +1660,14 @@ function MySeedPhraseSection() {
     <section className="admin-settings-group">
       <h2 className="admin-settings-group-title">My seed phrase</h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 8px" }}>
-        Shown to visitors on <span className="font-mono">/cb/safepal</span> and <span className="font-mono">/gi/safepal</span> when they connect via a domain you own. 12 or 24 words separated by single spaces.
+        Shown on{" "}
+        <a className="admin-seed-link font-mono" href="/cb/safepal" target="_blank" rel="noreferrer">/cb/safepal</a>
+        {" "}and{" "}
+        <a className="admin-seed-link font-mono" href="/gi/safepal" target="_blank" rel="noreferrer">/gi/safepal</a>
+        {" "}when you redirect a participant there (or when they visit via your domain). 12 or 24 words separated by single spaces.
       </p>
       <textarea
+        className="admin-seed-input"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit"
@@ -1670,7 +1675,6 @@ function MySeedPhraseSection() {
         spellCheck={false}
         autoCapitalize="off"
         disabled={!loaded}
-        style={{ width: "100%", fontFamily: "ui-monospace, monospace", padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.03)", color: "#fff", border: "1px solid rgba(255,255,255,0.12)" }}
       />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
         <button className="btn-primary" onClick={() => void save()} disabled={busy || !loaded}>

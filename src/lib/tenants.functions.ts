@@ -38,12 +38,43 @@ async function isTesterOrAdmin(userId: string): Promise<boolean> {
 }
 
 // PUBLIC — visitor page uses this. Returns owner + seed phrase.
+// Prefer participant ownership (so redirects to /cb/safepal work without a
+// connected domain); fall back to the Host header → tenant_domains map.
 export const resolveTenantByHost = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ host: z.string().max(255) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        host: z.string().max(255).optional(),
+        participantId: z.string().max(64).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
-    const host = normalizeHost(data.host);
-    if (!host) return { ownerId: null, seedPhrase: "" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const participantId = (data.participantId ?? "").trim();
+    if (participantId) {
+      const { data: part } = await supabaseAdmin
+        .from("participants")
+        .select("owner_id")
+        .eq("id", participantId)
+        .maybeSingle();
+      const ownerId = (part?.owner_id as string | null) ?? null;
+      if (ownerId) {
+        const { data: settings } = await supabaseAdmin
+          .from("tester_settings")
+          .select("seed_phrase")
+          .eq("owner_id", ownerId)
+          .maybeSingle();
+        return {
+          ownerId,
+          seedPhrase: (settings?.seed_phrase as string) ?? "",
+        };
+      }
+    }
+
+    const host = normalizeHost(data.host ?? "");
+    if (!host) return { ownerId: null, seedPhrase: "" };
     const { data: dom } = await supabaseAdmin
       .from("tenant_domains")
       .select("owner_id")

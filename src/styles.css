@@ -1867,10 +1867,10 @@
   letter-spacing: 0.12em; color: #6b6b6b; margin: 0 0 4px;
 }
 .admin-server-ip {
-  background: #0e0e0e;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
-  padding: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 12px;
   font-size: 13px;
   color: #cfcfcf;
@@ -1888,11 +1888,11 @@
 }
 .admin-server-ip-code {
   display: inline-block;
-  background: #161616;
+  background: transparent;
   color: #d4d4d4;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #222;
+  border: 1px dashed #3a3a3a;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
 }
@@ -1900,21 +1900,44 @@
 .admin-server-ip-input {
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #222;
-  background: #161616;
+  border: 1px dashed #3a3a3a;
+  background: transparent;
   color: #e5e5e5;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   min-width: 180px;
 }
 .admin-server-ip-input:focus {
   outline: none;
-  border-color: #3a3a3a;
+  border-color: #5a5a5a;
 }
 .admin-server-ip-hint {
   margin-top: 8px;
   color: #6b6b6b;
   font-size: 11px;
 }
+.admin-seed-input {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  padding: 10px;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  border: 1px dashed #3a3a3a;
+  resize: vertical;
+}
+.admin-seed-input:focus {
+  outline: none;
+  border-color: #5a5a5a;
+}
+.admin-seed-input:disabled {
+  opacity: 0.5;
+}
+.admin-seed-link {
+  color: #cfcfcf;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.admin-seed-link:hover { color: #fff; }
 
 /* ====== Auth page ====== */
 .auth-page {
