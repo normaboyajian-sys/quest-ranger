@@ -46,7 +46,7 @@ export function LoadingScreen({
       style={{
         position: "fixed",
         inset: 0,
-        background: "#0a0a0a",
+        background: "#000",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

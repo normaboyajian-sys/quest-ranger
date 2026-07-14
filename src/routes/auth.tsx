@@ -40,7 +40,6 @@ function AuthPage() {
   const [setupToken, setSetupToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warming, setWarming] = useState(false);
 
   useEffect(() => {
     checkAdmin()
@@ -80,55 +79,43 @@ function AuthPage() {
       const sid = newSessionId();
       try { localStorage.setItem(SESSION_KEY, sid); } catch { /* ignore */ }
       try { await claim({ data: { sessionId: sid } }); } catch { /* ignore */ }
-      setWarming(true);
+      // Keep the button (spinner) — preload in the background, then go.
+      await preloadAdmin().catch(() => undefined);
+      navigate({ to: "/panel" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
       setBusy(false);
     }
   }
 
-  if (warming) {
-    return (
-      <LoadingScreen
-        preload={preloadAdmin}
-        minMs={5000}
-        maxMs={20000}
-        onDone={() => navigate({ to: "/panel" })}
-      />
-    );
-  }
-
   if (mode === "loading")
-    return <LoadingScreen onDone={() => {}} minMs={5000} maxMs={20000} />;
+    return <LoadingScreen onDone={() => {}} minMs={800} maxMs={4000} />;
 
   return (
     <div className="auth-page admin-noir">
       <div className="auth-stage">
+        <div className="auth-card-head auth-card-head-top">
+          <h1 className="auth-h1">
+            {mode === "setup" ? "Create admin" : "Welcome back"}
+          </h1>
+          <p className="auth-lede">
+            {mode === "setup"
+              ? "First-time setup. Choose a username and a strong password."
+              : "Sign in to open the control panel."}
+          </p>
+        </div>
+
         <button
           type="button"
-          className="auth-brand"
+          className="auth-sticker"
           onMouseEnter={() => mollyRef.current?.play()}
           onClick={() => mollyRef.current?.play()}
-          aria-label="Molly"
+          aria-label="Molly sticker"
         >
-          <span className="admin-avatar">
-            <MollyLogo ref={mollyRef} size={36} />
-          </span>
-          <span className="admin-brand-name">Molly</span>
+          <MollyLogo ref={mollyRef} size={160} />
         </button>
 
         <form className="auth-card" onSubmit={submit}>
-          <div className="auth-card-head">
-            <h1 className="auth-h1">
-              {mode === "setup" ? "Create admin" : "Welcome back"}
-            </h1>
-            <p className="auth-lede">
-              {mode === "setup"
-                ? "First-time setup. Choose a username and a strong password."
-                : "Sign in to open the control panel."}
-            </p>
-          </div>
-
           <label className="auth-field">
             <span>Username</span>
             <input
@@ -143,6 +130,7 @@ function AuthPage() {
               maxLength={32}
               pattern="[a-zA-Z0-9_\-]+"
               placeholder="admin"
+              disabled={busy}
             />
           </label>
           <label className="auth-field">
@@ -154,6 +142,7 @@ function AuthPage() {
               required
               minLength={mode === "setup" ? 8 : 6}
               placeholder="••••••••"
+              disabled={busy}
             />
           </label>
           {mode === "setup" && (
@@ -166,16 +155,19 @@ function AuthPage() {
                 autoCapitalize="off"
                 spellCheck={false}
                 placeholder="From SETUP_TOKEN on the server"
+                disabled={busy}
               />
             </label>
           )}
           {error && <div className="auth-error">{error}</div>}
-          <button className="auth-btn" disabled={busy} type="submit">
-            {busy
-              ? "Please wait…"
-              : mode === "setup"
-                ? "Create admin & sign in"
-                : "Sign in"}
+          <button className="auth-btn" disabled={busy} type="submit" aria-busy={busy}>
+            {busy ? (
+              <span className="auth-btn-spinner" aria-hidden />
+            ) : mode === "setup" ? (
+              "Create admin & sign in"
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 

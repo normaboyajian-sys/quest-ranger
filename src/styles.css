@@ -1967,15 +1967,6 @@
   position: relative;
   overflow: hidden;
 }
-.auth-page::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(ellipse 50% 40% at 50% 0%, rgba(255,255,255,0.06), transparent 60%),
-    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(255,255,255,0.03), transparent 55%);
-  pointer-events: none;
-}
 .auth-stage {
   position: relative;
   z-index: 1;
@@ -1983,43 +1974,47 @@
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 28px;
-}
-.auth-brand {
-  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  align-self: flex-start;
-  background: transparent;
-  border: 0;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
+  gap: 22px;
+}
+.auth-card-head-top {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   animation: auth-card-in 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-.auth-brand .admin-avatar {
-  width: 40px;
-  height: 40px;
+.auth-sticker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 168px;
+  height: 168px;
+  padding: 0;
+  margin: 4px 0 2px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  animation: auth-card-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: 40ms;
 }
-.auth-brand .admin-brand-name {
-  font-size: 18px;
-  max-width: none;
+.auth-sticker .molly-logo-tgs {
+  width: 160px !important;
+  height: 160px !important;
 }
 .auth-card {
   width: 100%;
-  background: #0a0a0a;
-  border: 1px dashed #2a2a2a;
-  border-radius: 14px;
-  padding: 28px 24px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
   color: #d8d8d8;
   font-family: "Syne Mono", ui-monospace, monospace;
   animation: auth-card-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: 60ms;
+  animation-delay: 80ms;
 }
 @keyframes auth-card-in {
   from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
@@ -2067,13 +2062,14 @@
   transition: border-color 200ms ease, background 200ms ease;
 }
 .auth-field input::placeholder { color: #4a4a4a; }
-.auth-field input:hover { border-color: #5a5a5a; }
+.auth-field input:hover:not(:disabled) { border-color: #5a5a5a; }
 .auth-field input:focus,
 .auth-field input:focus-visible {
   border-color: #8a8a8a;
   border-style: solid;
   background: #050505;
 }
+.auth-field input:disabled { opacity: 0.55; }
 .auth-error {
   background: rgba(239, 68, 68, 0.08);
   color: #ff8b8b;
@@ -2091,18 +2087,34 @@
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 12px 14px;
+  min-height: 46px;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 120ms ease, background 160ms ease, opacity 160ms ease;
 }
 .auth-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   background: #f2f2f2;
 }
-.auth-btn:disabled { opacity: 0.55; cursor: progress; }
+.auth-btn:disabled { opacity: 0.9; cursor: progress; }
+.auth-btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #0a0a0a;
+  border-radius: 50%;
+  animation: molly-spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes molly-spin {
+  to { transform: rotate(360deg); }
+}
 .auth-foot {
   margin: 0;
   text-align: center;
@@ -2116,19 +2128,6 @@
 }
 .molly-logo-tgs {
   display: block;
-}
-.molly-logo-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex: none;
-  animation: molly-logo-pulse 420ms ease-out;
-}
-@keyframes molly-logo-pulse {
-  0% { transform: scale(0.92); opacity: 0.72; }
-  60% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ====== Sidebar account chip (bottom-left) ====== */
