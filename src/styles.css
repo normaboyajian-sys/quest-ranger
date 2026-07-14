@@ -1866,6 +1866,55 @@
   font-size: 10.5px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.12em; color: #6b6b6b; margin: 0 0 4px;
 }
+.admin-server-ip {
+  background: #0e0e0e;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #cfcfcf;
+}
+.admin-server-ip-label {
+  margin-bottom: 8px;
+  color: #8a8a8a;
+}
+.admin-server-ip-label strong { color: #e5e5e5; font-weight: 600; }
+.admin-server-ip-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-server-ip-code {
+  display: inline-block;
+  background: #161616;
+  color: #d4d4d4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #222;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+.admin-server-ip-code strong { color: #fff; }
+.admin-server-ip-input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #222;
+  background: #161616;
+  color: #e5e5e5;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  min-width: 180px;
+}
+.admin-server-ip-input:focus {
+  outline: none;
+  border-color: #3a3a3a;
+}
+.admin-server-ip-hint {
+  margin-top: 8px;
+  color: #6b6b6b;
+  font-size: 11px;
+}
 
 /* ====== Auth page ====== */
 .auth-page {

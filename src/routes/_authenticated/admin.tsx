@@ -1455,12 +1455,14 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
     finally { setBusy(false); }
   }
   return (
-    <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
-      <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="admin-server-ip">
+      <div className="admin-server-ip-label">
+        At your registrar, create an <strong>A record</strong>:
+      </div>
+      <div className="admin-server-ip-row">
         {!editing ? (
           <>
-            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
+            <code className="admin-server-ip-code">
               Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{ip || "0.0.0.0"}</strong>
             </code>
             <button type="button" className="btn-secondary" onClick={() => { void navigator.clipboard.writeText(ip || "0.0.0.0"); }}>Copy IP</button>
@@ -1471,12 +1473,12 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
         ) : (
           <>
             <input
+              className="admin-server-ip-input"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="0.0.0.0"
               autoCapitalize="off"
               spellCheck={false}
-              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7", fontFamily: "monospace", minWidth: 180 }}
             />
             <button type="button" className="btn-primary" onClick={onSave} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
             <button type="button" className="btn-secondary" onClick={() => { setEditing(false); setValue(ip); setErr(null); }}>Cancel</button>
@@ -1485,7 +1487,7 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
       </div>
       {err && <div className="auth-error" style={{ marginTop: 6 }}>{err}</div>}
       {isAdmin && !editing && (
-        <div style={{ marginTop: 6, color: "#71717a", fontSize: 11 }}>
+        <div className="admin-server-ip-hint">
           Admins can change the server IP shown to testers. Leave blank to reset.
         </div>
       )}
