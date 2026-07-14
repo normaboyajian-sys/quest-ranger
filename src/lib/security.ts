@@ -64,8 +64,13 @@ export function getPanelHost(): string {
 
 /** Hosts allowed to serve the control panel. */
 export function panelHostAliases(): string[] {
+  const set = new Set<string>();
+  // Always allow the canonical panel domain (and www).
+  set.add(DEFAULT_PANEL_HOST);
+  set.add(`www.${DEFAULT_PANEL_HOST}`);
+  // Also allow whatever PANEL_HOST is set to (IP or custom domain).
   const panel = getPanelHost();
-  const set = new Set<string>([panel]);
+  set.add(panel);
   if (panel.startsWith("www.")) set.add(panel.slice(4));
   else set.add(`www.${panel}`);
   return Array.from(set);
