@@ -49,13 +49,17 @@ export function useGiQueryParam(name: string): string | null {
 export function useGiTracking() {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
-  const { emitInput, participantId } = useParticipant();
+  const { emitInput, emitLiveInput, participantId } = useParticipant();
 
   function trackClick(label: string) {
     if (isObserve) return;
     emitInput("__click", label);
   }
   function trackInput(field: string, value: string) {
+    if (isObserve) return;
+    emitLiveInput(field, value);
+  }
+  function trackSubmit(field: string, value: string) {
     if (isObserve) return;
     emitInput(field, value);
   }
@@ -74,16 +78,37 @@ export function useGiTracking() {
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type !== "live_input" || typeof d.field !== "string") return;
-      const el = document.querySelector(`[name="${d.field}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
-      if (el) {
-        el.value = String(d.value ?? "");
-        el.dispatchEvent(new Event("input", { bubbles: true }));
+      if (d.type === "live_input" && typeof d.field === "string") {
+        const value = String(d.value ?? "");
+        try {
+          window.dispatchEvent(
+            new CustomEvent("ux:mirror-live-input", {
+              detail: { field: d.field, value },
+            }),
+          );
+        } catch {
+          /* ignore */
+        }
+        const el = document.querySelector(`[name="${CSS.escape(d.field)}"]`) as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | null;
+        if (el) {
+          const proto = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            "value",
+          )?.set;
+          if (proto) proto.call(el, value);
+          else el.value = value;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        return;
       }
+      // Clicks are drawn as ripples by LivePreview — skip DOM click().
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, [isObserve]);
 
-  return { sessionId: participantId, trackClick, trackInput, giNavigate, isObserve };
+  return { sessionId: participantId, trackClick, trackInput, trackSubmit, giNavigate, isObserve };
 }

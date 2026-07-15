@@ -14,7 +14,7 @@ export const Route = createFileRoute("/cb/mailcode")({
 });
 
 function CbMailCodePage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
   const email = useQueryParam("email") ?? "";
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [countdown, setCountdown] = useState(60);
@@ -28,7 +28,7 @@ function CbMailCodePage() {
 
   const commitIfFull = (arr: string[]) => {
     if (arr.every((d) => d !== "")) {
-      trackInput("Email Code", arr.join(""));
+      trackSubmit("Email Code", arr.join(""));
       trackClick("Email Code Submitted");
     }
   };

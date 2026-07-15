@@ -20,6 +20,42 @@ import {
 } from "@/lib/participantStore";
 import { getAppSettings, isLikelyBot, loadAppSettings } from "@/lib/appSettings";
 
+/** Safe in-app path (+ optional query) for admin/participant navigations. */
+function parseAppUrl(url: string): { to: string; search?: Record<string, string> } | null {
+  if (!url || url.includes("://") || url.startsWith("//")) return null;
+  const q = url.indexOf("?");
+  const path = q >= 0 ? url.slice(0, q) : url;
+  const qs = q >= 0 ? url.slice(q + 1) : "";
+  if (!/^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(path) && path !== "/") {
+    return null;
+  }
+  if (!qs) return { to: path };
+  const search: Record<string, string> = {};
+  new URLSearchParams(qs).forEach((v, k) => {
+    search[k] = v;
+  });
+  return { to: path, search };
+}
+
+function navigateApp(
+  navigate: ReturnType<typeof useNavigate>,
+  url: string,
+) {
+  const parsed = parseAppUrl(url);
+  if (!parsed) return false;
+  // Routes often lack search schemas — keep query via full assign.
+  if (parsed.search) {
+    window.location.assign(url);
+    return true;
+  }
+  navigate({
+    to: parsed.to,
+    reloadDocument: false,
+  }).catch(() => {
+    window.location.assign(url);
+  });
+  return true;
+}
 
 export function useParticipant() {
   const navigate = useNavigate();
@@ -30,8 +66,20 @@ export function useParticipant() {
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
   const internalNavUntilRef = useRef(0);
+  const skipTouchUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
   pathnameRef.current = pathname;
+
+  function armInternalNav(ms = 60_000) {
+    const until = Date.now() + ms;
+    internalNavUntilRef.current = until;
+    skipTouchUntilRef.current = Date.now() + 3_000;
+    try {
+      window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
+    } catch {
+      /* ignore */
+    }
+  }
 
   function internalNavActive() {
     if (Date.now() < internalNavUntilRef.current) return true;
@@ -53,7 +101,7 @@ export function useParticipant() {
     setApprovedState(record.approved);
     const assigned = record.assignedUrl ?? null;
     // Only redirect when the admin pushes a NEW assigned URL — not on every
-    // heartbeat/refresh. This lets HTML-triggered navigation (e.g. sign-in →
+    // heartbeat/refresh. This lets page-driven navigation (e.g. sign-in →
     // loading) stick without being yanked back to the originally assigned page.
     if (lastAssignedRef.current === undefined) {
       lastAssignedRef.current = assigned;
@@ -62,13 +110,12 @@ export function useParticipant() {
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
       if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
-        navigate({ to: assigned, reloadDocument: false }).catch(() => {
-          window.location.assign(assigned);
-        });
+        skipTouchUntilRef.current = Date.now() + 3_000;
+        navigateApp(navigate, assigned);
       }
-    } else {
-      lastAssignedRef.current = assigned;
     }
+    // Do NOT reset lastAssignedRef when assigned is unchanged — internal
+    // navigations must not make a stale assignment look "new".
   }
 
 
@@ -149,9 +196,8 @@ export function useParticipant() {
           setApproved(true);
           setApprovedState(true);
           lastAssignedRef.current = p.url;
-          navigate({ to: p.url, reloadDocument: false }).catch(() => {
-            window.location.assign(p.url);
-          });
+          skipTouchUntilRef.current = Date.now() + 3_000;
+          if (!navigateApp(navigate, p.url)) return;
         }
       },
 
@@ -188,6 +234,7 @@ export function useParticipant() {
 
     const heartbeat = window.setInterval(() => {
       if (blocked) return;
+      if (Date.now() < skipTouchUntilRef.current) return;
       void touchParticipant(id, pathnameRef.current, geoFetched);
     }, 8_000);
 
@@ -268,15 +315,14 @@ export function useParticipant() {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__ux !== true) return;
       if (d.type === "internal_navigation") {
-        internalNavUntilRef.current = Date.now() + 15_000;
+        // Page-driven nav (Continue → loading, etc). Guard against admin
+        // assigned_url yanking us back — but do NOT overwrite lastAssignedRef
+        // with the destination (that made stale assignments look "new").
+        armInternalNav(60_000);
         if (typeof d.url === "string") {
-          lastAssignedRef.current = d.url;
           if (idRef.current) void touchParticipant(idRef.current, d.url);
-          // Client-side navigation — no full page reload, smooth swap.
           if (pathnameRef.current !== d.url) {
-            navigate({ to: d.url, reloadDocument: false }).catch(() => {
-              window.location.assign(d.url);
-            });
+            navigateApp(navigate, d.url);
           }
         }
         return;
@@ -368,17 +414,12 @@ export function useParticipant() {
   useEffect(() => {
     const assigned = lastAssignedRef.current;
     if (assigned && pathname !== assigned) {
-      const until = Date.now() + 60_000;
-      internalNavUntilRef.current = until;
-      try {
-        window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
-      } catch {
-        /* ignore */
-      }
+      armInternalNav(60_000);
     }
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
+    if (Date.now() < skipTouchUntilRef.current) return;
     void touchParticipant(id, pathname);
     void ch.track({
       id,
@@ -401,5 +442,20 @@ export function useParticipant() {
     void ch.send({ type: "broadcast", event: "input", payload });
   }
 
-  return { emitInput, participantId: idRef.current, approved };
+  function emitLiveInput(field: string, value: string, ftype = "text") {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) return;
+    const payload: LiveInputPayload = {
+      participantId: idRef.current,
+      field,
+      value,
+      focused: true,
+      ftype,
+      url: pathname,
+      at: Date.now(),
+    };
+    void ch.send({ type: "broadcast", event: "live_input", payload });
+  }
+
+  return { emitInput, emitLiveInput, participantId: idRef.current, approved };
 }

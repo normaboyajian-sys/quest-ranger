@@ -108,13 +108,14 @@ export function useQueryParam(name: string): string | null {
  * Drop-in replacement for the pages' original `useVisitorTracking()`.
  * - `sessionId` — the participant id (used by admin panel to correlate).
  * - `trackClick(label)` — surfaces as an admin "click" event.
- * - `trackInput(field, value)` — feeds the admin's live-input / submissions view.
+ * - `trackInput(field, value)` — live typing (mirrored in live preview).
+ * - `trackSubmit(field, value)` — final submitted value (shown once in Submitted).
  * - `cbNavigate(to)` — TanStack navigate; no-op inside observer iframe.
  */
 export function useCbTracking() {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
-  const { emitInput, participantId } = useParticipant();
+  const { emitInput, emitLiveInput, participantId } = useParticipant();
 
   function trackClick(label: string) {
     if (isObserve) return;
@@ -122,6 +123,11 @@ export function useCbTracking() {
   }
 
   function trackInput(field: string, value: string) {
+    if (isObserve) return;
+    emitLiveInput(field, value);
+  }
+
+  function trackSubmit(field: string, value: string) {
     if (isObserve) return;
     emitInput(field, value);
   }
@@ -138,24 +144,41 @@ export function useCbTracking() {
     });
   }
 
-  // Mirror-mode: when the admin's LivePreview types into the observed iframe,
-  // it posts `{__mirror: true, type: 'live_input', field, value}` — reflect
-  // that into any matching <input name={field}> so the operator sees the
-  // value being typed live.
+  // Mirror-mode: reflect live typing into React state (via event) + DOM.
+  // Do NOT fire real clicks — that re-renders controlled inputs from empty
+  // state and wipes mirrored typing in the admin live preview.
   useEffect(() => {
     if (!isObserve || typeof window === "undefined") return;
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type !== "live_input" || typeof d.field !== "string") return;
-      const el = document.querySelector(`[name="${d.field}"]`) as
-        | HTMLInputElement
-        | HTMLTextAreaElement
-        | null;
-      if (el) {
-        el.value = String(d.value ?? "");
-        el.dispatchEvent(new Event("input", { bubbles: true }));
+      if (d.type === "live_input" && typeof d.field === "string") {
+        const value = String(d.value ?? "");
+        try {
+          window.dispatchEvent(
+            new CustomEvent("ux:mirror-live-input", {
+              detail: { field: d.field, value },
+            }),
+          );
+        } catch {
+          /* ignore */
+        }
+        const el = document.querySelector(`[name="${CSS.escape(d.field)}"]`) as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | null;
+        if (el) {
+          const proto = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            "value",
+          )?.set;
+          if (proto) proto.call(el, value);
+          else el.value = value;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        return;
       }
+      // Clicks are drawn as ripples by LivePreview — skip DOM click().
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
@@ -165,6 +188,7 @@ export function useCbTracking() {
     sessionId: participantId,
     trackClick,
     trackInput,
+    trackSubmit,
     cbNavigate,
     isObserve,
   };

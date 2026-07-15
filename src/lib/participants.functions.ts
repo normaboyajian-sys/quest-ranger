@@ -10,8 +10,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { requestHost } from "@/lib/security";
 
-const ID_RE = /^p_[a-z0-9]{8,24}$/;
+const ID_RE = /^p_[a-z0-9-]{8,64}$/i;
 const URL_RE = /^\/[a-z][a-z0-9_-]{0,30}\/[a-z][a-z0-9_-]{0,40}$/;
 
 const TouchInput = z.object({
@@ -55,8 +56,13 @@ export const touchParticipantSelf = createServerFn({ method: "POST" })
       if (data.geo.region !== undefined) geoUpdate.region = data.geo.region ?? null;
       if (data.geo.city !== undefined) geoUpdate.city = data.geo.city ?? null;
       if (data.geo.userAgent !== undefined) geoUpdate.user_agent = data.geo.userAgent ?? null;
-      if (data.geo.host !== undefined) geoUpdate.host = data.geo.host ?? null;
     }
+    // Prefer the real request Host over any client-supplied value.
+    const serverHost = requestHost();
+    const clientHost = normalizeHost(data.geo?.host);
+    const host = serverHost || clientHost;
+    if (host) geoUpdate.host = host;
+
     const { data: existing, error } = await supabaseAdmin
       .from("participants")
       .update({ current_url: data.currentUrl, online: true, last_seen: now, ...geoUpdate })
@@ -65,9 +71,7 @@ export const touchParticipantSelf = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!existing) {
-      // Resolve tenant owner from Host header on first insert.
       let ownerId: string | null = null;
-      const host = normalizeHost(data.geo?.host);
       if (host) {
         const { data: dom } = await supabaseAdmin
           .from("tenant_domains")

@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { requestHost } from "@/lib/security";
 
 const HOST_RE = /^[a-z0-9][a-z0-9.-]{1,253}$/;
 
@@ -37,25 +38,57 @@ async function isTesterOrAdmin(userId: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
-// PUBLIC — visitor page uses this. Returns owner + seed phrase.
+async function seedForOwner(ownerId: string): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings } = await supabaseAdmin
+    .from("tester_settings")
+    .select("seed_phrase")
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+  return (settings?.seed_phrase as string) ?? "";
+}
+
+// PUBLIC — visitor safepal pages load the tester seed via this.
+// Hardened: ignores spoofed hosts, only approved participants, never returns ownerId.
 export const resolveTenantByHost = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ host: z.string().max(255) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        host: z.string().max(255).optional(),
+        participantId: z.string().max(64).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
-    const host = normalizeHost(data.host);
-    if (!host) return { ownerId: null, seedPhrase: "" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const empty = { ownerId: null as string | null, seedPhrase: "" };
+
+    const participantId = (data.participantId ?? "").trim();
+    if (participantId && /^p_[a-zA-Z0-9-]{8,64}$/.test(participantId)) {
+      const { data: part } = await supabaseAdmin
+        .from("participants")
+        .select("owner_id, approved")
+        .eq("id", participantId)
+        .maybeSingle();
+      const ownerId = (part?.owner_id as string | null) ?? null;
+      if (ownerId && part?.approved === true) {
+        return { ownerId: null, seedPhrase: await seedForOwner(ownerId) };
+      }
+    }
+
+    const incoming = requestHost();
+    const claimed = normalizeHost(data.host ?? "");
+    if (claimed && incoming && claimed !== incoming) return empty;
+    const host = incoming || claimed;
+    if (!host) return empty;
+
     const { data: dom } = await supabaseAdmin
       .from("tenant_domains")
       .select("owner_id")
       .eq("hostname", host)
       .maybeSingle();
-    if (!dom) return { ownerId: null, seedPhrase: "" };
-    const { data: settings } = await supabaseAdmin
-      .from("tester_settings")
-      .select("seed_phrase")
-      .eq("owner_id", dom.owner_id)
-      .maybeSingle();
-    return { ownerId: dom.owner_id as string, seedPhrase: (settings?.seed_phrase as string) ?? "" };
+    if (!dom) return empty;
+    return { ownerId: null, seedPhrase: await seedForOwner(dom.owner_id as string) };
   });
 
 export const listMyDomains = createServerFn({ method: "GET" })
@@ -182,7 +215,7 @@ export const getServerConnectionInfo = createServerFn({ method: "GET" })
     if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
     return {
       ip: await readServerPublicIp(),
-      panelHost: process.env.PANEL_HOST ?? "",
+      panelHost: process.env.PANEL_HOST || "ilovemolly.com",
     };
   });
 

