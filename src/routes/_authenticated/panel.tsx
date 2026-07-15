@@ -65,7 +65,6 @@ const pagesEditorImport = () => import("@/components/PagesEditor");
 const fileUploaderImport = () => import("@/components/FileUploader");
 const livePreviewImport = () => import("@/components/LivePreview");
 const panelModalImport = () => import("@/components/PanelModal");
-const floatingPanelImport = () => import("@/components/FloatingPanel");
 
 const PagesEditor = lazy(() => pagesEditorImport().then((m) => ({ default: m.PagesEditor })));
 const FileUploader = lazy(() => fileUploaderImport().then((m) => ({ default: m.FileUploader })));
@@ -276,7 +275,6 @@ function Admin() {
     void fileUploaderImport();
     void livePreviewImport();
     void panelModalImport();
-    void floatingPanelImport();
     return () => { off(); stop(); };
   }, []);
 
@@ -650,7 +648,7 @@ function Admin() {
 
 
 
-      {previews.map((pid, i) => {
+      {previews.map((pid) => {
         const rec = records.get(pid);
         const initialUrl = rec?.currentUrl || rec?.assignedUrl || null;
         const initialViewport = viewports.get(pid) || null;
@@ -659,10 +657,6 @@ function Admin() {
             key={pid}
             pid={pid}
             onClose={() => closePreview(pid)}
-            initial={{
-              pos: { x: 80 + i * 40, y: 80 + i * 40 },
-              size: { w: 480, h: 360 },
-            }}
             initialUrl={initialUrl}
             initialViewport={initialViewport}
           />
@@ -1000,7 +994,6 @@ function QueueCard({
                 Accept <span className="font-mono text-[11px] opacity-60">{shortId(p.id)}</span>
               </span>
             }
-            accentDot="#5dffa3"
             onClose={() => setOpen(false)}
             maxWidth={340}
             className="pc-modal"
@@ -1219,7 +1212,6 @@ function ParticipantCard({
                 {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
               </span>
             }
-            accentDot="#8aa6ff"
             onClose={() => closePanelKey("redirect")}
             maxWidth={340}
             className="pc-modal"
@@ -1319,7 +1311,6 @@ function ParticipantCard({
         <Suspense fallback={<AdminLazyFallback />}>
           <PanelModal
             title={<span>Submitted · <span className="font-mono text-[11px]">{shortId(p.id)}</span></span>}
-            accentDot="#5dffa3"
             onClose={() => closePanelKey("submitted")}
             maxWidth={440}
             className="pc-modal"
