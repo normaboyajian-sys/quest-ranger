@@ -54,6 +54,15 @@ export function FloatingPanel({
     setSize(syncSize);
   }, [syncSize?.w, syncSize?.h]);
 
+  // Keep height locked to aspect when the ratio changes (viewport updates).
+  useEffect(() => {
+    if (!aspectRatio || aspectRatio <= 0) return;
+    setSize((s) => {
+      const h = Math.max(minSize.h, Math.round(s.w / aspectRatio));
+      return h === s.h ? s : { w: s.w, h };
+    });
+  }, [aspectRatio, minSize.h]);
+
   useEffect(() => {
     function onMove(e: MouseEvent) {
       if (dragRef.current) {
@@ -68,7 +77,7 @@ export function FloatingPanel({
         const dy = e.clientY - resizeRef.current.sy;
         const aspect = aspectRef.current;
         if (aspect && aspect > 0) {
-          // Proportional resize — pick the larger relative delta as the driver.
+          // Strict proportional scale — never stretch.
           const relW = dx / resizeRef.current.ow;
           const relH = dy / resizeRef.current.oh;
           const rel = Math.abs(relW) > Math.abs(relH) ? relW : relH;

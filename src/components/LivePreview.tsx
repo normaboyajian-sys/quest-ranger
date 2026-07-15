@@ -15,13 +15,14 @@ type Cursor = { x: number; y: number };
 type Ripple = { id: number; x: number; y: number };
 type KeyChip = { id: number; x: number; y: number; ch: string };
 
-const TITLEBAR = 36;
+const TITLEBAR = 38;
 
-function fitToParticipant(w: number, h: number, maxLong: number): Size {
-  if (!w || !h) return { w: 360, h: 240 };
+/** Open small but keep the participant's exact aspect ratio. */
+function fitToParticipant(w: number, h: number, maxLong = 380): Size {
+  if (!w || !h) return { w: 280, h: 200 };
   const long = Math.max(w, h);
   const scale = Math.min(1, maxLong / long);
-  return { w: Math.round(w * scale), h: Math.round(h * scale) + TITLEBAR };
+  return { w: Math.max(160, Math.round(w * scale)), h: Math.max(120, Math.round(h * scale)) + TITLEBAR };
 }
 
 export function LivePreview({
@@ -52,7 +53,6 @@ export function LivePreview({
   );
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const initialSize = useRef<Size>(initial.size);
   const rippleSeq = useRef(0);
   const keySeq = useRef(0);
   const lastValueRef = useRef<Record<string, string>>({});
@@ -101,12 +101,20 @@ export function LivePreview({
     function onClickEv(ev: Event) {
       const p = (ev as CustomEvent<ClickPayload>).detail;
       if (p.id !== pid) return;
+      const cx = p.x * viewport.w;
+      const cy = p.y * viewport.h;
       const id = ++rippleSeq.current;
-      setRipples((prev) => [
-        ...prev,
-        { id, x: p.x * viewport.w, y: p.y * viewport.h },
-      ]);
+      setRipples((prev) => [...prev, { id, x: cx, y: cy }]);
       setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
+      // Replay the click into the observed page so buttons / links fire live.
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        try {
+          win.postMessage({ __mirror: true, type: "click", x: cx, y: cy }, "*");
+        } catch {
+          /* ignore */
+        }
+      }
     }
 
     function onScrollEv(ev: Event) {
@@ -192,15 +200,11 @@ export function LivePreview({
     };
   }, [viewport.w, viewport.h]);
 
-  // Cap the auto-fit to the viewer's own window so the panel isn't larger
-  // than the admin screen, but otherwise render at the participant's real size.
-  const maxLong =
-    typeof window !== "undefined"
-      ? Math.max(320, Math.min(window.innerWidth, window.innerHeight) - 80)
-      : 720;
+  // Open compact — full participant resolution scaled down, not admin-fullscreen.
+  const maxLong = 380;
   const fittedSize = hasViewport
     ? fitToParticipant(viewport.w, viewport.h, maxLong)
-    : initialSize.current;
+    : fitToParticipant(390, 844, maxLong);
   const isPhone = viewport.w > 0 && viewport.h > viewport.w;
   const resLabel = hasViewport ? `${viewport.w}×${viewport.h}` : "…";
   const aspect = viewport.w && viewport.h
@@ -212,19 +216,27 @@ export function LivePreview({
     [url],
   );
 
+  const centeredPos = useMemo(() => {
+    if (typeof window === "undefined") return initial.pos;
+    return {
+      x: Math.max(24, Math.round((window.innerWidth - fittedSize.w) / 2)),
+      y: Math.max(24, Math.round((window.innerHeight - fittedSize.h) / 2)),
+    };
+  }, [fittedSize.w, fittedSize.h, initial.pos]);
+
   return (
     <FloatingPanel
       title={
         <span className="lp-title-row">
           <span className="lp-live-tag">LIVE</span>
-          <span className="font-mono text-[11px]">{pid}</span>
+          <span className="font-mono text-[11px]">{pid.length > 10 ? `${pid.slice(0, 10)}…` : pid}</span>
           <span className="lp-res font-mono">{resLabel}</span>
           {isPhone && <span className="lp-phone-tag">PHONE</span>}
         </span>
       }
       onClose={onClose}
       accentDot="#5dffa3"
-      initialPos={initial.pos}
+      initialPos={centeredPos}
       initialSize={fittedSize}
       syncSize={fittedSize}
       minSize={{ w: 160, h: 140 }}
