@@ -37,7 +37,9 @@ ${GE_SHELL_CSS}
   align-items: center;
   gap: 0;
   margin-top: 16px;
+  width: fit-content;
   max-width: 100%;
+  align-self: flex-start;
   height: 32px;
   padding: 0 8px 0 3px;
   border: 1px solid var(--gm3-outline);
