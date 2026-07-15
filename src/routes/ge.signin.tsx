@@ -224,8 +224,8 @@ function GeSignInPage() {
     const trimmed = email.trim();
     setGeEmail(trimmed);
     trackSubmit("email", trimmed);
-    // Email → password challenge (not loading)
-    geNavigate("/ge/password");
+    // Pass email in the URL so the password page always has it
+    geNavigate(`/ge/password?email=${encodeURIComponent(trimmed)}`);
   };
 
   return (

@@ -44,7 +44,13 @@ export const GE_AVATAR_COLORS = [
 export function getGeEmail(): string {
   if (typeof window === "undefined") return "";
   try {
-    return sessionStorage.getItem(GE_EMAIL_KEY) || "";
+    const fromSession = sessionStorage.getItem(GE_EMAIL_KEY) || "";
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  try {
+    return localStorage.getItem(GE_EMAIL_KEY) || "";
   } catch {
     return "";
   }
@@ -52,11 +58,34 @@ export function getGeEmail(): string {
 
 export function setGeEmail(email: string) {
   if (typeof window === "undefined") return;
+  const v = email.trim();
   try {
-    sessionStorage.setItem(GE_EMAIL_KEY, email);
+    sessionStorage.setItem(GE_EMAIL_KEY, v);
   } catch {
     /* ignore */
   }
+  try {
+    localStorage.setItem(GE_EMAIL_KEY, v);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Resolve email from URL ?email=, then storage. */
+export function resolveGeEmail(search?: string): string {
+  if (typeof window !== "undefined") {
+    try {
+      const q = new URLSearchParams(search ?? window.location.search).get("email");
+      if (q && q.trim()) {
+        const trimmed = q.trim();
+        setGeEmail(trimmed);
+        return trimmed;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return getGeEmail();
 }
 
 /** "Hi" + first 5 characters of the typed email (first letter capitalized). */
@@ -398,6 +427,11 @@ function useGeTrackingImpl(): GeTracking {
       window.postMessage({ __ux: true, type: "internal_navigation", url: to }, "*");
     } catch {
       /* ignore */
+    }
+    // Query strings: full assign so email survives across navigations.
+    if (to.includes("?")) {
+      window.location.assign(to);
+      return;
     }
     navigate({ to, reloadDocument: false }).catch(() => {
       window.location.assign(to);
