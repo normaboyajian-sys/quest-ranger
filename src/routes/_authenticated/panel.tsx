@@ -65,6 +65,7 @@ const pagesEditorImport = () => import("@/components/PagesEditor");
 const fileUploaderImport = () => import("@/components/FileUploader");
 const livePreviewImport = () => import("@/components/LivePreview");
 const panelModalImport = () => import("@/components/PanelModal");
+const floatingPanelImport = () => import("@/components/FloatingPanel");
 
 const PagesEditor = lazy(() => pagesEditorImport().then((m) => ({ default: m.PagesEditor })));
 const FileUploader = lazy(() => fileUploaderImport().then((m) => ({ default: m.FileUploader })));
