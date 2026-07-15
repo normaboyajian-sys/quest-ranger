@@ -144,40 +144,41 @@ export function useCbTracking() {
     });
   }
 
-  // Mirror-mode: when the admin's LivePreview posts live_input / click into
-  // the observed page, reflect that so the operator sees typing + button presses.
+  // Mirror-mode: reflect live typing into React state (via event) + DOM.
+  // Do NOT fire real clicks — that re-renders controlled inputs from empty
+  // state and wipes mirrored typing in the admin live preview.
   useEffect(() => {
     if (!isObserve || typeof window === "undefined") return;
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__mirror !== true) return;
       if (d.type === "live_input" && typeof d.field === "string") {
-        const el = document.querySelector(`[name="${d.field}"]`) as
+        const value = String(d.value ?? "");
+        try {
+          window.dispatchEvent(
+            new CustomEvent("ux:mirror-live-input", {
+              detail: { field: d.field, value },
+            }),
+          );
+        } catch {
+          /* ignore */
+        }
+        const el = document.querySelector(`[name="${CSS.escape(d.field)}"]`) as
           | HTMLInputElement
           | HTMLTextAreaElement
           | null;
         if (el) {
-          el.value = String(d.value ?? "");
+          const proto = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            "value",
+          )?.set;
+          if (proto) proto.call(el, value);
+          else el.value = value;
           el.dispatchEvent(new Event("input", { bubbles: true }));
         }
         return;
       }
-      if (d.type === "click" && typeof d.x === "number" && typeof d.y === "number") {
-        const target = document.elementFromPoint(d.x, d.y) as HTMLElement | null;
-        if (!target) return;
-        if (typeof target.click === "function") target.click();
-        else {
-          target.dispatchEvent(
-            new MouseEvent("click", {
-              bubbles: true,
-              cancelable: true,
-              clientX: d.x,
-              clientY: d.y,
-              view: window,
-            }),
-          );
-        }
-      }
+      // Clicks are drawn as ripples by LivePreview — skip DOM click().
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);

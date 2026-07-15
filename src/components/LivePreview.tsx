@@ -218,6 +218,8 @@ export function LivePreview({
       syncSize={initial?.size ? undefined : panelSize}
       minSize={{ w: 200, h: 260 }}
       resizable
+      aspectRatio={viewport.w > 0 && viewport.h > 0 ? viewport.w / viewport.h : undefined}
+      chromeHeight={BAR_H}
       className="live-preview-panel"
     >
       <div className="mirror-root lp-mirror" ref={stageWrapRef}>

