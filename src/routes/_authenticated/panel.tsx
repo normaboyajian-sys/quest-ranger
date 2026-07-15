@@ -864,7 +864,6 @@ function SessionsPage({
       <section className="sessions-section">
         <header className="sessions-head">
           <div className="sessions-head-left">
-            <span className="sessions-dot is-pending" aria-hidden />
             <h2 className="sessions-title">Pending Approval</h2>
             <span className="sessions-count">{queue.length}</span>
           </div>
@@ -894,7 +893,7 @@ function SessionsPage({
         <header className="sessions-head">
           <div className="sessions-head-left">
             <h2 className="sessions-title">Active Sessions</h2>
-            <span className="sessions-count is-muted">{approved.length}</span>
+            <span className="sessions-count">{approved.length}</span>
           </div>
           <div className="sessions-head-right">
             <input
