@@ -2450,12 +2450,12 @@
 }
 .admin-page-panel-row-actions .admin-btn { font-size: 11px; padding: 6px 10px; }
 .admin-btn-ghost.admin-btn-danger { color: #ff8b8b; }
-.admin-btn-ghost.admin-btn-danger:hover { background: rgba(255, 80, 80, 0.08); }
+.admin-btn-ghost.admin-btn-danger:hover { background: transparent; border-color: rgba(255, 80, 80, 0.4); }
 
 /* Settings page */
 .admin-settings-page {
-  padding: 28px 32px 60px;
-  max-width: 760px;
+  padding: 48px 28px 72px;
+  max-width: 720px;
   margin: 0 auto;
   display: flex; flex-direction: column; gap: 28px;
 }
