@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { PanelModal } from "./PanelModal";
+import { createPortal } from "react-dom";
+import { FloatingPanel } from "./FloatingPanel";
 import type {
   ClickPayload,
   LiveInputPayload,
@@ -14,6 +15,7 @@ type Ripple = { id: number; x: number; y: number };
 type KeyChip = { id: number; x: number; y: number; ch: string };
 
 const STAGE_MAX = 420;
+const BAR_H = 38;
 
 function fitStage(w: number, h: number, maxLong: number) {
   if (!w || !h) return { w: 280, h: 420 };
@@ -28,6 +30,7 @@ function fitStage(w: number, h: number, maxLong: number) {
 export function LivePreview({
   pid,
   onClose,
+  initial,
   initialUrl,
   initialViewport,
 }: {
@@ -170,6 +173,7 @@ export function LivePreview({
   }, [pid, viewport.w, viewport.h]);
 
   const stage = fitStage(viewport.w, viewport.h, STAGE_MAX);
+  const panelSize = { w: stage.w, h: stage.h + BAR_H };
 
   useLayoutEffect(() => {
     function recompute() {
@@ -194,25 +198,29 @@ export function LivePreview({
     [url],
   );
 
-  return (
-    <PanelModal
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <FloatingPanel
       title={
         <span className="lp-title-row">
           <span className="lp-live-tag">LIVE</span>
-          <span className="font-mono text-[11px]">{pid.length > 10 ? `${pid.slice(0, 10)}…` : pid}</span>
+          <span className="font-mono text-[11px]">
+            {pid.length > 10 ? `${pid.slice(0, 10)}…` : pid}
+          </span>
           <span className="lp-res font-mono">{resLabel}</span>
           {isPhone && <span className="lp-phone-tag">PHONE</span>}
         </span>
       }
       onClose={onClose}
-      maxWidth={stage.w + 28}
-      className="lp-modal"
+      initialPos={initial?.pos}
+      initialSize={initial?.size ?? panelSize}
+      syncSize={initial?.size ? undefined : panelSize}
+      minSize={{ w: 200, h: 260 }}
+      resizable
+      className="live-preview-panel"
     >
-      <div
-        className="mirror-root lp-mirror"
-        ref={stageWrapRef}
-        style={{ width: stage.w, height: stage.h }}
-      >
+      <div className="mirror-root lp-mirror" ref={stageWrapRef}>
         <div
           className="mirror-stage"
           style={{
@@ -269,6 +277,7 @@ export function LivePreview({
           ))}
         </div>
       </div>
-    </PanelModal>
+    </FloatingPanel>,
+    document.body,
   );
 }
