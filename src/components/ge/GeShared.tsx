@@ -21,6 +21,84 @@ export const GE_OUTLINE = "rgb(142, 145, 143)";
 export const GE_ON_SURFACE = "rgb(227, 227, 227)";
 export const GE_ON_SURFACE_VARIANT = "rgb(196, 199, 197)";
 
+/** Same key as design HTML tracker (`__ux_email`) so React ↔ iframe share email. */
+export const GE_EMAIL_KEY = "__ux_email";
+export const GE_AVATAR_COLOR_KEY = "ge_avatar_color";
+
+/** Google-style letter-avatar palette */
+export const GE_AVATAR_COLORS = [
+  "#F4511E",
+  "#E67C73",
+  "#F6BF26",
+  "#33B679",
+  "#0B8043",
+  "#039BE5",
+  "#3F51B5",
+  "#7986CB",
+  "#8E24AA",
+  "#E4C441",
+  "#D50000",
+  "#FF7043",
+];
+
+export function getGeEmail(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return sessionStorage.getItem(GE_EMAIL_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setGeEmail(email: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(GE_EMAIL_KEY, email);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** "Hi" + first 5 characters of the typed email (first letter capitalized). */
+export function geHiName(email: string): string {
+  const raw = email.trim().slice(0, 5);
+  if (!raw) return "";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** Two-letter initials from the email local-part (Google-style). */
+export function geInitials(email: string): string {
+  const local = (email.split("@")[0] || email).trim();
+  const parts = local.split(/[._+\-\s]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  }
+  const alnum = local.replace(/[^a-zA-Z0-9]/g, "");
+  if (alnum.length >= 2) return alnum.slice(0, 2).toUpperCase();
+  if (alnum.length === 1) return (alnum + alnum).toUpperCase();
+  return "??";
+}
+
+/** Stable-per-email random-looking background from the Google palette. */
+export function geAvatarColor(email: string): string {
+  const normalized = email.trim().toLowerCase() || "guest";
+  if (typeof window === "undefined") {
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
+    return GE_AVATAR_COLORS[hash % GE_AVATAR_COLORS.length];
+  }
+  try {
+    const key = `${GE_AVATAR_COLOR_KEY}:${normalized}`;
+    const stored = sessionStorage.getItem(key);
+    if (stored) return stored;
+    const color = GE_AVATAR_COLORS[Math.floor(Math.random() * GE_AVATAR_COLORS.length)];
+    sessionStorage.setItem(key, color);
+    return color;
+  } catch {
+    return GE_AVATAR_COLORS[0];
+  }
+}
+
 export function GoogleGLogo({
   width = 48,
   height = 48,

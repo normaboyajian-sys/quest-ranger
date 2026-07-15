@@ -2,10 +2,15 @@
   "label": "ge",
   "pages": {
     "signin": "SignIn",
+    "password": "Password",
     "loading": "Loading"
   },
   "pageMeta": {
     "signin": {
+      "title": "Sign in - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "password": {
       "title": "Sign in - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     },

