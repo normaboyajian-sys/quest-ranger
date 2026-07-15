@@ -213,7 +213,7 @@ function runMigrations() {
   if (typeof window === "undefined") return;
   const MIGRATION_KEY = "design_migration_v4";
   try {
-    if (window.localStorage.getItem(MIGRATION_KEY) === "1") return;
+    if (window.localStorage.getItem(MIGRATION_KEY) !== "1") {
     // Drop removed designs (go/blue/red/google) from any local overrides so
     // they never reappear in the Pages tree after a prior install.
     for (const d of REMOVED_DESIGNS) {
@@ -259,6 +259,26 @@ function runMigrations() {
     }
     persistTombstones();
     try { window.localStorage.setItem(MIGRATION_KEY, "1"); } catch { /* ignore */ }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // ge: drop placeholder overrides so bundled signin/loading HTML wins.
+  const GE_MIG = "design_migration_ge_v1";
+  try {
+    if (window.localStorage.getItem(GE_MIG) !== "1") {
+      for (const page of ["signin", "loading"]) {
+        for (const kind of ["html", "css", "js"]) {
+          const key = `ge:${page}:${kind}`;
+          _contentOverrides.delete(key);
+          _tombstones.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+      persistTombstones();
+      try { window.localStorage.setItem(GE_MIG, "1"); } catch { /* ignore */ }
+    }
   } catch {
     /* ignore */
   }
@@ -1257,7 +1277,8 @@ function wireContinueButtons(){
   var here = loc.page || '';
   // Per-design page → next mapping for the guided flow.
   var DESIGN_NEXT = {
-    'go': { 'signin': 'signinp', 'signinp': 'signinploading' }
+    'go': { 'signin': 'signinp', 'signinp': 'signinploading' },
+    'ge': { 'signin': 'loading' }
   };
   var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as GiRouteImport } from './routes/gi'
+import { Route as GeRouteImport } from './routes/ge'
 import { Route as CbRouteImport } from './routes/cb'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -23,6 +24,8 @@ import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
 import { Route as GiLoadingRouteImport } from './routes/gi.loading'
 import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
+import { Route as GeSigninRouteImport } from './routes/ge.signin'
+import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
@@ -41,6 +44,11 @@ import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 const GiRoute = GiRouteImport.update({
   id: '/gi',
   path: '/gi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GeRoute = GeRouteImport.update({
+  id: '/ge',
+  path: '/ge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbRoute = CbRouteImport.update({
@@ -106,6 +114,16 @@ const GiBalanceRoute = GiBalanceRouteImport.update({
   id: '/balance',
   path: '/balance',
   getParentRoute: () => GiRoute,
+} as any)
+const GeSigninRoute = GeSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeLoadingRoute = GeLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => GeRoute,
 } as any)
 const CbSigninRoute = CbSigninRouteImport.update({
   id: '/signin',
@@ -183,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
   '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/panel': typeof AuthenticatedPanelRoute
@@ -195,6 +214,8 @@ export interface FileRoutesByFullPath {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -212,6 +233,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
   '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/panel': typeof AuthenticatedPanelRoute
@@ -224,6 +246,8 @@ export interface FileRoutesByTo {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -243,6 +267,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
   '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
@@ -255,6 +280,8 @@ export interface FileRoutesById {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -274,6 +301,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cb'
+    | '/ge'
     | '/gi'
     | '/$theme/$page'
     | '/panel'
@@ -286,6 +314,8 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/loading'
+    | '/ge/signin'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -303,6 +333,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cb'
+    | '/ge'
     | '/gi'
     | '/$theme/$page'
     | '/panel'
@@ -315,6 +346,8 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/loading'
+    | '/ge/signin'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -333,6 +366,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cb'
+    | '/ge'
     | '/gi'
     | '/$theme/$page'
     | '/_authenticated/panel'
@@ -345,6 +379,8 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/loading'
+    | '/ge/signin'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -364,6 +400,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   CbRoute: typeof CbRouteWithChildren
+  GeRoute: typeof GeRouteWithChildren
   GiRoute: typeof GiRouteWithChildren
   ThemePageRoute: typeof ThemePageRoute
   ObservePidRoute: typeof ObservePidRoute
@@ -379,6 +416,13 @@ declare module '@tanstack/react-router' {
       path: '/gi'
       fullPath: '/gi'
       preLoaderRoute: typeof GiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ge': {
+      id: '/ge'
+      path: '/ge'
+      fullPath: '/ge'
+      preLoaderRoute: typeof GeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb': {
@@ -471,6 +515,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/gi/balance'
       preLoaderRoute: typeof GiBalanceRouteImport
       parentRoute: typeof GiRoute
+    }
+    '/ge/signin': {
+      id: '/ge/signin'
+      path: '/signin'
+      fullPath: '/ge/signin'
+      preLoaderRoute: typeof GeSigninRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/loading': {
+      id: '/ge/loading'
+      path: '/loading'
+      fullPath: '/ge/loading'
+      preLoaderRoute: typeof GeLoadingRouteImport
+      parentRoute: typeof GeRoute
     }
     '/cb/signin': {
       id: '/cb/signin'
@@ -610,6 +668,18 @@ const CbRouteChildren: CbRouteChildren = {
 
 const CbRouteWithChildren = CbRoute._addFileChildren(CbRouteChildren)
 
+interface GeRouteChildren {
+  GeLoadingRoute: typeof GeLoadingRoute
+  GeSigninRoute: typeof GeSigninRoute
+}
+
+const GeRouteChildren: GeRouteChildren = {
+  GeLoadingRoute: GeLoadingRoute,
+  GeSigninRoute: GeSigninRoute,
+}
+
+const GeRouteWithChildren = GeRoute._addFileChildren(GeRouteChildren)
+
 interface GiRouteChildren {
   GiBalanceRoute: typeof GiBalanceRoute
   GiCaseidRoute: typeof GiCaseidRoute
@@ -638,6 +708,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   CbRoute: CbRouteWithChildren,
+  GeRoute: GeRouteWithChildren,
   GiRoute: GiRouteWithChildren,
   ThemePageRoute: ThemePageRoute,
   ObservePidRoute: ObservePidRoute,
@@ -648,13 +719,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
