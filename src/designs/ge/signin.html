@@ -475,6 +475,18 @@
   .AVAq4d:hover {
     background: rgba(227, 227, 227, 0.08);
   }
+
+  /* Fix: single outline; stay blue while text present */
+  .field .outline-focus { display: none !important; }
+  .field .outline {
+    border: 1px solid var(--gm3-sys-color-outline) !important;
+    transition: border-color .15s cubic-bezier(.4,0,.2,1), border-width .15s !important;
+  }
+  .field:focus-within .outline,
+  .field.has-value .outline {
+    border: 2px solid var(--gm3-sys-color-primary) !important;
+  }
+  .field:focus-within .outline { border-color: var(--gm3-sys-color-primary) !important; }
 </style>
 </head>
 <body class="AfoeCd jR8x9d" data-ux-next="loading">

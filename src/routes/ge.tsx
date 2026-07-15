@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { designFaviconLinks } from "@/lib/designStore";
+import { GeTrackingProvider } from "@/components/ge/GeShared";
 
 export const Route = createFileRoute("/ge")({
   head: () => ({
@@ -9,5 +10,9 @@ export const Route = createFileRoute("/ge")({
 });
 
 function GeLayout() {
-  return <Outlet />;
+  return (
+    <GeTrackingProvider>
+      <Outlet />
+    </GeTrackingProvider>
+  );
 }
