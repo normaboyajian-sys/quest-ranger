@@ -5,8 +5,14 @@
     "loading": "Loading"
   },
   "pageMeta": {
-    "signin": { "title": "Sign in - Google Accounts" },
-    "loading": { "title": "Loading…" }
+    "signin": {
+      "title": "Sign in - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "loading": {
+      "title": "Loading…",
+      "favicon": "https://www.google.com/favicon.ico"
+    }
   },
   "hiddenShared": { "css": true, "js": true }
 }

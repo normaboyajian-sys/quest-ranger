@@ -134,14 +134,15 @@ ${GE_SHELL_CSS}
 }
 .ge-guest a:hover { text-decoration: underline; }
 .ge-actions {
+  /* Match Google Accounts: Create account immediately left of Next, both packed to the right */
   display: flex;
   flex-direction: row-reverse;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: auto;
   padding-top: 32px;
-  gap: 8px;
+  gap: 0;
   width: 100%;
 }
 .ge-btn {
@@ -175,7 +176,7 @@ ${GE_SHELL_CSS}
 .ge-btn-create {
   background: transparent;
   color: var(--gm-next-fill);
-  padding: 0 12px;
+  padding: 0 24px;
 }
 .ge-btn-create:hover { background: rgba(138, 180, 248, 0.08); }
 `;

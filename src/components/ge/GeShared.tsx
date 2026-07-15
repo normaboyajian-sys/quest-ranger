@@ -59,25 +59,25 @@ export function GoogleGLogo({
   );
 }
 
+import googleSans400Url from "@/assets/ge/GoogleSans-400.woff2?url";
+import googleSans500Url from "@/assets/ge/GoogleSans-500.woff2?url";
+
 export function GeFontStyle() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
       @font-face {
         font-family: "Google Sans";
         font-style: normal;
         font-weight: 400;
         font-display: swap;
-        src: local("Google Sans"), local("Product Sans"),
-             url(https://fonts.gstatic.com/s/googlesans/v29/4UaGrENHsxJlGDuGo1OIlL3Owp4.woff2) format("woff2");
+        src: url(${JSON.stringify(googleSans400Url)}) format("woff2");
       }
       @font-face {
         font-family: "Google Sans";
         font-style: normal;
         font-weight: 500;
         font-display: swap;
-        src: local("Google Sans Medium"), local("Product Sans Medium"),
-             url(https://fonts.gstatic.com/s/googlesans/v29/4UabrENHsxJlGDuGo1OIlLU94YtzDwYA.woff2) format("woff2");
+        src: url(${JSON.stringify(googleSans500Url)}) format("woff2");
       }
     `}</style>
   );
