@@ -236,15 +236,24 @@ export const getMyActiveSession = createServerFn({ method: "GET" })
   });
 
 
-// Setup: create the very first admin (only allowed when zero admins exist).
+// Setup: create the very first admin (only when zero admins exist).
+// Requires SETUP_TOKEN env to match when that env is set (recommended in prod).
 export const initialAdminSetup = createServerFn({ method: "POST" })
-  .inputValidator((data: { username: string; password: string }) => data)
+  .inputValidator((data: { username: string; password: string; setupToken?: string }) => data)
   .handler(async ({ data }) => {
+    const required = (process.env.SETUP_TOKEN ?? "").trim();
+    if (required) {
+      const got = (data.setupToken ?? "").trim();
+      if (!got || got.length !== required.length) throw new Error("Invalid setup token");
+      let diff = 0;
+      for (let i = 0; i < required.length; i++) diff |= required.charCodeAt(i) ^ got.charCodeAt(i);
+      if (diff !== 0) throw new Error("Invalid setup token");
+    }
     const username = data.username.trim().toLowerCase();
     if (!/^[a-z0-9_-]{2,32}$/.test(username))
       throw new Error("Username must be 2-32 chars, a-z 0-9 _ -");
-    if (!data.password || data.password.length < 6)
-      throw new Error("Password must be at least 6 characters");
+    if (!data.password || data.password.length < 8)
+      throw new Error("Password must be at least 8 characters");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { count, error: cErr } = await supabaseAdmin
       .from("user_roles")

@@ -12,6 +12,7 @@ export function FloatingPanel({
   minSize = { w: 260, h: 180 },
   resizable = true,
   aspectRatio,
+  chromeHeight = 0,
   children,
   accentDot,
   className,
@@ -23,8 +24,10 @@ export function FloatingPanel({
   syncSize?: Size;
   minSize?: Size;
   resizable?: boolean;
-  /** If set, the resize handle keeps h = w / aspectRatio (bar height added). */
+  /** Content width / height. Panel height becomes contentH + chromeHeight. */
   aspectRatio?: number;
+  /** Title bar (etc.) height excluded from aspect lock, in px. */
+  chromeHeight?: number;
   children: ReactNode;
   accentDot?: string;
   className?: string;
@@ -45,6 +48,16 @@ export function FloatingPanel({
   const resizeRef = useRef<{ ow: number; oh: number; sx: number; sy: number } | null>(null);
   const aspectRef = useRef<number | undefined>(aspectRatio);
   aspectRef.current = aspectRatio;
+  const chromeRef = useRef(chromeHeight);
+  chromeRef.current = chromeHeight;
+
+  function sizeFromWidth(w: number, aspect: number, chrome: number): Size {
+    const contentH = Math.max(1, Math.round(w / aspect));
+    return {
+      w: Math.max(minSize.w, w),
+      h: Math.max(minSize.h, contentH + chrome),
+    };
+  }
 
   // External size sync (e.g. live preview auto-matching participant viewport).
   // Only applies until the user manually resizes.
@@ -53,6 +66,15 @@ export function FloatingPanel({
     if (userResizedRef.current) return;
     setSize(syncSize);
   }, [syncSize?.w, syncSize?.h]);
+
+  // Keep height locked to aspect when the ratio changes (viewport updates).
+  useEffect(() => {
+    if (!aspectRatio || aspectRatio <= 0) return;
+    setSize((s) => {
+      const next = sizeFromWidth(s.w, aspectRatio, chromeHeight);
+      return next.w === s.w && next.h === s.h ? s : next;
+    });
+  }, [aspectRatio, chromeHeight, minSize.w, minSize.h]);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -67,14 +89,15 @@ export function FloatingPanel({
         const dx = e.clientX - resizeRef.current.sx;
         const dy = e.clientY - resizeRef.current.sy;
         const aspect = aspectRef.current;
+        const chrome = chromeRef.current;
         if (aspect && aspect > 0) {
-          // Proportional resize — pick the larger relative delta as the driver.
+          // Strict proportional scale — never stretch / letterbox.
           const relW = dx / resizeRef.current.ow;
-          const relH = dy / resizeRef.current.oh;
+          const contentOh = Math.max(1, resizeRef.current.oh - chrome);
+          const relH = dy / contentOh;
           const rel = Math.abs(relW) > Math.abs(relH) ? relW : relH;
           const w = Math.max(minSize.w, Math.round(resizeRef.current.ow * (1 + rel)));
-          const h = Math.max(minSize.h, Math.round(w / aspect));
-          setSize({ w, h });
+          setSize(sizeFromWidth(w, aspect, chrome));
         } else {
           setSize({
             w: Math.max(minSize.w, resizeRef.current.ow + dx),

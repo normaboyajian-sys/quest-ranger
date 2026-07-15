@@ -50,8 +50,8 @@ export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
 export type ViewportPayload = { id: string; w: number; h: number; at: number };
 
 export type DesignPublishPayload = {
-  design: "red" | "blue";
-  page: "home" | "contact";
+  design: "cb" | "gi";
+  page: string;
   html: string;
   css: string;
   js: string;
@@ -78,7 +78,11 @@ export function getOrCreateParticipantId(): string {
   try { id = localStorage.getItem(PID_KEY); } catch { /* ignore */ }
   if (!id) id = readCookie(PID_KEY);
   if (!id) {
-    id = `p_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`;
+    const uuid =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    id = `p_${uuid}`;
   }
   // Re-persist to both stores so a wipe of one is restored from the other.
   try { localStorage.setItem(PID_KEY, id); } catch { /* ignore */ }

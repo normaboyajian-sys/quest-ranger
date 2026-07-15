@@ -4,6 +4,8 @@ import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
   buildSrcDocVirtual,
+  designFaviconLinks,
+  getPageMeta,
   remoteHydrated,
   subscribeDesignChanges,
   type DesignKey,
@@ -13,7 +15,18 @@ import {
 const SLUG = /^[a-z][a-z0-9_-]{0,40}$/;
 
 export const Route = createFileRoute("/$theme/$page")({
-  head: () => ({ meta: [{ title: "Controlled Suite" }] }),
+  head: ({ params }) => {
+    const theme = params.theme;
+    const page = params.page;
+    const pm =
+      SLUG.test(theme) && SLUG.test(page) && page !== "shared"
+        ? getPageMeta(theme, page)
+        : {};
+    return {
+      meta: [{ title: (pm.title ?? "").trim() || "Controlled Suite" }],
+      links: designFaviconLinks(theme, page),
+    };
+  },
   component: SuiteView,
 });
 
@@ -94,9 +107,8 @@ function SuiteView() {
         if (d.design === design) setVirtualPage(d.page as PageKey);
         return;
       }
-      // Observer → forward live_input down into the inner srcDoc iframe so the
-      // tracker can paint the typed value into the matching field.
-      if (d.__mirror === true && d.type === "live_input") {
+      // Observer → forward live_input / click down into the inner srcDoc iframe.
+      if (d.__mirror === true && (d.type === "live_input" || d.type === "click")) {
         const win = iframeRef.current?.contentWindow;
         if (win) {
           try { win.postMessage(d, "*"); } catch { /* ignore */ }
