@@ -225,7 +225,6 @@ function dotStateFor(p: ParticipantRecord | undefined): DotState {
 
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
-  const [section, setSection] = useState<"queue" | "participants">("queue");
   const [nav, setNav] = useState<"participants" | "pages" | "settings" | "fileuploader">("participants");
   const [folders, setFolders] = useState<{ admin: boolean; utils: boolean }>(() => {
     if (typeof window === "undefined") return { admin: true, utils: true };
@@ -611,40 +610,18 @@ function Admin() {
         <main className="admin-main">
           <Suspense fallback={<AdminLazyFallback />}>
             <div hidden={nav !== "participants"} style={nav === "participants" ? undefined : { display: "none" }}>
-              <div className="admin-segmented-wrap">
-                <div className="admin-segmented" role="tablist">
-                  <button
-                    role="tab"
-                    aria-selected={section === "queue"}
-                    className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
-                    onClick={() => setSection("queue")}
-                  >
-                    Queue <span className="admin-seg-count">{queue.length}</span>
-                  </button>
-                  <button
-                    role="tab"
-                    aria-selected={section === "participants"}
-                    className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
-                    onClick={() => setSection("participants")}
-                  >
-                    Participants <span className="admin-seg-count">{approved.length}</span>
-                  </button>
-                </div>
-              </div>
-              <div key={section} className="admin-pane admin-pane-swap">
-                {section === "queue" ? (
-                  <QueuePane items={queue} onApprove={approve} onKick={kick} suites={suites} />
-                ) : (
-                  <ParticipantsPane
-                    items={approved}
-                    onNavigate={sendNavigate}
-                    onRevoke={revoke}
-                    onKick={kick}
-                    onOpenPreview={openPreview}
-                    events={events}
-                    suites={suites}
-                  />
-                )}
+              <div className="admin-pane">
+                <SessionsPage
+                  queue={queue}
+                  approved={approved}
+                  onApprove={approve}
+                  onNavigate={sendNavigate}
+                  onRevoke={revoke}
+                  onKick={kick}
+                  onOpenPreview={openPreview}
+                  events={events}
+                  suites={suites}
+                />
               </div>
             </div>
 
@@ -715,47 +692,213 @@ function useTick(ms: number): void {
   }, [ms]);
 }
 
-function QueuePane({
-  items,
+function QueueTtlRing({ remainingMs, ttlMs }: { remainingMs: number; ttlMs: number }) {
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, remainingMs / ttlMs));
+  const dash = c * pct;
+  const urgent = remainingMs <= 60_000;
+  const label = remainingMs <= 0
+    ? "0s"
+    : remainingMs < 60_000
+      ? `${Math.ceil(remainingMs / 1000)}s`
+      : `${Math.ceil(remainingMs / 60_000)}m`;
+  return (
+    <span className={`pc-ttl-ring ${urgent ? "is-warn" : ""}`} title="Time until queue expiry" aria-label={`Expires in ${label}`}>
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden>
+        <circle cx="17" cy="17" r={r} fill="none" stroke="#1a1a1a" strokeWidth="2.5" />
+        <circle
+          cx="17"
+          cy="17"
+          r={r}
+          fill="none"
+          stroke={urgent ? "#ffb86b" : "#5dffa3"}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+          transform="rotate(-90 17 17)"
+        />
+      </svg>
+      <span className="pc-ttl-ring-label">{label}</span>
+    </span>
+  );
+}
+
+function SessionCardBody({ p, showId = false }: { p: LiveRecord; showId?: boolean }) {
+  const ua = parseUA(p.userAgent);
+  const place = placeFromParticipant(p);
+  return (
+    <>
+      <DesignMark url={p.currentUrl} size={22} />
+      <div className="pc-identity">
+        <div className="pc-identity-top">
+          <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+          {p.ip ? (
+            <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
+              <span className="font-mono">{p.ip}</span>
+            </CopyChip>
+          ) : (
+            <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
+              <span className="font-mono">{shortId(p.id)}</span>
+            </CopyChip>
+          )}
+          <StatusDot state={p.state} />
+          {showId && (
+            <CopyChip text={p.id} title="Copy full participant id" className="pc-pid copy-chip-inline">
+              <span className="font-mono">{shortId(p.id)}</span>
+            </CopyChip>
+          )}
+        </div>
+        <div className="pc-identity-geo">
+          {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
+          {p.host && (
+            <span className="pc-host" title="Connected host">
+              <span className="pc-host-label">via</span> {p.host}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="pc-ua pc-ua-inline" title={p.userAgent ?? undefined}>
+        {ua ? <span>{ua.os} · {ua.browser}</span> : <span className="pc-muted">Unknown client</span>}
+      </div>
+      <div className="pc-page">
+        <PagePathChip url={p.currentUrl} />
+      </div>
+    </>
+  );
+}
+
+function SessionsPage({
+  queue,
+  approved,
   onApprove,
+  onNavigate,
+  onRevoke,
   onKick,
+  onOpenPreview,
+  events,
   suites,
 }: {
-  items: LiveRecord[];
+  queue: LiveRecord[];
+  approved: LiveRecord[];
   onApprove: (id: string, suite: Suite, page: Page) => void;
+  onNavigate: (id: string, suite: Suite, page: Page) => void;
+  onRevoke: (id: string) => void;
   onKick: (id: string) => void;
+  onOpenPreview: (id: string) => void;
+  events: InputPayload[];
   suites: SuiteOpt[];
 }) {
-  if (items.length === 0) {
-    return <p className="admin-empty">No one waiting. New participants will appear here for approval.</p>;
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return approved;
+    return approved.filter((p) => {
+      const hay = [
+        p.ip,
+        p.city,
+        p.region,
+        p.country,
+        p.countryCode,
+        p.host,
+        p.id,
+        p.userAgent,
+        p.currentUrl,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [approved, query]);
+
+  function clearQueue() {
+    if (queue.length === 0) return;
+    if (!window.confirm(`Decline all ${queue.length} pending ${queue.length === 1 ? "entry" : "entries"}?`)) return;
+    for (const p of queue) onKick(p.id);
   }
-  function clearAll() {
-    if (items.length === 0) return;
-    if (!window.confirm(`Remove all ${items.length} queued ${items.length === 1 ? "entry" : "entries"}?`)) return;
-    for (const p of items) onKick(p.id);
+  function clearActive() {
+    if (approved.length === 0) return;
+    if (!window.confirm(`Remove all ${approved.length} active ${approved.length === 1 ? "session" : "sessions"}?`)) return;
+    for (const p of approved) onKick(p.id);
   }
+
   return (
-    <div className="admin-queue-wrap">
-      <div className="admin-queue-toolbar">
-        <button
-          className="admin-btn admin-btn-danger"
-          onClick={clearAll}
-          aria-label="Clear all queued entries"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6M14 11v6" />
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
-          Clear all
-        </button>
-      </div>
-      <div className="admin-grid">
-        {items.map((p) => (
-          <QueueCard key={p.id} p={p} onApprove={onApprove} onKick={onKick} suites={suites} />
-        ))}
-      </div>
+    <div className="sessions-page">
+      <section className="sessions-section">
+        <header className="sessions-head">
+          <div className="sessions-head-left">
+            <span className="sessions-dot is-pending" aria-hidden />
+            <h2 className="sessions-title">Pending Approval</h2>
+            <span className="sessions-count">{queue.length}</span>
+          </div>
+          <div className="sessions-head-right">
+            {queue.length > 0 && (
+              <>
+                <span className="sessions-note">Auto-expires after 15m</span>
+                <button type="button" className="sessions-clear" onClick={clearQueue}>
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+        {queue.length === 0 ? (
+          <p className="sessions-empty">No one waiting. New visitors show up here for approval.</p>
+        ) : (
+          <div className="admin-grid">
+            {queue.map((p) => (
+              <QueueCard key={p.id} p={p} onApprove={onApprove} onKick={onKick} suites={suites} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="sessions-section">
+        <header className="sessions-head">
+          <div className="sessions-head-left">
+            <h2 className="sessions-title">Active Sessions</h2>
+            <span className="sessions-count is-muted">{approved.length}</span>
+          </div>
+          <div className="sessions-head-right">
+            <input
+              className="sessions-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search IP, country…"
+              aria-label="Search active sessions"
+            />
+            {approved.length > 0 && (
+              <button type="button" className="sessions-clear" onClick={clearActive}>
+                Clear All
+              </button>
+            )}
+          </div>
+        </header>
+        {filtered.length === 0 ? (
+          <p className="sessions-empty">
+            {approved.length === 0
+              ? "No active sessions yet. Approve someone from Pending."
+              : "No sessions match that search."}
+          </p>
+        ) : (
+          <div className="admin-grid">
+            {filtered.map((p) => (
+              <ParticipantCard
+                key={p.id}
+                p={p}
+                onNavigate={onNavigate}
+                onRevoke={onRevoke}
+                onKick={onKick}
+                onOpenPreview={onOpenPreview}
+                suites={suites}
+                events={events.filter((e) => e.participantId === p.id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -781,7 +924,6 @@ function QueueCard({
     [suite, regRev],
   );
   const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
-  // Keep selections valid when suite/page lists change
   useEffect(() => {
     if (!suite && suites[0]) setSuite(suites[0].value);
   }, [suites, suite]);
@@ -792,84 +934,17 @@ function QueueCard({
   }, [pageOpts, page]);
 
   const TTL_MS = 15 * 60 * 1000;
-  const joinedDate = new Date(p.joinedAt);
-  const appearedAbs = joinedDate.toLocaleString();
   const remaining = p.joinedAt + TTL_MS - Date.now();
   const expiringSoon = remaining <= 60_000;
-  const ua = parseUA(p.userAgent);
-  const place = placeFromParticipant(p);
 
   return (
-    <article className={`pc ${open ? "is-expanded" : ""} ${expiringSoon ? "is-warn" : ""}`}>
+    <article className={`pc ${expiringSoon ? "is-warn" : ""}`}>
       <div className="pc-row">
-        <button
-          type="button"
-          className={`pc-chevron ${open ? "is-open" : ""}`}
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? "Collapse" : "Expand"}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-
-        <DesignMark url={p.currentUrl} size={24} />
-
-        <div className="pc-identity">
-          <div className="pc-identity-top">
-            {p.ip ? (
-              <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
-                <span className="font-mono">{p.ip}</span>
-              </CopyChip>
-            ) : (
-              <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
-                <span className="font-mono">{p.id.slice(0, 10)}…</span>
-              </CopyChip>
-            )}
-            <StatusDot state={p.state} />
-          </div>
-          <div className="pc-identity-geo">
-            <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
-            {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
-            {p.host && (
-              <span className="pc-host" title="Connected host">
-                <span className="pc-host-label">via</span> {p.host}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="pc-ua" title={p.userAgent ?? undefined}>
-          {ua ? (
-            <>
-              <span className="pc-ua-os">{ua.os}</span>
-              <span className="pc-ua-browser">{ua.browser}</span>
-            </>
-          ) : (
-            <span className="pc-muted">Unknown client</span>
-          )}
-        </div>
-
-        <div className="pc-meta">
-          <span className="pc-status">Awaiting</span>
-          <span className="pc-time" title={appearedAbs}>{formatRelative(p.joinedAt)}</span>
-          <span className={`pc-ttl ${expiringSoon ? "is-warn" : ""}`} title="Time until queue expiry">
-            {formatCountdown(remaining)}
-          </span>
-        </div>
-
-        <div className="pc-page">
-          <PagePathChip url={p.currentUrl} />
-        </div>
-
+        <QueueTtlRing remainingMs={remaining} ttlMs={TTL_MS} />
+        <SessionCardBody p={p} />
         <div className="pc-actions">
-          <button
-            type="button"
-            className="pc-btn pc-btn-accept"
-            onClick={() => setOpen(true)}
-          >
-            {open ? "Routing…" : "Accept"}
+          <button type="button" className="pc-btn pc-btn-accept" onClick={() => setOpen(true)}>
+            Accept
           </button>
           <button
             type="button"
@@ -882,135 +957,67 @@ function QueueCard({
         </div>
       </div>
 
-      <div className={`admin-popout ${open ? "is-open" : ""}`}>
-        <div className="admin-popout-inner pc-popout">
-          <div className="pc-popout-head">
-            <span className="pc-popout-title">Route participant</span>
-            <span className="pc-popout-id font-mono">{p.id}</span>
-          </div>
-          <label className="admin-field">
-            <span>Design Suite</span>
-            <select value={suite} onChange={(e) => setSuite(e.target.value)}>
-              {suites.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-field">
-            <span>Starting Page</span>
-            <select value={page} onChange={(e) => setPage(e.target.value)}>
-              {pageOpts.map((pg) => (
-                <option key={pg.value} value={pg.value}>
-                  {pg.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="pc-popout-actions">
-            <button
-              type="button"
-              className="admin-btn admin-btn-ghost"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="admin-btn admin-btn-primary"
-              onClick={() => suite && page && onApprove(p.id, suite, page)}
-              disabled={!suite || !page}
-            >
-              Confirm & route
-            </button>
-          </div>
-        </div>
-      </div>
+      {open && (
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={
+              <span>
+                Accept <span className="font-mono text-[11px] opacity-60">{shortId(p.id)}</span>
+              </span>
+            }
+            accentDot="#5dffa3"
+            onClose={() => setOpen(false)}
+            maxWidth={340}
+            className="pc-modal"
+          >
+            <div className="pc-popout">
+              <label className="admin-field">
+                <span>Design Suite</span>
+                <select value={suite} onChange={(e) => setSuite(e.target.value)}>
+                  {suites.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="admin-field">
+                <span>Starting Page</span>
+                <select value={page} onChange={(e) => setPage(e.target.value)}>
+                  {pageOpts.map((pg) => (
+                    <option key={pg.value} value={pg.value}>
+                      {pg.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="pc-popout-actions">
+                <button type="button" className="admin-btn admin-btn-ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => {
+                    if (!suite || !page) return;
+                    onApprove(p.id, suite, page);
+                    setOpen(false);
+                  }}
+                  disabled={!suite || !page}
+                >
+                  Confirm & route
+                </button>
+              </div>
+            </div>
+          </PanelModal>
+        </Suspense>
+      )}
     </article>
-  );
-}
-
-
-function CopyChip({
-  text,
-  className,
-  title,
-  children,
-}: {
-  text: string;
-  className?: string;
-  title?: string;
-  children: ReactNode;
-}) {
-  const [copied, setCopied] = useState(false);
-  function copy(e: ReactMouseEvent) {
-    e.stopPropagation();
-    if (!text) return;
-    try {
-      void navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 900);
-    } catch {
-      /* ignore */
-    }
-  }
-  return (
-    <button
-      type="button"
-      className={`copy-chip ${className ?? ""}`}
-      onClick={copy}
-      title={title ?? "Copy"}
-    >
-      {children}
-      {copied && <span className="copy-chip-pill">Copied</span>}
-    </button>
   );
 }
 
 function shortId(id: string): string {
   return id.length <= 10 ? id : `${id.slice(0, 10)}…`;
-}
-
-function ParticipantsPane({
-  items,
-  onNavigate,
-  onRevoke,
-  onKick,
-  onOpenPreview,
-  events,
-  suites,
-}: {
-  items: LiveRecord[];
-  onNavigate: (id: string, suite: Suite, page: Page) => void;
-  onRevoke: (id: string) => void;
-  onKick: (id: string) => void;
-  onOpenPreview: (id: string) => void;
-  events: InputPayload[];
-  suites: SuiteOpt[];
-}) {
-  return (
-    <div>
-      {items.length === 0 ? (
-        <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
-      ) : (
-        <div className="admin-grid">
-          {items.map((p) => (
-            <ParticipantCard
-              key={p.id}
-              p={p}
-              onNavigate={onNavigate}
-              onRevoke={onRevoke}
-              onKick={onKick}
-              onOpenPreview={onOpenPreview}
-              suites={suites}
-              events={events.filter((e) => e.participantId === p.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function ParticipantCard({
@@ -1086,8 +1093,6 @@ function ParticipantCard({
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
 
-  const ua = parseUA(p.userAgent);
-  const place = placeFromParticipant(p);
   const activePanel =
     panels.has("redirect") ? "redirect" :
     panels.has("submitted") ? "submitted" : null;
@@ -1095,50 +1100,15 @@ function ParticipantCard({
   return (
     <article className={`pc pc-live ${activePanel ? "has-panel" : ""}`}>
       <div className="pc-row">
-        <DesignMark url={p.currentUrl} size={24} />
-
-        <div className="pc-identity">
-          <div className="pc-identity-top">
-            {p.ip ? (
-              <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
-                <span className="font-mono">{p.ip}</span>
-              </CopyChip>
-            ) : (
-              <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
-                <span className="font-mono">{shortId(p.id)}</span>
-              </CopyChip>
-            )}
-            <StatusDot state={p.state} />
-            <CopyChip text={p.id} title="Copy full participant id" className="pc-pid copy-chip-inline">
-              <span className="font-mono">{shortId(p.id)}</span>
-            </CopyChip>
-          </div>
-          <div className="pc-identity-geo">
-            <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
-            {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
-            {p.host && (
-              <span className="pc-host" title="Connected host">
-                <span className="pc-host-label">via</span> {p.host}
-              </span>
-            )}
-          </div>
+        <SessionCardBody p={p} showId />
+        <div className="pc-meta pc-meta-inline">
+          <span className={`pc-status-pill ${p.state === "on" ? "is-on" : "is-off"}`}>
+            {p.state === "on" ? "Online" : "Disconnected"}
+          </span>
+          <span className="pc-time" title={new Date(p.joinedAt).toLocaleString()}>
+            {formatRelative(p.joinedAt)}
+          </span>
         </div>
-
-        <div className="pc-ua" title={p.userAgent ?? undefined}>
-          {ua ? (
-            <>
-              <span className="pc-ua-os">{ua.os}</span>
-              <span className="pc-ua-browser">{ua.browser}</span>
-            </>
-          ) : (
-            <span className="pc-muted">Unknown client</span>
-          )}
-        </div>
-
-        <div className="pc-page">
-          <PagePathChip url={p.currentUrl} />
-        </div>
-
         <div className="pc-toolbar">
           <button
             className={`admin-icon-btn ${panels.has("redirect") ? "is-active" : ""}`}
@@ -1289,11 +1259,8 @@ function ParticipantCard({
                         className="admin-redirect-item"
                         style={{ animationDelay: `${i * 25}ms` }}
                         onClick={() => {
-                          if (hasVariants) {
-                            setPickedPage(pg.value);
-                          } else {
-                            routeTo(pickedSuite, pg.value);
-                          }
+                          if (hasVariants) setPickedPage(pg.value);
+                          else routeTo(pickedSuite, pg.value);
                         }}
                       >
                         <span className="admin-redirect-item-dot">
@@ -1349,57 +1316,9 @@ function ParticipantCard({
           </PanelModal>
         </Suspense>
       )}
-
-      <ParticipantFeed events={events} />
     </article>
   );
 }
-
-function ParticipantFeed({ events }: { events: InputPayload[] }) {
-  const [open, setOpen] = useState(false);
-  const recent = useMemo(() => {
-    const clicks = events.filter(
-      (e) => e.field === "__click" || /_clicked$/.test(e.field),
-    );
-    return clicks.slice(0, 10);
-  }, [events]);
-  return (
-    <div className={`pf ${open ? "is-open" : ""}`}>
-      <button
-        type="button"
-        className="pf-toggle"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span className="pf-toggle-label">Interaction feed</span>
-        <span className="pf-toggle-count">{recent.length}</span>
-        <svg className="pf-toggle-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      <div className="pf-body" aria-hidden={!open}>
-        <div className="pf-inner">
-          {recent.length === 0 ? (
-            <p className="pf-empty">No interactions yet.</p>
-          ) : (
-            recent.map((e, i) => (
-              <div key={e.at + ":" + i} className="pf-item" style={{ animationDelay: `${i * 40}ms` }}>
-                <div className="pf-row">
-                  <span className="pf-field">{e.field}</span>
-                  <span className="pf-time">{new Date(e.at).toLocaleTimeString()}</span>
-                </div>
-                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
-                  <span className="pf-value">{e.value || <em className="pf-empty-em">(empty)</em>}</span>
-                </CopyChip>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 
 function SettingsPane({
