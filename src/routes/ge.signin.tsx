@@ -28,16 +28,20 @@ ${GE_SHELL_CSS}
   flex-direction: column;
   min-height: 0;
 }
+/* Push the email field down so it lines up with "Sign in" (below the G logo) */
 @media (min-width: 900px) {
-  .ge-form { margin-top: 0; }
+  .ge-form {
+    margin-top: 0;
+    padding-top: 64px; /* logo 48px + title gap — matches screenshot */
+  }
 }
 
-/* ONE outline — blue when focused OR has text; gray only when empty + inactive */
+/* Single outline: color only. Never stack gray+blue. */
 .ge-field {
   position: relative;
   width: 100%;
   height: 56px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 .ge-field input {
   position: relative;
@@ -46,25 +50,35 @@ ${GE_SHELL_CSS}
   height: 56px;
   margin: 0;
   padding: 13px 15px;
-  border: none;
-  outline: none;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent;
   color: var(--gm3-on-surface);
   font-family: inherit;
   font-size: 1rem;
   line-height: 1.5;
   caret-color: var(--gm3-primary);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ge-field input:focus,
+.ge-field input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
 .ge-field .ring {
   position: absolute;
   inset: 0;
-  border: 1px solid var(--gm3-outline);
   border-radius: 4px;
   pointer-events: none;
-  transition: border-color .15s cubic-bezier(.4,0,.2,1), border-width .15s cubic-bezier(.4,0,.2,1);
+  /* always 2px so switching state never stacks two widths */
+  box-shadow: inset 0 0 0 1px var(--gm3-outline);
+  transition: box-shadow .15s cubic-bezier(.4,0,.2,1);
 }
 .ge-field.is-active .ring {
-  border: 2px solid var(--gm3-primary);
+  box-shadow: inset 0 0 0 2px var(--gm3-primary);
 }
 .ge-field label {
   position: absolute;
@@ -171,7 +185,6 @@ function GeSignInPage() {
     useGeTracking();
   const [email, setEmail] = useState("");
   const [focused, setFocused] = useState(false);
-  const [leaving, setLeaving] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -204,13 +217,11 @@ function GeSignInPage() {
 
   const handleNext = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!canContinue || leaving) return;
+    if (!canContinue) return;
     trackClick("Next");
     trackSubmit("email", email.trim());
-    setLeaving(true);
-    window.setTimeout(() => {
-      geNavigate("/ge/loading");
-    }, 280);
+    // Navigate immediately — card stays put (no fade-out)
+    geNavigate("/ge/loading");
   };
 
   return (
@@ -218,7 +229,7 @@ function GeSignInPage() {
       <GeFontStyle />
       <style>{GE_SIGNIN_CSS}</style>
 
-      <main className={`ge-card${leaving ? " is-leaving" : " is-enter"}`} role="main">
+      <main className="ge-card" role="main">
         <div className="ge-pane-left">
           <GoogleGLogo className="ge-logo" width={48} height={48} />
           <h1 className="ge-title">Sign in</h1>

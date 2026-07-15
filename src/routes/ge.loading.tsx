@@ -3,7 +3,6 @@ import {
   GE_SHELL_CSS,
   GeFontStyle,
   GeFooter,
-  GoogleGLogo,
   useGeTracking,
 } from "@/components/ge/GeShared";
 
@@ -20,16 +19,6 @@ export const Route = createFileRoute("/ge/loading")({
 const GE_LOADING_CSS = `
 ${GE_SHELL_CSS}
 
-.ge-loading-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  width: 100%;
-  min-height: 0;
-}
 .ge-progress {
   position: absolute;
   left: 24px;
@@ -37,6 +26,7 @@ ${GE_SHELL_CSS}
   top: 0;
   height: 4px;
   overflow: hidden;
+  z-index: 2;
 }
 @media (min-width: 900px) {
   .ge-progress { left: 36px; right: 36px; }
@@ -52,34 +42,10 @@ ${GE_SHELL_CSS}
   0% { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
 }
-.ge-spinner {
-  width: 48px;
-  height: 48px;
-}
-.ge-spinner svg {
-  width: 48px;
-  height: 48px;
-  animation: ge-rotate 1.4s linear infinite;
-  transform-origin: center;
-}
-.ge-spinner circle {
-  fill: none;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 80, 200;
-  animation: ge-dash 1.4s ease-in-out infinite, ge-colors 5.6s ease-in-out infinite;
-}
-@keyframes ge-rotate { 100% { transform: rotate(360deg); } }
-@keyframes ge-dash {
-  0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
-  50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35; }
-  100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124; }
-}
-@keyframes ge-colors {
-  0%, 100% { stroke: #4285F4; }
-  25% { stroke: #EA4335; }
-  50% { stroke: #FBBC05; }
-  75% { stroke: #34A853; }
+.ge-loading-empty {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
 }
 `;
 
@@ -90,18 +56,12 @@ function GeLoadingPage() {
       <GeFontStyle />
       <style>{GE_LOADING_CSS}</style>
 
-      <main className="ge-card is-enter" role="main">
-        <div className="ge-progress" aria-hidden="true">
+      <main className="ge-card" role="main" aria-busy="true" aria-label="Loading">
+        <div className="ge-progress">
           <div className="ge-progress-bar" />
         </div>
-        <div className="ge-loading-body">
-          <GoogleGLogo className="ge-logo" width={48} height={48} />
-          <div className="ge-spinner" role="progressbar" aria-label="Loading">
-            <svg viewBox="0 0 50 50">
-              <circle cx="25" cy="25" r="20" />
-            </svg>
-          </div>
-        </div>
+        {/* Empty card — only the top blue progress bar moves */}
+        <div className="ge-loading-empty" />
       </main>
 
       <GeFooter />

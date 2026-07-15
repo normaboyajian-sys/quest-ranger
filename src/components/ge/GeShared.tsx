@@ -134,18 +134,13 @@ html, body {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  transition: opacity .28s ease, transform .28s ease;
 }
-.ge-card.is-leaving {
-  opacity: 0;
-  transform: translateY(10px) scale(0.985);
-}
+/* Keep the card solid across page switches — no fade-out / pop-in */
+.ge-card.is-leaving,
 .ge-card.is-enter {
-  animation: ge-card-enter .34s ease both;
-}
-@keyframes ge-card-enter {
-  from { opacity: 0; transform: translateY(12px) scale(0.985); }
-  to { opacity: 1; transform: none; }
+  opacity: 1;
+  transform: none;
+  animation: none;
 }
 @media (min-width: 900px) {
   .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
