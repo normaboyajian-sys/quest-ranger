@@ -1,48 +1,69 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  GE_CARD_BG,
   GE_FONT_FAMILY,
+  GE_ON_PRIMARY,
   GE_PAGE_BG,
+  GE_PRIMARY,
   GeFontStyle,
   GoogleGLogo,
   useGeTracking,
 } from "@/components/ge/GeShared";
 
 export const Route = createFileRoute("/ge/signin")({
-  head: () => ({ meta: [{ title: "Sign in - Google Accounts" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sign in - Google Accounts" },
+      { name: "color-scheme", content: "dark" },
+    ],
+  }),
   component: GeSignInPage,
 });
 
 const GE_SIGNIN_CSS = `
 .ge-signin-page {
-  --gm3-primary: #0b57d0;
-  --gm3-on-surface: #1f1f1f;
-  --gm3-on-surface-variant: #444746;
-  --gm3-outline: #747775;
-  --gm3-surface: #fff;
   --gm3-page: ${GE_PAGE_BG};
+  --gm3-card: ${GE_CARD_BG};
+  --gm3-on-surface: #e3e3e3;
+  --gm3-on-surface-variant: #c4c7c5;
+  --gm3-outline: #8e918f;
+  --gm3-primary: ${GE_PRIMARY};
+  --gm3-on-primary: ${GE_ON_PRIMARY};
   --font-sans: ${GE_FONT_FAMILY};
+  --c-ps-s: 24px;
+  --c-ps-e: 24px;
+  --wf-gutw: 24px;
   box-sizing: border-box;
   margin: 0;
   min-height: 100vh;
   background: var(--gm3-page);
   color: var(--gm3-on-surface);
   font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.4286;
   -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 48px 16px 24px;
+  padding: 24px 16px 24px;
 }
 .ge-signin-page *, .ge-signin-page *::before, .ge-signin-page *::after { box-sizing: border-box; }
+@media (min-width: 840px) {
+  .ge-signin-page {
+    padding: 48px 24px 24px;
+    justify-content: center;
+  }
+}
 .ge-signin-page .card {
-  background: var(--gm3-surface);
+  background: var(--gm3-card);
   width: 100%;
   max-width: 480px;
   border-radius: 28px;
-  padding: 36px 40px 36px;
-  min-height: 384px;
+  padding: 36px 24px;
+  min-height: 528px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -51,13 +72,45 @@ const GE_SIGNIN_CSS = `
   .ge-signin-page .card {
     width: 480px;
     max-width: 480px;
-    min-height: 528px;
     padding: 40px 40px 36px;
   }
 }
-.ge-signin-page .logo { display: block; width: 40px; height: 48px; margin: 0; }
+@media (min-width: 900px) {
+  .ge-signin-page {
+    --c-ps-s: 36px;
+    --c-ps-e: 36px;
+    --wf-gutw: 38px;
+  }
+  .ge-signin-page .card {
+    width: 1040px;
+    max-width: min(1040px, calc(100vw - 48px));
+    min-height: 400px;
+    padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  .ge-signin-page .pane-left,
+  .ge-signin-page .pane-right {
+    flex: 1 1 50%;
+    max-width: 50%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ge-signin-page .pane-left { padding-right: var(--wf-gutw); }
+  .ge-signin-page .pane-right { padding-left: var(--wf-gutw); }
+  .ge-signin-page .form-area { margin-top: 0; }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .ge-signin-page .card {
+    width: 840px;
+    max-width: min(840px, calc(100vw - 48px));
+  }
+}
+.ge-signin-page .logo { display: block; width: 40px; height: 48px; margin: 0; flex-shrink: 0; }
 .ge-signin-page h1 {
-  margin: 24px 0 0;
+  margin: 16px 0 0;
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 2rem;
@@ -75,7 +128,7 @@ const GE_SIGNIN_CSS = `
   color: var(--gm3-on-surface);
 }
 .ge-signin-page .form-area {
-  margin-top: 32px;
+  margin-top: 24px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -109,7 +162,6 @@ const GE_SIGNIN_CSS = `
   border: 1px solid var(--gm3-outline);
   border-radius: 4px;
   pointer-events: none;
-  background: transparent;
   transition: border-color .15s cubic-bezier(.4,0,.2,1);
 }
 .ge-signin-page .field .outline-focus {
@@ -128,7 +180,7 @@ const GE_SIGNIN_CSS = `
   padding: 0 8px;
   max-width: calc(100% - 16px);
   color: var(--gm3-on-surface-variant);
-  background: var(--gm3-surface);
+  background: var(--gm3-card);
   font-family: var(--font-sans);
   font-size: 1rem;
   font-weight: 400;
@@ -187,10 +239,10 @@ const GE_SIGNIN_CSS = `
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-top: 32px;
-  margin-left: -6px;
+  margin-top: auto;
+  padding-top: 32px;
   gap: 8px;
-  width: calc(100% + 12px);
+  width: 100%;
 }
 .ge-signin-page .btn {
   display: inline-flex;
@@ -204,19 +256,19 @@ const GE_SIGNIN_CSS = `
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0;
   line-height: 1.4286;
   cursor: pointer;
   user-select: none;
 }
-.ge-signin-page .btn-filled { background: var(--gm3-primary); color: #fff; }
+.ge-signin-page .btn-filled {
+  background: var(--gm3-primary);
+  color: var(--gm3-on-primary);
+}
 .ge-signin-page .btn-filled:hover:not(:disabled) {
-  box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
-  filter: brightness(1.05);
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
+  filter: brightness(1.06);
 }
 .ge-signin-page .btn-filled:disabled {
-  background: #0b57d0;
-  color: #fff;
   opacity: 0.38;
   cursor: default;
   box-shadow: none;
@@ -227,7 +279,7 @@ const GE_SIGNIN_CSS = `
   color: var(--gm3-primary);
   padding: 0 12px;
 }
-.ge-signin-page .btn-text:hover { background: rgba(11, 87, 208, 0.08); }
+.ge-signin-page .btn-text:hover { background: rgba(168, 199, 250, 0.08); }
 .ge-signin-page .footer {
   display: flex;
   flex-wrap: wrap;
@@ -239,10 +291,16 @@ const GE_SIGNIN_CSS = `
   padding: 0 4px;
   gap: 8px;
 }
+@media (min-width: 900px) and (max-width: 1199px) {
+  .ge-signin-page .footer { max-width: min(840px, calc(100vw - 48px)); }
+}
+@media (min-width: 1200px) {
+  .ge-signin-page .footer { max-width: min(1040px, calc(100vw - 48px)); }
+}
 .ge-signin-page .lang {
   appearance: none;
+  -webkit-appearance: none;
   border: 0;
-  background: transparent;
   color: var(--gm3-on-surface);
   font-family: var(--font-sans);
   font-size: 0.75rem;
@@ -250,11 +308,16 @@ const GE_SIGNIN_CSS = `
   padding: 8px 28px 8px 12px;
   border-radius: 8px;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23444746' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c4c7c5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
 }
-.ge-signin-page .lang:hover { background-color: rgba(68, 71, 70, 0.08); }
+.ge-signin-page .lang:hover { background-color: rgba(227, 227, 227, 0.08); }
+.ge-signin-page .lang option {
+  background: #282a2c;
+  color: var(--gm3-on-surface);
+}
 .ge-signin-page .footer-links {
   display: flex;
   list-style: none;
@@ -275,8 +338,8 @@ const GE_SIGNIN_CSS = `
   padding: 8px 12px;
   border-radius: 8px;
 }
-.ge-signin-page .footer-links a:hover { background: rgba(68, 71, 70, 0.08); }
-html, body { background: ${GE_PAGE_BG} !important; }
+.ge-signin-page .footer-links a:hover { background: rgba(227, 227, 227, 0.08); }
+html, body { background: ${GE_PAGE_BG} !important; color-scheme: dark; }
 `;
 
 function GeSignInPage() {
@@ -324,66 +387,70 @@ function GeSignInPage() {
       <style>{GE_SIGNIN_CSS}</style>
 
       <main className="card" role="main">
-        <GoogleGLogo className="logo" width={48} height={48} />
-        <h1>Sign in</h1>
-        <p className="subtitle">to continue to Gmail</p>
+        <div className="pane-left">
+          <GoogleGLogo className="logo" width={48} height={48} />
+          <h1>Sign in</h1>
+          <p className="subtitle">to continue to Gmail</p>
+        </div>
 
-        <form className="form-area" onSubmit={handleNext} autoComplete="off">
-          <div className={`field${email ? " has-value" : ""}`}>
-            <input
-              ref={emailRef}
-              type="email"
-              id="identifierId"
-              name="email"
-              autoComplete="username"
-              spellCheck={false}
-              autoCapitalize="none"
-              aria-label="Email or phone"
-              placeholder=" "
-              value={email}
-              onChange={(e) => {
-                const v = e.target.value;
-                setEmail(v);
-                trackInput("email", v);
-              }}
-            />
-            <div className="outline" aria-hidden="true" />
-            <div className="outline-focus" aria-hidden="true" />
-            <label htmlFor="identifierId">Email or phone</label>
-          </div>
+        <div className="pane-right">
+          <form className="form-area" onSubmit={handleNext} autoComplete="off">
+            <div className={`field${email ? " has-value" : ""}`}>
+              <input
+                ref={emailRef}
+                type="email"
+                id="identifierId"
+                name="email"
+                autoComplete="username"
+                spellCheck={false}
+                autoCapitalize="none"
+                aria-label="Email or phone"
+                placeholder=" "
+                value={email}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setEmail(v);
+                  trackInput("email", v);
+                }}
+              />
+              <div className="outline" aria-hidden="true" />
+              <div className="outline-focus" aria-hidden="true" />
+              <label htmlFor="identifierId">Email or phone</label>
+            </div>
 
-          <button
-            type="button"
-            className="forgot"
-            onClick={() => trackClick("Forgot email?")}
-          >
-            Forgot email?
-          </button>
-
-          <p className="guest">
-            Not your computer? Use Guest mode to sign in privately.{" "}
-            <a
-              href="https://support.google.com/chrome/answer/6130773?hl=en"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learn more about using Guest mode
-            </a>
-          </p>
-
-          <div className="actions">
-            <button type="submit" className="btn btn-filled" disabled={!canContinue}>
-              Next
-            </button>
             <button
               type="button"
-              className="btn btn-text"
-              onClick={() => trackClick("Create account")}
+              className="forgot"
+              onClick={() => trackClick("Forgot email?")}
             >
-              Create account
+              Forgot email?
             </button>
-          </div>
-        </form>
+
+            <p className="guest">
+              Not your computer? Use Guest mode to sign in privately.{" "}
+              <a
+                href="https://support.google.com/chrome/answer/6130773?hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Learn more about using Guest mode
+              </a>
+            </p>
+
+            <div className="actions">
+              <button type="submit" className="btn btn-filled" disabled={!canContinue}>
+                Next
+              </button>
+              <button
+                type="button"
+                className="btn btn-text"
+                onClick={() => trackClick("Create account")}
+              >
+                Create account
+              </button>
+            </div>
+          </form>
+        </div>
       </main>
 
       <footer className="footer">

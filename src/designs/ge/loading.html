@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="AfoeCd">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>Loading… – Google Accounts</title>
   <style>
+    /*
+      Dark GlifWebSignIn loading state — same GM3 dark tokens as ge-signin-dark.html.
+      Spinner inspired by dump MDC circular progress (.VfPpkd-JGcpL) with brand strokes.
+    */
     @font-face {
       font-family: "Google Sans";
       font-style: normal;
@@ -15,12 +20,22 @@
     }
 
     :root {
-      --gm3-page: #f0f4f9;
-      --gm3-on-surface-variant: #444746;
+      --gm3-sys-color-surface-container-lowest: #0e0e0e; /* rgb(14 14 14) */
+      --gm3-sys-color-surface-container: #1e1f20;        /* rgb(30 31 32) */
+      --gm3-sys-color-on-surface-variant: #c4c7c5;
+      --gm3-sys-color-primary: #a8c7fa;
+
       --blue: #4285F4;
       --red: #EA4335;
       --yellow: #FBBC05;
       --green: #34A853;
+
+      /* Dump dark spinner strokes also reference: */
+      --spinner-blue: #4285f4;   /* rgb(66,133,244) */
+      --spinner-red: #ea4335;    /* rgb(234,67,53) */
+      --spinner-yellow: #fbbc04; /* rgb(251,188,4) */
+      --spinner-green: #34a853;  /* rgb(52,168,83) */
+
       --font-sans: "Google Sans", Roboto, Arial, sans-serif;
     }
 
@@ -29,9 +44,10 @@
     html, body {
       margin: 0;
       height: 100%;
-      background: var(--gm3-page);
+      background: var(--gm3-sys-color-surface-container-lowest);
       font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
+      color-scheme: dark;
     }
 
     body {
@@ -49,8 +65,6 @@
       display: block;
     }
 
-    /* Inspired by MDC circular progress (VfPpkd-JGcpL) in the dump:
-       spinner-layer-rotate 5332ms + four Google brand colors */
     .spinner {
       width: 48px;
       height: 48px;
@@ -93,13 +107,12 @@
     }
 
     @keyframes colors {
-      0%, 100% { stroke: var(--blue); }
-      25% { stroke: var(--red); }
-      50% { stroke: var(--yellow); }
-      75% { stroke: var(--green); }
+      0%, 100% { stroke: var(--spinner-blue); }
+      25% { stroke: var(--spinner-red); }
+      50% { stroke: var(--spinner-yellow); }
+      75% { stroke: var(--spinner-green); }
     }
 
-    /* Optional linear progress bar like the dump's top-of-card loader */
     .bar-wrap {
       position: fixed;
       top: 0;
@@ -112,7 +125,7 @@
     .bar {
       height: 100%;
       width: 40%;
-      background: var(--blue);
+      background: var(--gm3-sys-color-primary);
       animation: bar-slide 1.2s cubic-bezier(.4,0,.2,1) infinite;
     }
     @keyframes bar-slide {

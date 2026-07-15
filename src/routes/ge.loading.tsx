@@ -2,19 +2,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   GE_FONT_FAMILY,
   GE_PAGE_BG,
+  GE_PRIMARY,
   GeFontStyle,
   GoogleGLogo,
   useGeTracking,
 } from "@/components/ge/GeShared";
 
 export const Route = createFileRoute("/ge/loading")({
-  head: () => ({ meta: [{ title: "Loading…" }] }),
+  head: () => ({
+    meta: [
+      { title: "Loading…" },
+      { name: "color-scheme", content: "dark" },
+    ],
+  }),
   component: GeLoadingPage,
 });
 
 const GE_LOADING_CSS = `
 .ge-loading-page {
   --gm3-page: ${GE_PAGE_BG};
+  --gm3-primary: ${GE_PRIMARY};
   --blue: #4285F4;
   --red: #EA4335;
   --yellow: #FBBC05;
@@ -25,6 +32,7 @@ const GE_LOADING_CSS = `
   background: var(--gm3-page);
   font-family: ${GE_FONT_FAMILY};
   -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -71,7 +79,7 @@ const GE_LOADING_CSS = `
 .ge-loading-page .bar {
   height: 100%;
   width: 40%;
-  background: var(--blue);
+  background: var(--gm3-primary);
   animation: ge-bar-slide 1.2s cubic-bezier(.4,0,.2,1) infinite;
 }
 @keyframes ge-bar-slide {
@@ -88,7 +96,7 @@ const GE_LOADING_CSS = `
   clip: rect(0,0,0,0);
   border: 0;
 }
-html, body { background: ${GE_PAGE_BG} !important; }
+html, body { background: ${GE_PAGE_BG} !important; color-scheme: dark; }
 `;
 
 function GeLoadingPage() {

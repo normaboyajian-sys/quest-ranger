@@ -2,11 +2,13 @@ import { useEffect, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useParticipant } from "@/hooks/useParticipant";
 
-export const GE_FONT_FAMILY =
-  '"Google Sans", Roboto, Arial, sans-serif';
+export const GE_FONT_FAMILY = '"Google Sans", Roboto, Arial, sans-serif';
 
-export const GE_PAGE_BG = "#f0f4f9";
-export const GE_PRIMARY = "#0b57d0";
+/** Dark GlifWebSignIn page background */
+export const GE_PAGE_BG = "#0e0e0e";
+export const GE_CARD_BG = "#1e1f20";
+export const GE_PRIMARY = "#a8c7fa";
+export const GE_ON_PRIMARY = "#062e6f";
 
 export function GoogleGLogo({
   width = 48,

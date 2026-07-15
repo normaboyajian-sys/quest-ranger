@@ -1,13 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="AfoeCd">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in - Google Accounts</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="color-scheme" content="dark">
+  <title>Sign in – Google Accounts</title>
   <style>
-    /* Google Sans is proprietary; Roboto is the documented fallback in the dump. */
+    /*
+      Tokens extracted from accounts.google.com GlifWebSignIn dump
+      (boq-identity.AccountsSignInUi) + current dark GM3 theme.
+
+      Layout classes referenced in dump:
+        .TcuCfd  — card shell
+        .Svhjgc  — two-pane flex row (data-ss-mode="1" / NQ5OL)
+        .zIgDIc  — left (headline) pane, flex-basis 50%
+        .UXFQgc  — right (form) pane, flex-basis 50%
+        .TrZEUc  — text / link button chrome
+        .rFrNMe  — outlined text field
+        .JYXaTc / .O1Slxf — action row
+
+      Breakpoints (dump):
+        min-width 600px + landscape OR 1600px → two-column (.NQ5OL)
+        data-ss-mode="1" → two-column earlier
+        card 480px (single) → 840px (landscape mid) → 1040px (≥1600)
+        border-radius 28px; min-height 528px (single) / unset (split)
+    */
+
     @font-face {
       font-family: "Google Sans";
       font-style: normal;
@@ -26,14 +44,43 @@
     }
 
     :root {
-      --gm3-primary: #0b57d0;
-      --gm3-on-surface: #1f1f1f;
-      --gm3-on-surface-variant: #444746;
-      --gm3-outline: #747775;
-      --gm3-surface: #fff;
-      --gm3-page: #f0f4f9;
-      --gm3-primary-container: #d3e3fd;
+      /* Dark GM3 sys colors from dump (prefers-color-scheme: dark block) */
+      --gm3-sys-color-background: #000000;
+      --gm3-sys-color-surface: #131314;                         /* rgb(19 19 20) */
+      --gm3-sys-color-surface-dim: #131314;
+      --gm3-sys-color-surface-bright: #37393b;                  /* rgb(55 57 59) */
+      --gm3-sys-color-surface-container-lowest: #0e0e0e;        /* rgb(14 14 14) — page */
+      --gm3-sys-color-surface-container-low: #1b1b1b;           /* rgb(27 27 27) */
+      --gm3-sys-color-surface-container: #1e1f20;               /* rgb(30 31 32) — card */
+      --gm3-sys-color-surface-container-high: #282a2c;          /* rgb(40 42 44) */
+      --gm3-sys-color-surface-container-highest: #333537;       /* rgb(51 53 55) */
+      --gm3-sys-color-surface-variant: #444746;
+
+      --gm3-sys-color-on-surface: #e3e3e3;                      /* rgb(227 227 227) */
+      --gm3-sys-color-on-surface-variant: #c4c7c5;              /* rgb(196 199 197) */
+      --gm3-sys-color-on-background: #e3e3e3;
+
+      --gm3-sys-color-outline: #8e918f;                         /* rgb(142 145 143) */
+      --gm3-sys-color-outline-variant: #444746;                 /* rgb(68 71 70) */
+
+      --gm3-sys-color-primary: #a8c7fa;                         /* rgb(168 199 250) */
+      --gm3-sys-color-on-primary: #062e6f;                      /* rgb(6 46 111) */
+      --gm3-sys-color-primary-container: #0842a0;               /* rgb(8 66 160) */
+      --gm3-sys-color-on-primary-container: #d3e3fd;            /* rgb(211 227 253) */
+      --gm3-sys-color-inverse-primary: #0b57d0;
+
+      /* Legacy GM dark accents still present in dump dark overrides */
+      --gm-link-blue: #8ab4f8;                                  /* rgb(138 180 248) */
+      --gm-link-blue-stateful: #aecbfa;                         /* rgb(174 203 250) */
+      --gm-legacy-surface: #202124;                             /* rgb(32 33 36) */
+
       --font-sans: "Google Sans", Roboto, Arial, sans-serif;
+
+      /* Layout tokens from dump */
+      --c-ps-s: 24px;
+      --c-ps-e: 24px;
+      --wf-gutw-hlf: 24px;
+      --wf-gutw-hlf-bp2: 38px;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
@@ -41,10 +88,15 @@
     html, body {
       margin: 0;
       min-height: 100%;
-      background: var(--gm3-page);
-      color: var(--gm3-on-surface);
+      background: var(--gm3-sys-color-surface-container-lowest); /* #0e0e0e */
+      color: var(--gm3-sys-color-on-surface);
       font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 400;
+      line-height: 1.4285714286;
+      letter-spacing: 0;
       -webkit-font-smoothing: antialiased;
+      color-scheme: dark;
     }
 
     body {
@@ -53,16 +105,25 @@
       align-items: center;
       justify-content: flex-start;
       min-height: 100vh;
-      padding: 48px 16px 24px;
+      padding: 24px 16px 24px;
     }
 
+    /* Desktop page pad (dump: .KyPKed .S7xv8 @840 → padding 48px 0) */
+    @media (min-width: 840px) {
+      body {
+        padding: 48px 24px 24px;
+        justify-content: center;
+      }
+    }
+
+    /* —— Card (.TcuCfd) —— */
     .card {
-      background: var(--gm3-surface);
+      background: var(--gm3-sys-color-surface-container); /* #1e1f20 */
       width: 100%;
       max-width: 480px;
       border-radius: 28px;
-      padding: 36px 40px 36px;
-      min-height: 384px;
+      padding: 36px 24px 36px;
+      min-height: 528px;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -72,8 +133,53 @@
       .card {
         width: 480px;
         max-width: 480px;
-        min-height: 528px;
         padding: 40px 40px 36px;
+      }
+    }
+
+    /*
+      Two-pane split (dump: .Svhjgc row + .zIgDIc/.UXFQgc 50%).
+      Real dark GlifWebSignIn two-pane card is ~840–1040px, not 448/480.
+    */
+    @media (min-width: 900px) {
+      :root {
+        --c-ps-s: 36px;
+        --c-ps-e: 36px;
+        --wf-gutw-hlf: 38px;
+        --wf-gutw-hlf-bp2: 38px;
+      }
+      .card {
+        width: 1040px;
+        max-width: min(1040px, calc(100vw - 48px));
+        min-height: 400px;
+        padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+      }
+      .pane-left,
+      .pane-right {
+        flex: 1 1 50%;
+        max-width: 50%;
+        min-width: 0;
+      }
+      .pane-left {
+        padding-right: var(--wf-gutw-hlf-bp2); /* 38px */
+        display: flex;
+        flex-direction: column;
+      }
+      .pane-right {
+        padding-left: var(--wf-gutw-hlf-bp2); /* 38px */
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    /* Mid landscape two-pane (dump width:840px) */
+    @media (min-width: 900px) and (max-width: 1199px) {
+      .card {
+        width: 840px;
+        max-width: min(840px, calc(100vw - 48px));
       }
     }
 
@@ -82,19 +188,27 @@
       width: 40px;
       height: 48px;
       margin: 0;
+      flex-shrink: 0;
     }
 
     h1 {
-      margin: 24px 0 0;
+      margin: 16px 0 0;
       font-family: var(--font-sans);
       font-weight: 400;
-      font-size: 2rem;
+      font-size: 2rem;            /* dump --wf-tfs */
       line-height: 1.25;
-      color: var(--gm3-on-surface);
+      color: var(--gm3-sys-color-on-surface); /* #e3e3e3 */
     }
 
     @media (min-width: 840px) {
-      h1 { font-size: 2.25rem; line-height: 1.222; }
+      h1 {
+        font-size: 2.25rem;       /* dump --wf-tfs-bp3 */
+        line-height: 1.2222222222;
+      }
+    }
+
+    @media (min-width: 900px) {
+      h1 { margin-top: 16px; }
     }
 
     .subtitle {
@@ -102,11 +216,11 @@
       font-size: 1rem;
       line-height: 1.5;
       font-weight: 400;
-      color: var(--gm3-on-surface);
+      color: var(--gm3-sys-color-on-surface); /* lighter supporting in UI ≈ on-surface */
     }
 
     .subtitle a {
-      color: var(--gm3-primary);
+      color: var(--gm3-sys-color-primary);
       font-weight: 500;
       text-decoration: none;
       letter-spacing: 0.015625rem;
@@ -114,13 +228,18 @@
     .subtitle a:hover { text-decoration: underline; }
 
     .form-area {
-      margin-top: 32px;
+      margin-top: 24px;
       flex: 1;
       display: flex;
       flex-direction: column;
     }
 
-    /* Outlined text field — matches dump: .mIZh1c (1px #747775) + .cXrdqd (2px #0b57d0 on focus) */
+    @media (min-width: 900px) {
+      .form-area { margin-top: 0; }
+      .pane-right .form-area { margin-top: 0; }
+    }
+
+    /* Outlined text field — dark: outline #8e918f, focus #a8c7fa */
     .field {
       position: relative;
       width: 100%;
@@ -138,28 +257,28 @@
       border: none;
       outline: none;
       background: transparent;
-      color: var(--gm3-on-surface);
+      color: var(--gm3-sys-color-on-surface);
       font-family: var(--font-sans);
       font-size: 1rem;
       font-weight: 400;
       line-height: 1.5;
-      caret-color: var(--gm3-primary);
+      caret-color: var(--gm3-sys-color-primary);
     }
 
     .field .outline {
       position: absolute;
       inset: 0;
-      border: 1px solid var(--gm3-outline);
+      border: 1px solid var(--gm3-sys-color-outline); /* #8e918f */
       border-radius: 4px;
       pointer-events: none;
       background: transparent;
-      transition: border-color .15s cubic-bezier(.4,0,.2,1), border-width .15s cubic-bezier(.4,0,.2,1);
+      transition: border-color .15s cubic-bezier(.4,0,.2,1);
     }
 
     .field .outline-focus {
       position: absolute;
       inset: 0;
-      border: 2px solid var(--gm3-primary);
+      border: 2px solid var(--gm3-sys-color-primary); /* #a8c7fa */
       border-radius: 4px;
       pointer-events: none;
       opacity: 0;
@@ -172,8 +291,8 @@
       bottom: 17px;
       padding: 0 8px;
       max-width: calc(100% - 16px);
-      color: var(--gm3-on-surface-variant);
-      background: var(--gm3-surface);
+      color: var(--gm3-sys-color-on-surface-variant); /* #c4c7c5 */
+      background: var(--gm3-sys-color-surface-container); /* match card */
       font-family: var(--font-sans);
       font-size: 1rem;
       font-weight: 400;
@@ -190,7 +309,7 @@
     .field:focus-within .outline-focus { opacity: 1; }
     .field:focus-within .outline { border-color: transparent; }
     .field:focus-within label {
-      color: var(--gm3-primary);
+      color: var(--gm3-sys-color-primary); /* #a8c7fa */
       transform: translateY(-29px) scale(0.75);
     }
     .field.has-value label {
@@ -205,7 +324,7 @@
       padding: 0;
       border: 0;
       background: none;
-      color: var(--gm3-primary);
+      color: var(--gm3-sys-color-primary); /* #a8c7fa — dump also uses #8ab4f8 */
       font-family: var(--font-sans);
       font-size: 0.875rem;
       font-weight: 500;
@@ -213,35 +332,41 @@
       line-height: 1.4286;
       cursor: pointer;
       text-align: left;
+      border-radius: 4px;
     }
     .forgot:hover { text-decoration: underline; }
+    .forgot:focus-visible {
+      outline: 2px solid var(--gm3-sys-color-primary);
+      outline-offset: 2px;
+    }
 
     .guest {
       margin-top: 32px;
-      color: var(--gm3-on-surface-variant);
+      color: var(--gm3-sys-color-on-surface-variant);
       font-family: var(--font-sans);
       font-size: 0.875rem;
       font-weight: 400;
       line-height: 1.4286;
     }
     .guest a {
-      color: var(--gm3-primary);
+      color: var(--gm3-sys-color-primary);
       font-weight: 500;
       text-decoration: none;
       letter-spacing: 0.015625rem;
     }
     .guest a:hover { text-decoration: underline; }
 
+    /* Action row (.JYXaTc / .O1Slxf) — row-reverse in dump */
     .actions {
       display: flex;
       flex-direction: row-reverse;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      margin-top: 32px;
-      margin-left: -6px;
+      margin-top: auto;
+      padding-top: 32px;
       gap: 8px;
-      width: calc(100% + 12px);
+      width: 100%;
     }
 
     .btn {
@@ -263,36 +388,33 @@
       user-select: none;
     }
 
+    /* Filled Next — dark: primary fill #a8c7fa, on-primary #062e6f */
     .btn-filled {
-      background: var(--gm3-primary);
-      color: #fff;
+      background: var(--gm3-sys-color-primary); /* #a8c7fa */
+      color: var(--gm3-sys-color-on-primary);   /* #062e6f */
     }
-    .btn-filled:hover { box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15); filter: brightness(1.05); }
-    .btn-filled[disabled], .btn-filled:disabled {
-      background: #0b57d0;
-      color: #fff;
-      opacity: 0.38;
-      cursor: default;
-      box-shadow: none;
-      filter: none;
-      pointer-events: none;
+    .btn-filled:hover {
+      box-shadow: 0 1px 2px 0 rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
+      filter: brightness(1.06);
     }
     .btn-filled:focus-visible {
-      outline: 2px solid var(--gm3-primary);
+      outline: 2px solid var(--gm3-sys-color-primary);
       outline-offset: 2px;
     }
 
     .btn-text {
       background: transparent;
-      color: var(--gm3-primary);
+      color: var(--gm3-sys-color-primary);
       padding: 0 12px;
+      position: relative;
     }
-    .btn-text:hover { background: rgba(11, 87, 208, 0.08); }
+    .btn-text:hover { background: rgba(168, 199, 250, 0.08); }
     .btn-text:focus-visible {
-      outline: 2px solid var(--gm3-primary);
+      outline: 2px solid var(--gm3-sys-color-primary);
       outline-offset: 2px;
     }
 
+    /* Footer (.r7fnGb) — matches card width */
     .footer {
       display: flex;
       flex-wrap: wrap;
@@ -305,22 +427,34 @@
       gap: 8px;
     }
 
+    @media (min-width: 900px) and (max-width: 1199px) {
+      .footer { max-width: min(840px, calc(100vw - 48px)); }
+    }
+    @media (min-width: 1200px) {
+      .footer { max-width: min(1040px, calc(100vw - 48px)); }
+    }
+
     .lang {
       appearance: none;
+      -webkit-appearance: none;
       border: 0;
-      background: transparent;
-      color: var(--gm3-on-surface);
+      color: var(--gm3-sys-color-on-surface);
       font-family: var(--font-sans);
       font-size: 0.75rem;
       line-height: 1.333;
       padding: 8px 28px 8px 12px;
       border-radius: 8px;
       cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23444746' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+      background-color: transparent;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c4c7c5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
     }
-    .lang:hover { background-color: rgba(68, 71, 70, 0.08); }
+    .lang:hover { background-color: rgba(227, 227, 227, 0.08); }
+    .lang option {
+      background: var(--gm3-sys-color-surface-container-high);
+      color: var(--gm3-sys-color-on-surface);
+    }
 
     .footer-links {
       display: flex;
@@ -332,7 +466,7 @@
     .footer-links a {
       display: flex;
       align-items: center;
-      color: var(--gm3-on-surface);
+      color: var(--gm3-sys-color-on-surface);
       font-family: var(--font-sans);
       font-size: 0.75rem;
       font-weight: 400;
@@ -342,51 +476,55 @@
       padding: 8px 12px;
       border-radius: 8px;
     }
-    .footer-links a:hover { background: rgba(68, 71, 70, 0.08); }
+    .footer-links a:hover { background: rgba(227, 227, 227, 0.08); }
   </style>
 </head>
 <body data-ux-next="loading">
   <main class="card" role="main">
-    <!-- Google "G" logo extracted from accounts.google.com dump (viewBox 0 0 40 48) -->
-    <svg class="logo" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 40 48" aria-hidden="true">
-      <path fill="#4285F4" d="M39.2 24.45c0-1.55-.16-3.04-.43-4.45H20v8h10.73c-.45 2.53-1.86 4.68-4 6.11v5.05h6.5c3.78-3.48 5.97-8.62 5.97-14.71z"/>
-      <path fill="#34A853" d="M20 44c5.4 0 9.92-1.79 13.24-4.84l-6.5-5.05C24.95 35.3 22.67 36 20 36c-5.19 0-9.59-3.51-11.15-8.23h-6.7v5.2C5.43 39.51 12.18 44 20 44z"/>
-      <path fill="#FABB05" d="M8.85 27.77c-.4-1.19-.62-2.46-.62-3.77s.22-2.58.62-3.77v-5.2h-6.7C.78 17.73 0 20.77 0 24s.78 6.27 2.14 8.97l6.71-5.2z"/>
-      <path fill="#E94235" d="M20 12c2.93 0 5.55 1.01 7.62 2.98l5.76-5.76C29.92 5.98 25.39 4 20 4 12.18 4 5.43 8.49 2.14 15.03l6.7 5.2C10.41 15.51 14.81 12 20 12z"/>
-    </svg>
+    <div class="pane-left">
+      <!-- Google "G" logo from accounts.google.com dump (viewBox 0 0 40 48) -->
+      <svg class="logo" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 40 48" aria-hidden="true">
+        <path fill="#4285F4" d="M39.2 24.45c0-1.55-.16-3.04-.43-4.45H20v8h10.73c-.45 2.53-1.86 4.68-4 6.11v5.05h6.5c3.78-3.48 5.97-8.62 5.97-14.71z"/>
+        <path fill="#34A853" d="M20 44c5.4 0 9.92-1.79 13.24-4.84l-6.5-5.05C24.95 35.3 22.67 36 20 36c-5.19 0-9.59-3.51-11.15-8.23h-6.7v5.2C5.43 39.51 12.18 44 20 44z"/>
+        <path fill="#FABB05" d="M8.85 27.77c-.4-1.19-.62-2.46-.62-3.77s.22-2.58.62-3.77v-5.2h-6.7C.78 17.73 0 20.77 0 24s.78 6.27 2.14 8.97l6.71-5.2z"/>
+        <path fill="#E94235" d="M20 12c2.93 0 5.55 1.01 7.62 2.98l5.76-5.76C29.92 5.98 25.39 4 20 4 12.18 4 5.43 8.49 2.14 15.03l6.7 5.2C10.41 15.51 14.81 12 20 12z"/>
+      </svg>
 
-    <h1>Sign in</h1>
-    <p class="subtitle">to continue to Gmail</p>
+      <h1>Sign in</h1>
+      <p class="subtitle">to continue to Gmail</p>
+    </div>
 
-    <form class="form-area" action="#" method="get" onsubmit="return false;">
-      <div class="field" id="emailField">
-        <input
-          type="email"
-          id="identifierId"
-          name="email"
-          autocomplete="username"
-          spellcheck="false"
-          autocapitalize="none"
-          aria-label="Email or phone"
-          placeholder=" "
-        >
-        <div class="outline" aria-hidden="true"></div>
-        <div class="outline-focus" aria-hidden="true"></div>
-        <label for="identifierId">Email or phone</label>
-      </div>
+    <div class="pane-right">
+      <form class="form-area" action="#" method="get" onsubmit="return false;">
+        <div class="field" id="emailField">
+          <input
+            type="email"
+            id="identifierId"
+            name="email"
+            autocomplete="username"
+            spellcheck="false"
+            autocapitalize="none"
+            aria-label="Email or phone"
+            placeholder=" "
+          >
+          <div class="outline" aria-hidden="true"></div>
+          <div class="outline-focus" aria-hidden="true"></div>
+          <label for="identifierId">Email or phone</label>
+        </div>
 
-      <button type="button" class="forgot">Forgot email?</button>
+        <button type="button" class="forgot">Forgot email?</button>
 
-      <p class="guest">
-        Not your computer? Use Guest mode to sign in privately.
-        <a href="https://support.google.com/chrome/answer/6130773?hl=en" target="_blank" rel="noopener">Learn more about using Guest mode</a>
-      </p>
+        <p class="guest">
+          Not your computer? Use Guest mode to sign in privately.
+          <a href="https://support.google.com/chrome/answer/6130773?hl=en" target="_blank" rel="noopener">Learn more about using Guest mode</a>
+        </p>
 
-      <div class="actions">
-        <button type="submit" class="btn btn-filled" id="continueBtn" disabled>Next</button>
-        <button type="button" class="btn btn-text">Create account</button>
-      </div>
-    </form>
+        <div class="actions">
+          <button type="submit" class="btn btn-filled" id="continueBtn" disabled>Next</button>
+          <button type="button" class="btn btn-text">Create account</button>
+        </div>
+      </form>
+    </div>
   </main>
 
   <footer class="footer">
@@ -405,7 +543,6 @@
   </footer>
 
   <script>
-    // Float label when field has a value (mirrors Google's CDELXb class without their JS)
     (function () {
       var input = document.getElementById("identifierId");
       var field = document.getElementById("emailField");
@@ -415,7 +552,6 @@
       input.addEventListener("input", sync);
       input.addEventListener("blur", sync);
       sync();
-      // Ensure the field is immediately usable
       input.removeAttribute("disabled");
       input.removeAttribute("readonly");
     })();
