@@ -131,6 +131,22 @@ export function getDesignLogo(design: string): string | null {
   return null;
 }
 
+/** Favicon for a design page — per-page override, else the design logo. */
+export function getDesignFavicon(design: string, page?: string): string | null {
+  if (page) {
+    const fromPage = (getPageMeta(design, page).favicon ?? "").trim();
+    if (fromPage) return fromPage;
+  }
+  return getDesignLogo(design);
+}
+
+/** TanStack Router `head.links` entries for a design favicon. */
+export function designFaviconLinks(design: string, page?: string) {
+  const href = getDesignFavicon(design, page);
+  if (!href) return [];
+  return [{ rel: "icon", href, type: "image/png" as const }];
+}
+
 function lsLoad() {
   if (typeof window === "undefined") return;
   try {
@@ -997,7 +1013,7 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const isFullDoc =
     trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
   const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
-  return applyPageMeta(base, pm);
+  return applyPageMeta(base, pm, design);
 }
 
 export function buildSrcDocVirtual(
@@ -1021,10 +1037,13 @@ function escText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function applyPageMeta(doc: string, pm: PageMeta): string {
+function applyPageMeta(doc: string, pm: PageMeta, design?: DesignKey): string {
   let out = doc;
   const title = (pm.title ?? "").trim();
-  const favicon = (pm.favicon ?? "").trim();
+  const favicon =
+    (pm.favicon ?? "").trim() ||
+    (design ? getDesignLogo(design) : null) ||
+    "";
   if (!title && !favicon) return out;
 
   if (title) {
