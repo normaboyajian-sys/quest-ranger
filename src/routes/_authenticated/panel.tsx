@@ -276,6 +276,7 @@ function Admin() {
     void pagesEditorImport();
     void fileUploaderImport();
     void livePreviewImport();
+    void panelModalImport();
     void floatingPanelImport();
     return () => { off(); stop(); };
   }, []);
