@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { FloatingPanel } from "./FloatingPanel";
+import { PanelModal } from "./PanelModal";
 import type {
   ClickPayload,
   LiveInputPayload,
@@ -9,32 +9,31 @@ import type {
 } from "@/lib/orchestrator";
 import { loadParticipant, subscribeParticipant } from "@/lib/participantStore";
 
-type Pos = { x: number; y: number };
-type Size = { w: number; h: number };
 type Cursor = { x: number; y: number };
 type Ripple = { id: number; x: number; y: number };
 type KeyChip = { id: number; x: number; y: number; ch: string };
 
-const TITLEBAR = 38;
+const STAGE_MAX = 420;
 
-/** Open small but keep the participant's exact aspect ratio. */
-function fitToParticipant(w: number, h: number, maxLong = 380): Size {
-  if (!w || !h) return { w: 280, h: 200 };
+function fitStage(w: number, h: number, maxLong: number) {
+  if (!w || !h) return { w: 280, h: 420 };
   const long = Math.max(w, h);
   const scale = Math.min(1, maxLong / long);
-  return { w: Math.max(160, Math.round(w * scale)), h: Math.max(120, Math.round(h * scale)) + TITLEBAR };
+  return {
+    w: Math.max(180, Math.round(w * scale)),
+    h: Math.max(180, Math.round(h * scale)),
+  };
 }
 
 export function LivePreview({
   pid,
   onClose,
-  initial,
   initialUrl,
   initialViewport,
 }: {
   pid: string;
   onClose: () => void;
-  initial: { pos: Pos; size: Size };
+  initial?: { pos: { x: number; y: number }; size: { w: number; h: number } };
   initialUrl?: string | null;
   initialViewport?: { w: number; h: number } | null;
 }) {
@@ -48,16 +47,12 @@ export function LivePreview({
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [keys, setKeys] = useState<KeyChip[]>([]);
-  const [hasViewport, setHasViewport] = useState<boolean>(
-    !!(initialViewport && initialViewport.w > 0 && initialViewport.h > 0),
-  );
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const rippleSeq = useRef(0);
   const keySeq = useRef(0);
   const lastValueRef = useRef<Record<string, string>>({});
 
-  // Fast initial load: hydrate URL from store immediately.
   useEffect(() => {
     let alive = true;
     void loadParticipant(pid).then((p) => {
@@ -78,8 +73,6 @@ export function LivePreview({
     };
   }, [pid]);
 
-  // Listen on the admin-page event bus (no second realtime channel — would
-  // collide with the admin's subscription).
   useEffect(() => {
     const cursorRef = { x: 0, y: 0, has: false };
 
@@ -88,7 +81,6 @@ export function LivePreview({
       if (p.id !== pid) return;
       if (p.vw && p.vh) {
         setViewport((v) => (v.w === p.vw && v.h === p.vh ? v : { w: p.vw, h: p.vh }));
-        setHasViewport(true);
       }
       const x = p.x * p.vw;
       const y = p.y * p.vh;
@@ -106,7 +98,6 @@ export function LivePreview({
       const id = ++rippleSeq.current;
       setRipples((prev) => [...prev, { id, x: cx, y: cy }]);
       setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
-      // Replay the click into the observed page so buttons / links fire live.
       const win = iframeRef.current?.contentWindow;
       if (win) {
         try {
@@ -128,7 +119,6 @@ export function LivePreview({
       const p = (ev as CustomEvent<ViewportPayload>).detail;
       if (p.id !== pid || !p.w || !p.h) return;
       setViewport((v) => (v.w === p.w && v.h === p.h ? v : { w: p.w, h: p.h }));
-      setHasViewport(true);
     }
 
     function onLiveInputEv(ev: Event) {
@@ -179,13 +169,14 @@ export function LivePreview({
     };
   }, [pid, viewport.w, viewport.h]);
 
-  // Fit stage to panel body.
+  const stage = fitStage(viewport.w, viewport.h, STAGE_MAX);
+
   useLayoutEffect(() => {
     function recompute() {
       const el = stageWrapRef.current;
       if (!el) return;
-      const cw = el.clientWidth;
-      const ch = el.clientHeight;
+      const cw = el.clientWidth || stage.w;
+      const ch = el.clientHeight || stage.h;
       if (!cw || !ch) return;
       const s = Math.min(cw / viewport.w, ch / viewport.h);
       setScale(s > 0 ? s : 1);
@@ -193,39 +184,18 @@ export function LivePreview({
     recompute();
     const ro = new ResizeObserver(recompute);
     if (stageWrapRef.current) ro.observe(stageWrapRef.current);
-    window.addEventListener("resize", recompute);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", recompute);
-    };
-  }, [viewport.w, viewport.h]);
+    return () => ro.disconnect();
+  }, [viewport.w, viewport.h, stage.w, stage.h]);
 
-  // Open compact — full participant resolution scaled down, not admin-fullscreen.
-  const maxLong = 380;
-  const fittedSize = hasViewport
-    ? fitToParticipant(viewport.w, viewport.h, maxLong)
-    : fitToParticipant(390, 844, maxLong);
   const isPhone = viewport.w > 0 && viewport.h > viewport.w;
-  const resLabel = hasViewport ? `${viewport.w}×${viewport.h}` : "…";
-  const aspect = viewport.w && viewport.h
-    ? viewport.w / (viewport.h + TITLEBAR)
-    : undefined;
-
+  const resLabel = `${viewport.w}×${viewport.h}`;
   const iframeUrl = useMemo(
     () => url + (url.includes("?") ? "&" : "?") + "__observe=1",
     [url],
   );
 
-  const centeredPos = useMemo(() => {
-    if (typeof window === "undefined") return initial.pos;
-    return {
-      x: Math.max(24, Math.round((window.innerWidth - fittedSize.w) / 2)),
-      y: Math.max(24, Math.round((window.innerHeight - fittedSize.h) / 2)),
-    };
-  }, [fittedSize.w, fittedSize.h, initial.pos]);
-
   return (
-    <FloatingPanel
+    <PanelModal
       title={
         <span className="lp-title-row">
           <span className="lp-live-tag">LIVE</span>
@@ -235,15 +205,14 @@ export function LivePreview({
         </span>
       }
       onClose={onClose}
-      accentDot="#5dffa3"
-      initialPos={centeredPos}
-      initialSize={fittedSize}
-      syncSize={fittedSize}
-      minSize={{ w: 160, h: 140 }}
-      aspectRatio={aspect}
-      className="live-preview-panel"
+      maxWidth={stage.w + 28}
+      className="lp-modal"
     >
-      <div className="mirror-root" ref={stageWrapRef}>
+      <div
+        className="mirror-root lp-mirror"
+        ref={stageWrapRef}
+        style={{ width: stage.w, height: stage.h }}
+      >
         <div
           className="mirror-stage"
           style={{
@@ -263,6 +232,7 @@ export function LivePreview({
               border: 0,
               display: "block",
               background: "#000",
+              pointerEvents: "none",
             }}
           />
           {cursor && (
@@ -299,6 +269,6 @@ export function LivePreview({
           ))}
         </div>
       </div>
-    </FloatingPanel>
+    </PanelModal>
   );
 }

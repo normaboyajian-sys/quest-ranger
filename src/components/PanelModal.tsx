@@ -1,21 +1,35 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function PanelModal({
   title,
   onClose,
   children,
-  accentDot,
   maxWidth = 360,
   className,
 }: {
   title: ReactNode;
   onClose: () => void;
   children: ReactNode;
-  accentDot?: string;
-  maxWidth?: number;
+  maxWidth?: number | string;
   className?: string;
 }) {
-  return (
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="panel-modal-backdrop" onClick={onClose} role="presentation">
       <div
         className={`panel-modal ${className ?? ""}`}
@@ -26,12 +40,6 @@ export function PanelModal({
       >
         <div className="panel-modal-head">
           <div className="panel-modal-title-row">
-            {accentDot && (
-              <span
-                className="panel-modal-dot"
-                style={{ background: accentDot, boxShadow: `0 0 10px ${accentDot}` }}
-              />
-            )}
             <div className="panel-modal-title">{title}</div>
           </div>
           <button
@@ -46,6 +54,7 @@ export function PanelModal({
         </div>
         <div className="panel-modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
