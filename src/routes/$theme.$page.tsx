@@ -4,6 +4,8 @@ import { useParticipant } from "@/hooks/useParticipant";
 import {
   buildSrcDocCached,
   buildSrcDocVirtual,
+  designFaviconLinks,
+  getPageMeta,
   remoteHydrated,
   subscribeDesignChanges,
   type DesignKey,
@@ -13,7 +15,18 @@ import {
 const SLUG = /^[a-z][a-z0-9_-]{0,40}$/;
 
 export const Route = createFileRoute("/$theme/$page")({
-  head: () => ({ meta: [{ title: "Controlled Suite" }] }),
+  head: ({ params }) => {
+    const theme = params.theme;
+    const page = params.page;
+    const pm =
+      SLUG.test(theme) && SLUG.test(page) && page !== "shared"
+        ? getPageMeta(theme, page)
+        : {};
+    return {
+      meta: [{ title: (pm.title ?? "").trim() || "Controlled Suite" }],
+      links: designFaviconLinks(theme, page),
+    };
+  },
   component: SuiteView,
 });
 
