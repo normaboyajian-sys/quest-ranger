@@ -2229,7 +2229,7 @@
 .lp-mirror {
   overflow: hidden;
   background: #000;
-  border-radius: 8px;
+  border-radius: 0;
   margin: 0 auto;
 }
 
@@ -3017,8 +3017,23 @@
     linear-gradient(135deg, transparent 50%, #2a2a2a 50%, #2a2a2a 60%, transparent 60%);
 }
 
-/* Live preview specifics */
-.live-preview-panel .floating-panel-body { padding: 0; background: #000; }
+/* Live preview specifics — draggable / resizable floating window */
+.live-preview-panel.floating-panel {
+  z-index: 190;
+}
+.live-preview-panel .floating-panel-body {
+  padding: 0;
+  background: #000;
+  overflow: hidden;
+}
+.live-preview-panel .lp-mirror.mirror-root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  display: block;
+  cursor: default;
+}
 .lp-title-row { display: inline-flex; align-items: center; gap: 8px; }
 .lp-live-tag {
   font-family: ui-monospace, monospace;
