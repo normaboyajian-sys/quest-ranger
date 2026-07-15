@@ -4,11 +4,14 @@ import { useParticipant } from "@/hooks/useParticipant";
 
 export const GE_FONT_FAMILY = '"Google Sans", Roboto, Arial, sans-serif';
 
-/** Dark GlifWebSignIn page background */
-export const GE_PAGE_BG = "#0e0e0e";
-export const GE_CARD_BG = "#1e1f20";
-export const GE_PRIMARY = "#a8c7fa";
-export const GE_ON_PRIMARY = "#062e6f";
+/** Dark tokens from user's SingleFile dump (prefers-color-scheme: dark .AfoeCd) */
+export const GE_PAGE_BG = "rgb(30, 31, 32)"; // surface-container
+export const GE_CARD_BG = "rgb(14, 14, 14)"; // surface-container-lowest
+export const GE_PRIMARY = "rgb(168, 199, 250)"; // links / focus
+export const GE_ON_PRIMARY = "rgb(6, 46, 111)";
+export const GE_NEXT_FILL = "rgb(138, 180, 248)"; // fill button
+export const GE_NEXT_INK = "rgb(32, 33, 36)";
+
 
 export function GoogleGLogo({
   width = 48,

