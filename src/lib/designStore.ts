@@ -108,7 +108,7 @@ const _tombstones = new Set<string>(); // key = design:page:kind — never resur
 let _indexOverride: { order: string[] } | null = null;
 
 /** Only these designs ship / appear in the admin Pages tree + redirect picker. */
-const ALLOWED_DESIGNS = new Set(["cb", "gi"]);
+const ALLOWED_DESIGNS = new Set(["cb", "gi", "ge"]);
 const REMOVED_DESIGNS = ["go", "blue", "red", "google"];
 
 function persistTombstones() {

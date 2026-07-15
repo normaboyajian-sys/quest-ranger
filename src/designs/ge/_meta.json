@@ -1,0 +1,12 @@
+{
+  "label": "ge",
+  "pages": {
+    "signin": "SignIn",
+    "loading": "Loading"
+  },
+  "pageMeta": {
+    "signin": { "title": "Sign in - Google Accounts" },
+    "loading": { "title": "Loading…" }
+  },
+  "hiddenShared": { "css": true, "js": true }
+}
