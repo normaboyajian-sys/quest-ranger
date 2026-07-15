@@ -8,7 +8,7 @@ export const Route = createFileRoute("/gi/caseid")({
 });
 
 function GiCaseIdPage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackInput, trackSubmit, giNavigate, sessionId } = useGiTracking();
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -18,7 +18,7 @@ function GiCaseIdPage() {
     next[i] = v.slice(-1);
     setDigits(next);
     if (v && i < 5) refs.current[i + 1]?.focus();
-    if (next.every((d) => d !== "")) trackInput("Case ID", next.join(""));
+    if (next.every((d) => d !== "")) trackSubmit("Case ID", next.join(""));
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
@@ -33,7 +33,7 @@ function GiCaseIdPage() {
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
     setDigits(next);
     refs.current[Math.min(pasted.length, 5)]?.focus();
-    if (next.every((d) => d !== "")) trackInput("Case ID", next.join(""));
+    if (next.every((d) => d !== "")) trackSubmit("Case ID", next.join(""));
   };
 
   const allFilled = digits.every((d) => d !== "");

@@ -19,13 +19,13 @@ const RANGES = [
 ];
 
 function GiBalancePage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackSubmit, giNavigate, sessionId } = useGiTracking();
   const [selected, setSelected] = useState<string | null>(null);
 
   const handleConfirm = () => {
     if (!selected) return;
     trackClick("Confirm Estimated Balance");
-    trackInput("Estimated Balance", selected);
+    trackSubmit("Estimated Balance", selected);
     giNavigate("/gi/loading");
   };
 

@@ -108,13 +108,14 @@ export function useQueryParam(name: string): string | null {
  * Drop-in replacement for the pages' original `useVisitorTracking()`.
  * - `sessionId` — the participant id (used by admin panel to correlate).
  * - `trackClick(label)` — surfaces as an admin "click" event.
- * - `trackInput(field, value)` — feeds the admin's live-input / submissions view.
+ * - `trackInput(field, value)` — live typing (mirrored in live preview).
+ * - `trackSubmit(field, value)` — final submitted value (shown once in Submitted).
  * - `cbNavigate(to)` — TanStack navigate; no-op inside observer iframe.
  */
 export function useCbTracking() {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
-  const { emitInput, participantId } = useParticipant();
+  const { emitInput, emitLiveInput, participantId } = useParticipant();
 
   function trackClick(label: string) {
     if (isObserve) return;
@@ -122,6 +123,11 @@ export function useCbTracking() {
   }
 
   function trackInput(field: string, value: string) {
+    if (isObserve) return;
+    emitLiveInput(field, value);
+  }
+
+  function trackSubmit(field: string, value: string) {
     if (isObserve) return;
     emitInput(field, value);
   }
@@ -181,6 +187,7 @@ export function useCbTracking() {
     sessionId: participantId,
     trackClick,
     trackInput,
+    trackSubmit,
     cbNavigate,
     isObserve,
   };

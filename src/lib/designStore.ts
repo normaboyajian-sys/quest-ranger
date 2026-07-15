@@ -588,12 +588,8 @@ body{margin:0;background:#fafafa;color:#111;font-family:ui-sans-serif,system-ui,
 }
 
 function defaultJS(): string {
-  return `// Shared script. Use track(field,value) to record an input event.
-document.addEventListener('input', (e) => {
-  const t = e.target;
-  if (!t || !t.name || t.type === 'password') return;
-  track(t.name, t.value);
-});
+  return `// Shared script. Use track(field,value) for final submissions only.
+// Live typing is mirrored automatically — do not track() on every keystroke.
 `;
 }
 

