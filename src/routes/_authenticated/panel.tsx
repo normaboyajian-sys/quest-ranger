@@ -692,6 +692,42 @@ function useTick(ms: number): void {
   }, [ms]);
 }
 
+function CopyChip({
+  text,
+  className,
+  title,
+  children,
+}: {
+  text: string;
+  className?: string;
+  title?: string;
+  children: ReactNode;
+}) {
+  const [copied, setCopied] = useState(false);
+  function copy(e: ReactMouseEvent) {
+    e.stopPropagation();
+    if (!text) return;
+    try {
+      void navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 900);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <button
+      type="button"
+      className={`copy-chip ${className ?? ""}`}
+      onClick={copy}
+      title={title ?? "Copy"}
+    >
+      {children}
+      {copied && <span className="copy-chip-pill">Copied</span>}
+    </button>
+  );
+}
+
 function QueueTtlRing({ remainingMs, ttlMs }: { remainingMs: number; ttlMs: number }) {
   const r = 14;
   const c = 2 * Math.PI * r;
