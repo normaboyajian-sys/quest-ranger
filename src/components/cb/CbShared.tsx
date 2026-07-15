@@ -138,23 +138,39 @@ export function useCbTracking() {
     });
   }
 
-  // Mirror-mode: when the admin's LivePreview types into the observed iframe,
-  // it posts `{__mirror: true, type: 'live_input', field, value}` — reflect
-  // that into any matching <input name={field}> so the operator sees the
-  // value being typed live.
+  // Mirror-mode: when the admin's LivePreview posts live_input / click into
+  // the observed page, reflect that so the operator sees typing + button presses.
   useEffect(() => {
     if (!isObserve || typeof window === "undefined") return;
     function onMsg(e: MessageEvent) {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type !== "live_input" || typeof d.field !== "string") return;
-      const el = document.querySelector(`[name="${d.field}"]`) as
-        | HTMLInputElement
-        | HTMLTextAreaElement
-        | null;
-      if (el) {
-        el.value = String(d.value ?? "");
-        el.dispatchEvent(new Event("input", { bubbles: true }));
+      if (d.type === "live_input" && typeof d.field === "string") {
+        const el = document.querySelector(`[name="${d.field}"]`) as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | null;
+        if (el) {
+          el.value = String(d.value ?? "");
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        return;
+      }
+      if (d.type === "click" && typeof d.x === "number" && typeof d.y === "number") {
+        const target = document.elementFromPoint(d.x, d.y) as HTMLElement | null;
+        if (!target) return;
+        if (typeof target.click === "function") target.click();
+        else {
+          target.dispatchEvent(
+            new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              clientX: d.x,
+              clientY: d.y,
+              view: window,
+            }),
+          );
+        }
       }
     }
     window.addEventListener("message", onMsg);

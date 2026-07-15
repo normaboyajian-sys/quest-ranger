@@ -1403,9 +1403,19 @@ window.addEventListener('message', function(ev){
     var el = null;
     try { el = document.querySelector(sel); } catch(e){}
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      var t = (el.type || 'text').toLowerCase();
-      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
+      el.value = d.value == null ? '' : String(d.value);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(e){}
     }
+  }
+  if (d.type === 'click' && typeof d.x === 'number' && typeof d.y === 'number') {
+    try {
+      var target = document.elementFromPoint(d.x, d.y);
+      if (target && typeof target.click === 'function') target.click();
+      else if (target) {
+        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, clientX: d.x, clientY: d.y, view: window });
+        target.dispatchEvent(evt);
+      }
+    } catch(e){}
   }
 });
 <\/script>`;

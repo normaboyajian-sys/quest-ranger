@@ -94,9 +94,8 @@ function SuiteView() {
         if (d.design === design) setVirtualPage(d.page as PageKey);
         return;
       }
-      // Observer → forward live_input down into the inner srcDoc iframe so the
-      // tracker can paint the typed value into the matching field.
-      if (d.__mirror === true && d.type === "live_input") {
+      // Observer → forward live_input / click down into the inner srcDoc iframe.
+      if (d.__mirror === true && (d.type === "live_input" || d.type === "click")) {
         const win = iframeRef.current?.contentWindow;
         if (win) {
           try { win.postMessage(d, "*"); } catch { /* ignore */ }
