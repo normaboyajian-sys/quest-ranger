@@ -2138,18 +2138,15 @@
   position: fixed;
   inset: 0;
   z-index: 200;
+  /* No solid fill — blur + darken the page through the filter only.
+     Do NOT animate opacity on this element; it breaks backdrop-filter. */
   background: transparent;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(18px) brightness(0.45) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) brightness(0.45) saturate(120%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  animation: panel-modal-fade 180ms ease both;
-}
-@keyframes panel-modal-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 .panel-modal {
   width: 100%;
@@ -2869,14 +2866,13 @@
 /* ====== Modal ====== */
 .admin-modal-backdrop {
   position: fixed; inset: 0; z-index: 200;
+  /* No solid fill — blur + darken only. Opacity animation breaks backdrop-filter. */
   background: transparent;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(18px) brightness(0.45) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) brightness(0.45) saturate(120%);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
-  animation: modal-fade-in 180ms ease both;
 }
-@keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .admin-modal {
   width: 100%; max-width: 380px;
   background: #111;
