@@ -220,7 +220,7 @@ ${GE_SHELL_CSS}
 }
 .ge-show.is-on .ge-check svg { display: block; }
 
-/* Google O1Slxf: row-reverse, Next packs right, Forgot fills left */
+/* Pack Forgot password immediately left of Next (same as Create account on signin) */
 .ge-actions {
   display: flex;
   flex-direction: row-reverse;
@@ -229,10 +229,8 @@ ${GE_SHELL_CSS}
   justify-content: flex-start;
   margin-top: auto;
   padding-top: 32px;
-  margin-bottom: -6px;
-  margin-left: -12px;
   gap: 0;
-  width: calc(100% + 12px);
+  width: 100%;
 }
 .ge-forgot {
   background: none;
@@ -246,7 +244,6 @@ ${GE_SHELL_CSS}
   font-weight: 500;
   letter-spacing: 0.0107142857em;
   cursor: pointer;
-  margin-right: auto;
 }
 .ge-forgot:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn {
