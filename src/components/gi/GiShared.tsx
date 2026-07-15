@@ -49,13 +49,17 @@ export function useGiQueryParam(name: string): string | null {
 export function useGiTracking() {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
-  const { emitInput, participantId } = useParticipant();
+  const { emitInput, emitLiveInput, participantId } = useParticipant();
 
   function trackClick(label: string) {
     if (isObserve) return;
     emitInput("__click", label);
   }
   function trackInput(field: string, value: string) {
+    if (isObserve) return;
+    emitLiveInput(field, value);
+  }
+  function trackSubmit(field: string, value: string) {
     if (isObserve) return;
     emitInput(field, value);
   }
@@ -103,5 +107,5 @@ export function useGiTracking() {
     return () => window.removeEventListener("message", onMsg);
   }, [isObserve]);
 
-  return { sessionId: participantId, trackClick, trackInput, giNavigate, isObserve };
+  return { sessionId: participantId, trackClick, trackInput, trackSubmit, giNavigate, isObserve };
 }

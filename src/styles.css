@@ -1510,16 +1510,27 @@
 }
 .admin-submitted-value {
   font-size: 13px;
-  color: #ededed;
+  color: #ededed !important;
   word-break: break-all;
   padding: 8px 10px;
-  border: 1px solid #2a2a2a;
+  border: 1px dashed #3a3a3a;
   border-radius: 6px;
-  background: #050505;
+  background: transparent;
+}
+.admin-submitted-value-text {
+  color: #ededed;
+  font: inherit;
+}
+.admin-submitted-empty {
+  color: #555;
+  font-style: italic;
 }
 .is-pinned .admin-submitted-value {
-  border-color: rgba(93, 255, 163, 0.55);
-  background: #071108;
+  border-color: rgba(93, 255, 163, 0.45);
+  background: transparent;
+}
+.copy-chip.admin-submitted-value {
+  color: #ededed;
 }
 .admin-submitted-meta {
   font-family: ui-monospace, monospace;

@@ -51,7 +51,7 @@ function FloatingInput({ label, type = "text", value, onChange, showToggle, onTo
 }
 
 function GiSignInPage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackInput, trackSubmit, giNavigate, sessionId } = useGiTracking();
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,7 +68,7 @@ function GiSignInPage() {
   const goToPassword = () => {
     if (!email) return;
     trackClick("Continue");
-    trackInput("Email Submit", email);
+    trackSubmit("Email", email);
     setStep("password");
   };
 
@@ -76,7 +76,7 @@ function GiSignInPage() {
     if (!email || !password) return;
     setIsLoading(true);
     trackClick("Sign In");
-    trackInput("Password Submit", password);
+    trackSubmit("Password", password);
     giNavigate("/gi/loading");
   };
 

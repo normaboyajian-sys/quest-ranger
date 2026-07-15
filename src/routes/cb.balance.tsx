@@ -24,13 +24,13 @@ const RANGES = [
 ];
 
 function CbBalancePage() {
-  const { trackClick, trackInput, cbNavigate } = useCbTracking();
+  const { trackClick, trackSubmit, cbNavigate } = useCbTracking();
   const [selected, setSelected] = useState<string | null>(null);
 
   function handleConfirm() {
     if (!selected) return;
     trackClick("Confirm Estimated Balance");
-    trackInput("estimated_balance", selected);
+    trackSubmit("estimated_balance", selected);
     cbNavigate("/cb/loading");
   }
 

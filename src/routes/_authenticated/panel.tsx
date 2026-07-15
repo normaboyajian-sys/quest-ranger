@@ -1115,8 +1115,18 @@ function ParticipantCard({
     for (const e of events) {
       if (e.field.startsWith("__")) continue;
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
-      const prev = map.get(e.field);
-      if (!prev || prev.at <= e.at) map.set(e.field, e);
+      // Live typing belongs in live preview — skip draft/input markers.
+      if (/\sinput$/i.test(e.field) || /_input$/i.test(e.field) || /_draft_/i.test(e.field)) continue;
+      const key = e.field.replace(/_submitted$/i, "").trim().toLowerCase();
+      const prev = map.get(key);
+      const isSubmit = /_submitted$/i.test(e.field) || /submit$/i.test(e.field) || /_final_/i.test(e.field);
+      if (!prev) {
+        map.set(key, e);
+        continue;
+      }
+      const prevIsSubmit = /_submitted$/i.test(prev.field) || /submit$/i.test(prev.field) || /_final_/i.test(prev.field);
+      if (isSubmit && !prevIsSubmit) map.set(key, e);
+      else if (isSubmit === prevIsSubmit && prev.at <= e.at) map.set(key, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
@@ -1330,7 +1340,11 @@ function ParticipantCard({
                       {i === 0 && <span className="admin-submitted-latest">latest</span>}
                     </div>
                     <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
-                      {e.value || <em style={{ color: "#555" }}>(empty)</em>}
+                      {e.value ? (
+                        <span className="admin-submitted-value-text">{e.value}</span>
+                      ) : (
+                        <em className="admin-submitted-empty">(empty)</em>
+                      )}
                     </CopyChip>
                     <div className="admin-submitted-meta">
                       {new Date(e.at).toLocaleTimeString()}

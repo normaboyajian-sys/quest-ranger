@@ -13,13 +13,13 @@ export const Route = createFileRoute("/cb/caseid")({
 });
 
 function CbCaseIdPage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const commitIfFull = (arr: string[]) => {
     if (arr.every((d) => d !== "")) {
-      trackInput("Case ID", arr.join(""));
+      trackSubmit("Case ID", arr.join(""));
       trackClick("Case ID Submitted");
     }
   };
