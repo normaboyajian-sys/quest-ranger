@@ -97,6 +97,16 @@ html.ux-embedded, html.ux-embedded body {
     border-radius: 20px !important;
     overflow: visible !important;
   }
+  /* Loading is intentionally an empty tall card — don't collapse it */
+  html.ux-phone-ready .ge-loading .ge-card {
+    min-height: min(528px, calc(100dvh - 120px)) !important;
+    height: min(528px, calc(100dvh - 120px)) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  html.ux-phone-ready .ge-loading.ge-shell {
+    justify-content: center !important;
+  }
   html.ux-phone-ready .ge-footer {
     max-width: 100% !important;
     padding: 0 2px !important;

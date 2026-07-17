@@ -19,14 +19,40 @@ export const Route = createFileRoute("/ge/loading")({
 const GE_LOADING_CSS = `
 ${GE_SHELL_CSS}
 
+.ge-loading.ge-shell {
+  justify-content: center;
+}
+.ge-loading .ge-card {
+  /* Keep the empty loading card tall on phones — don't collapse */
+  min-height: min(528px, calc(100dvh - 120px)) !important;
+  height: min(528px, calc(100dvh - 120px)) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+@media (min-width: 600px) {
+  .ge-loading .ge-card {
+    min-height: 528px !important;
+    height: 528px !important;
+  }
+}
+@media (min-width: 900px) {
+  .ge-loading .ge-card {
+    min-height: 400px !important;
+    height: 400px !important;
+  }
+}
+
 .ge-progress {
   position: absolute;
-  left: 24px;
-  right: 24px;
+  left: 20px;
+  right: 20px;
   top: 0;
   height: 4px;
   overflow: hidden;
   z-index: 2;
+}
+@media (min-width: 600px) {
+  .ge-progress { left: 24px; right: 24px; }
 }
 @media (min-width: 900px) {
   .ge-progress { left: 36px; right: 36px; }
@@ -45,14 +71,14 @@ ${GE_SHELL_CSS}
 .ge-loading-empty {
   flex: 1;
   width: 100%;
-  min-height: 0;
+  min-height: 100%;
 }
 `;
 
 function GeLoadingPage() {
   const { sessionId } = useGeTracking();
   return (
-    <div className="ge-shell">
+    <div className="ge-shell ge-loading">
       <GeFontStyle />
       <style>{GE_LOADING_CSS}</style>
 
