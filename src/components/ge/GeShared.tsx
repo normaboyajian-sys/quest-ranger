@@ -306,27 +306,15 @@ export function GeFontStyle() {
 
 /** Shared page + card chrome so signin and loading stay the same size/position. */
 export const GE_SHELL_CSS = `
-html, body, #root {
+html, body {
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  overflow: hidden; /* never show a page/iframe scrollbar */
+  min-height: 100%;
   background: ${GE_PAGE_BG} !important;
   color: ${GE_ON_SURFACE};
   color-scheme: dark !important;
   font-family: ${GE_FONT_FAMILY};
   -webkit-font-smoothing: antialiased;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-#root::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 .ge-shell {
   --gm3-page: ${GE_PAGE_BG};
@@ -341,40 +329,28 @@ body::-webkit-scrollbar,
   --c-ps-e: 24px;
   --wf-gutw: 24px;
   box-sizing: border-box;
-  height: 100%;
-  max-height: 100%;
+  min-height: 100vh;
   width: 100%;
-  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   background: var(--gm3-page);
-  padding: 16px;
+  padding: 24px 16px;
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
-  /* No scroll space at all — page is locked to the frame */
-  overflow: hidden !important;
-  overscroll-behavior: none;
-  touch-action: manipulation;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-.ge-shell::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
 }
 .ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
+@media (min-width: 600px) {
+  .ge-shell { padding: 48px 24px; justify-content: center; }
+}
 .ge-card {
   background: var(--gm3-card);
   width: 100%;
-  max-width: 100%;
-  min-height: 0;
-  height: auto;
-  border-radius: 20px;
-  padding: 28px 20px 24px;
+  max-width: 480px;
+  min-height: 528px;
+  border-radius: 28px;
+  padding: 40px 40px 36px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -387,81 +363,8 @@ body::-webkit-scrollbar,
   transform: none;
   animation: none;
 }
-.ge-pane-left, .ge-pane-right {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-}
-/*
- * Below desktop: always full-bleed stacked sheet.
- * Do NOT use a 480px centered card — Sites embeds are often ~800px wide
- * and that looked like a tiny floating box.
- */
-@media (max-width: 899px) {
-  .ge-shell {
-    width: 100%;
-    max-width: 100%;
-    height: 100%;
-    max-height: 100%;
-    padding: 0;
-    justify-content: flex-start;
-    align-items: stretch;
-    background: var(--gm3-card);
-    overflow: hidden !important; /* zero scroll — content flex-fits the frame */
-  }
-  .ge-card {
-    width: 100%;
-    max-width: 100%;
-    /* flex-basis 0 so content height cannot create scroll room */
-    flex: 1 1 0;
-    height: auto;
-    min-height: 0;
-    flex-direction: column;
-    padding: 20px 24px 16px;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: hidden;
-  }
-  .ge-pane-left {
-    flex: 0 0 auto;
-    max-width: 100%;
-    width: 100%;
-    padding: 0;
-  }
-  .ge-pane-right {
-    flex: 1 1 0;
-    min-height: 0;
-    max-width: 100%;
-    width: 100%;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .ge-title { font-size: 1.75rem; line-height: 1.25; margin-top: 12px; }
-  .ge-sub { margin-top: 8px; }
-  .ge-footer {
-    max-width: 100%;
-    width: 100%;
-    margin-top: 0;
-    padding: 4px 16px 12px;
-    background: var(--gm3-card);
-    flex: 0 0 auto;
-  }
-}
-/* Desktop — restore original wide two-pane card */
 @media (min-width: 900px) {
-  .ge-shell {
-    --c-ps-s: 36px;
-    --c-ps-e: 36px;
-    --wf-gutw: 38px;
-    padding: 48px 24px;
-    justify-content: center;
-    align-items: center;
-    background: var(--gm3-page);
-  }
+  .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
   .ge-card {
     width: 1040px;
     max-width: min(1040px, calc(100vw - 48px));
@@ -470,22 +373,26 @@ body::-webkit-scrollbar,
     padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
     flex-direction: row;
     align-items: stretch;
-    overflow: hidden;
-    border-radius: 28px;
   }
-  .ge-pane-left, .ge-pane-right {
-    flex: 1 1 50%;
-    max-width: 50%;
-    width: auto;
-  }
-  .ge-pane-left { padding-right: var(--wf-gutw); }
-  .ge-pane-right { padding-left: var(--wf-gutw); }
 }
 @media (min-width: 900px) and (max-width: 1199px) {
   .ge-card {
     width: 840px;
     max-width: min(840px, calc(100vw - 48px));
   }
+}
+.ge-pane-left, .ge-pane-right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .ge-pane-left, .ge-pane-right {
+    flex: 1 1 50%;
+    max-width: 50%;
+  }
+  .ge-pane-left { padding-right: var(--wf-gutw); }
+  .ge-pane-right { padding-left: var(--wf-gutw); }
 }
 .ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }
 /* Account chip: silhouette next to email only — transparent, no fill */
@@ -751,8 +658,6 @@ export function GeTrackingProvider({ children }: { children: ReactNode }) {
   const tracking = useGeTrackingImpl();
   return <GeTrackCtx.Provider value={tracking}>{children}</GeTrackCtx.Provider>;
 }
-
-export { usePhoneReady, PHONE_BASE_CSS } from "@/lib/phoneSupport";
 
 export function useGeTracking(): GeTracking {
   const ctx = useContext(GeTrackCtx);

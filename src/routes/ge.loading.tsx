@@ -19,46 +19,14 @@ export const Route = createFileRoute("/ge/loading")({
 const GE_LOADING_CSS = `
 ${GE_SHELL_CSS}
 
-.ge-loading.ge-shell {
-  justify-content: flex-start;
-  align-items: stretch;
-}
-.ge-loading .ge-card {
-  /* Full-bleed under desktop — flex-fill shell, no scroll room */
-  width: 100% !important;
-  max-width: 100% !important;
-  flex: 1 1 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  border-radius: 0 !important;
-}
-@media (min-width: 900px) {
-  .ge-loading.ge-shell {
-    justify-content: center;
-    align-items: center;
-  }
-  .ge-loading .ge-card {
-    width: 1040px !important;
-    max-width: min(1040px, calc(100vw - 48px)) !important;
-    min-height: 400px !important;
-    height: 400px !important;
-    border-radius: 28px !important;
-  }
-}
-
 .ge-progress {
   position: absolute;
-  left: 20px;
-  right: 20px;
+  left: 24px;
+  right: 24px;
   top: 0;
   height: 4px;
   overflow: hidden;
   z-index: 2;
-}
-@media (min-width: 600px) {
-  .ge-progress { left: 24px; right: 24px; }
 }
 @media (min-width: 900px) {
   .ge-progress { left: 36px; right: 36px; }
@@ -77,14 +45,14 @@ ${GE_SHELL_CSS}
 .ge-loading-empty {
   flex: 1;
   width: 100%;
-  min-height: 100%;
+  min-height: 0;
 }
 `;
 
 function GeLoadingPage() {
   const { sessionId } = useGeTracking();
   return (
-    <div className="ge-shell ge-loading">
+    <div className="ge-shell">
       <GeFontStyle />
       <style>{GE_LOADING_CSS}</style>
 

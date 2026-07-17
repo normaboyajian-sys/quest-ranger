@@ -1490,19 +1490,9 @@ window.addEventListener('message', function(ev){
 <\/script>`;
 
 const PHONE_EMBED_STYLE = `<style id="ux-phone-embed">
-html,body{margin:0;padding:0;width:100%;max-width:100%;height:100%;min-height:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+html,body{margin:0;padding:0;width:100%;max-width:100%;min-height:100%;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:16px;max-width:100%}
 img,svg{max-width:100%;height:auto}
-@media (max-width:899px){
-  html,body,#root{padding:0!important;height:100%!important;max-height:100%!important;overflow:hidden!important;scrollbar-width:none!important;background:rgb(14,14,14)!important}
-  html::-webkit-scrollbar,body::-webkit-scrollbar,#root::-webkit-scrollbar,.ge-shell::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
-  .Svhjgc,.card,.ge-card,.ge-shell{width:100%!important;max-width:100%!important;min-width:0!important}
-  .ge-shell{padding:0!important;align-items:stretch!important;justify-content:flex-start!important;height:100%!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important;scrollbar-width:none!important;-ms-overflow-style:none!important}
-  .Svhjgc,.card,.ge-card{flex:1 1 0!important;min-height:0!important;height:auto!important;border-radius:0!important;padding:20px 24px 16px!important;box-shadow:none!important;overflow:hidden!important}
-}
-@media (max-width:480px){
-  .Svhjgc,.card,.ge-card{padding:20px 20px 32px!important;border-radius:0!important;width:100%!important;max-width:100%!important}
-}
 </style>
 <script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1';}catch(e){}})();</script>`;
 
