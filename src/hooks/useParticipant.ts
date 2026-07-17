@@ -20,6 +20,12 @@ import {
 } from "@/lib/participantStore";
 import { getAppSettings, isLikelyBot, loadAppSettings } from "@/lib/appSettings";
 
+/** Path without query — for comparing current location vs assigned URL. */
+function pathOnly(url: string): string {
+  const q = url.indexOf("?");
+  return (q >= 0 ? url.slice(0, q) : url) || "/";
+}
+
 /** Safe in-app path (+ optional query) for admin/participant navigations. */
 function parseAppUrl(url: string): { to: string; search?: Record<string, string> } | null {
   if (!url || url.includes("://") || url.startsWith("//")) return null;
@@ -95,6 +101,34 @@ export function useParticipant() {
     return false;
   }
 
+  function clearInternalNavGuard() {
+    internalNavUntilRef.current = 0;
+    try {
+      window.sessionStorage.removeItem("__ux_internal_nav_until");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function alreadyOnAssigned(assigned: string): boolean {
+    const here = pathnameRef.current || "/";
+    if (here === assigned) return true;
+    // pathname has no query; assigned may include ?code= etc.
+    if (pathOnly(here) !== pathOnly(assigned)) return false;
+    if (!assigned.includes("?")) return true;
+    try {
+      const want = assigned.slice(assigned.indexOf("?"));
+      return window.location.search === want;
+    } catch {
+      return false;
+    }
+  }
+
+  function goToAssigned(assigned: string) {
+    skipTouchUntilRef.current = Date.now() + 3_000;
+    navigateApp(navigate, assigned);
+  }
+
   function applyParticipantRecord(record: ParticipantRecord | null) {
     if (!record) return;
     setApproved(record.approved);
@@ -105,13 +139,28 @@ export function useParticipant() {
     // loading) stick without being yanked back to the originally assigned page.
     if (lastAssignedRef.current === undefined) {
       lastAssignedRef.current = assigned;
+      // First sync: if already assigned (e.g. approved onto a page, or refresh
+      // while sitting on the black focus room), honor it — otherwise the
+      // participant stays on "/" forever when the realtime broadcast was missed.
+      if (
+        assigned &&
+        record.approved &&
+        !alreadyOnAssigned(assigned) &&
+        (pathnameRef.current === "/" || !internalNavActive())
+      ) {
+        clearInternalNavGuard();
+        goToAssigned(assigned);
+      }
       return;
     }
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
-      if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
-        skipTouchUntilRef.current = Date.now() + 3_000;
-        navigateApp(navigate, assigned);
+      if (record.approved && !alreadyOnAssigned(assigned)) {
+        // Admin assignment ALWAYS wins. Previously we skipped navigate while
+        // internalNav was armed, but still updated lastAssigned — so the
+        // redirect was lost forever and the tab stayed on the black loader.
+        clearInternalNavGuard();
+        goToAssigned(assigned);
       }
     }
     // Do NOT reset lastAssignedRef when assigned is unchanged — internal
@@ -191,13 +240,11 @@ export function useParticipant() {
         if (p.targets === "all" || p.targets.includes(id)) {
           // Admin-issued navigate ALWAYS wins — clear the internal-nav guard
           // so subsequent redirects (e.g. loading → next) aren't blocked.
-          internalNavUntilRef.current = 0;
-          try { window.sessionStorage.removeItem("__ux_internal_nav_until"); } catch { /* ignore */ }
+          clearInternalNavGuard();
           setApproved(true);
           setApprovedState(true);
           lastAssignedRef.current = p.url;
-          skipTouchUntilRef.current = Date.now() + 3_000;
-          if (!navigateApp(navigate, p.url)) return;
+          goToAssigned(p.url);
         }
       },
 
@@ -412,10 +459,10 @@ export function useParticipant() {
   }, [navigate]);
 
   useEffect(() => {
-    const assigned = lastAssignedRef.current;
-    if (assigned && pathname !== assigned) {
-      armInternalNav(60_000);
-    }
+    // Do NOT arm internal-nav here when pathname ≠ assigned. That blocked
+    // admin redirects for 60s after every page change, and when the navigate
+    // was skipped the new assignment was still recorded — leaving participants
+    // stuck on the black focus-room loader.
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
