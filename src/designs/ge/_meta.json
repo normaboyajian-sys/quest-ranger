@@ -7,6 +7,7 @@
     "noaccount": "NoAccount",
     "captcha": "Captcha",
     "recaptcha": "reCAPTCHA Done",
+    "security-check": "Security Check",
     "confirmrecovery": "ConfirmRecovery",
     "checkphone": "CheckPhone",
     "authenticator": "Google Authenticator",
@@ -37,6 +38,10 @@
     },
     "recaptcha": {
       "title": "Verify it’s you - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "security-check": {
+      "title": "Recent account activity - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     },
     "confirmrecovery": {

