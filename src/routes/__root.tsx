@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1.0",
       },
       { title: "loading." },
       { name: "description", content: "UX Navigator is a real-time platform for moderated UX testing, allowing administrators to guide participant navigation and observe UI theme interactions." },

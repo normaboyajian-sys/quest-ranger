@@ -31,8 +31,7 @@ export function usePhoneReady() {
         meta.name = "viewport";
         document.head.appendChild(meta);
       }
-      meta.content =
-        "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5";
+      meta.content = "width=device-width, initial-scale=1.0";
     } catch {
       /* ignore */
     }
