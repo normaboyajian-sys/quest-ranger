@@ -239,8 +239,56 @@ export const setServerPublicIp = createServerFn({ method: "POST" })
     return { ok: true as const, ip: ip || "0.0.0.0" };
   });
 
-// Verifies (a) the hostname's A records point at SERVER_PUBLIC_IP and
-// (b) https://<host>/api/public/health returns 200 (proves Caddy has a cert).
+/** Cloudflare published IPv4 ranges (orange-cloud / proxied DNS). */
+const CLOUDFLARE_IPV4_CIDRS = [
+  "173.245.48.0/20",
+  "103.21.244.0/22",
+  "103.22.200.0/22",
+  "103.31.4.0/22",
+  "141.101.64.0/18",
+  "108.162.192.0/18",
+  "190.93.240.0/20",
+  "188.114.96.0/20",
+  "197.234.240.0/22",
+  "198.41.128.0/17",
+  "162.158.0.0/15",
+  "104.16.0.0/13",
+  "104.24.0.0/14",
+  "172.64.0.0/13",
+  "131.0.72.0/22",
+];
+
+function ipv4ToInt(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return null;
+  let n = 0;
+  for (const p of parts) {
+    const o = Number(p);
+    if (!Number.isInteger(o) || o < 0 || o > 255) return null;
+    n = (n << 8) + o;
+  }
+  return n >>> 0;
+}
+
+function ipv4InCidr(ip: string, cidr: string): boolean {
+  const [base, bitsRaw] = cidr.split("/");
+  const bits = Number(bitsRaw);
+  const ipN = ipv4ToInt(ip);
+  const baseN = ipv4ToInt(base ?? "");
+  if (ipN == null || baseN == null || !Number.isInteger(bits) || bits < 0 || bits > 32) {
+    return false;
+  }
+  if (bits === 0) return true;
+  const mask = (0xffffffff << (32 - bits)) >>> 0;
+  return (ipN & mask) === (baseN & mask);
+}
+
+function isCloudflareIpv4(ip: string): boolean {
+  return CLOUDFLARE_IPV4_CIDRS.some((c) => ipv4InCidr(ip, c));
+}
+
+// Verifies (a) DNS resolves to SERVER_PUBLIC_IP or a Cloudflare proxy IP, and
+// (b) https://<host>/api/public/health returns 200 (proves TLS / Caddy).
 export const checkDomainStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
@@ -257,7 +305,7 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
     const expectIp = ipConfigured === "0.0.0.0" ? "" : ipConfigured;
 
     // DNS check via Cloudflare DoH (works in Worker + Node runtimes).
-    let dnsStatus: "ok" | "mismatch" | "pending" = "pending";
+    let dnsStatus: "ok" | "proxied" | "mismatch" | "pending" = "pending";
     let resolvedIps: string[] = [];
     try {
       const doh = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, {
@@ -266,9 +314,18 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
       });
       const j = (await doh.json()) as { Answer?: Array<{ type: number; data: string }> };
       resolvedIps = (j.Answer ?? []).filter((a) => a.type === 1).map((a) => a.data);
-      if (resolvedIps.length === 0) dnsStatus = "pending";
-      else if (!expectIp) dnsStatus = "ok"; // no IP configured; presume ok if resolves
-      else dnsStatus = resolvedIps.includes(expectIp) ? "ok" : "mismatch";
+      if (resolvedIps.length === 0) {
+        dnsStatus = "pending";
+      } else if (!expectIp) {
+        dnsStatus = "ok"; // no IP configured; presume ok if resolves
+      } else if (resolvedIps.includes(expectIp)) {
+        dnsStatus = "ok";
+      } else if (resolvedIps.some(isCloudflareIpv4)) {
+        // Orange-cloud: public DNS shows Cloudflare anycast, not origin IP.
+        dnsStatus = "proxied";
+      } else {
+        dnsStatus = "mismatch";
+      }
     } catch {
       dnsStatus = "pending";
     }
@@ -283,6 +340,11 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
       else sslStatus = "failed";
     } catch {
       sslStatus = "pending";
+    }
+
+    // If the site is live over HTTPS, DNS is good enough even through a CDN.
+    if (sslStatus === "issued" && dnsStatus === "mismatch" && resolvedIps.length > 0) {
+      dnsStatus = "proxied";
     }
 
     const nowIso = new Date().toISOString();

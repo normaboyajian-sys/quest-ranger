@@ -1612,21 +1612,14 @@ type DomainRow = {
 
 function StatusBadge({ label, value }: { label: string; value: string | null | undefined }) {
   const v = value ?? "pending";
-  const color =
-    v === "ok" || v === "issued"
-      ? "#1a7f37"
-      : v === "mismatch" || v === "failed"
-        ? "#b42318"
-        : "#8a6d00";
-  const bg =
-    v === "ok" || v === "issued"
-      ? "#e6f4ea"
-      : v === "mismatch" || v === "failed"
-        ? "#fde8e8"
-        : "#fef7e0";
+  const good = v === "ok" || v === "issued" || v === "proxied";
+  const bad = v === "mismatch" || v === "failed";
+  const color = good ? "#1a7f37" : bad ? "#b42318" : "#8a6d00";
+  const bg = good ? "#e6f4ea" : bad ? "#fde8e8" : "#fef7e0";
+  const display = v === "proxied" ? "ok (Cloudflare)" : v;
   return (
     <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: bg, color, fontWeight: 600 }}>
-      {label}: {v}
+      {label}: {display}
     </span>
   );
 }
@@ -1775,10 +1768,10 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
         {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
       </h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
-        Point your domain&apos;s DNS at the server below — the panel auto-issues HTTPS on the first
-        visit. Then copy the Google Sites embed code and paste it under{" "}
-        <strong>Insert → Embed → Embed code</strong>. Visitors show up in Participants and you can
-        redirect them like normal.
+        Point an A record at the server IP below (Cloudflare orange-cloud / proxied is fine). HTTPS
+        auto-issues on first visit. Then copy the Google Sites embed code under{" "}
+        <strong>Insert → Embed → Embed code</strong> — visitors show up in Participants and you can
+        redirect them.
       </p>
       <ServerIpBox
         ip={conn?.ip ?? "0.0.0.0"}
