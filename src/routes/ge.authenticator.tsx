@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   GE_SHELL_CSS,
+  GeAccountChip,
   GeFontStyle,
   GeFooter,
-  GoogleUserIcon,
+  GoogleGLogo,
   resolveGeEmail,
   setGeEmail,
   useGeTracking,
@@ -25,18 +26,6 @@ ${GE_SHELL_CSS}
 
 .ge-auth .ge-title { margin-top: 24px; }
 
-.ge-user-logo {
-  display: flex;
-  width: 48px;
-  height: 48px;
-  color: var(--gm3-on-surface-variant);
-  flex-shrink: 0;
-}
-.ge-user-logo svg {
-  display: block;
-  width: 48px;
-  height: 48px;
-}
 
 .ge-auth-lead {
   margin: 16px 0 0;
@@ -46,64 +35,6 @@ ${GE_SHELL_CSS}
   color: var(--gm3-on-surface);
 }
 
-.ge-account-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  margin-top: 24px;
-  width: fit-content;
-  max-width: 100%;
-  align-self: flex-start;
-  height: 32px;
-  padding: 0 8px 0 3px;
-  border: 1px solid var(--gm3-outline);
-  border-radius: 16px;
-  background: var(--gm3-card);
-  color: var(--gm3-on-surface);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  line-height: 1.25;
-  cursor: pointer;
-  text-align: left;
-}
-.ge-account-chip:hover { background: rgba(227, 227, 227, 0.08); }
-
-/* Always the Google default silhouette — never 2-letter initials */
-.ge-avatar-user {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-right: 8px;
-  background: rgb(95, 99, 104);
-  color: #fff;
-  overflow: hidden;
-}
-.ge-avatar-user svg {
-  width: 20px;
-  height: 20px;
-  display: block;
-}
-
-.ge-account-email {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  padding-right: 4px;
-}
-.ge-chip-caret {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  fill: var(--gm3-on-surface);
-  opacity: 0.8;
-}
 
 .ge-auth-heading {
   margin: 0;
@@ -302,28 +233,13 @@ function GeAuthenticatorPage() {
 
       <main className="ge-card" role="main">
         <div className="ge-pane-left">
-          <span className="ge-user-logo" aria-hidden="true">
-            <GoogleUserIcon width={48} height={48} />
-          </span>
+          <GoogleGLogo className="ge-logo" width={48} height={48} />
           <h1 className="ge-title">Account recovery</h1>
           <p className="ge-auth-lead">
             To help keep your account safe, Google wants to make sure it{"\u2019"}s
             really you trying to sign in
           </p>
-          <button
-            type="button"
-            className="ge-account-chip"
-            aria-label={`${email || "Account"} selected. Switch account`}
-            onClick={() => trackClick("Switch account")}
-          >
-            <span className="ge-avatar-user" aria-hidden="true">
-              <GoogleUserIcon width={20} height={20} />
-            </span>
-            <span className="ge-account-email">{email || "Account"}</span>
-            <svg className="ge-chip-caret" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 9.5l5 5 5-5H7z" />
-            </svg>
-          </button>
+          <GeAccountChip email={email} onClick={() => trackClick("Switch account")} />
         </div>
 
         <div className="ge-pane-right">

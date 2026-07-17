@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   GE_SHELL_CSS,
+  GeAccountChip,
   GeFontStyle,
   GeFooter,
   GoogleGLogo,
-  geAvatarColor,
   geHiName,
-  geInitials,
   resolveGeEmail,
   setGeEmail,
   useGeTracking,
@@ -31,63 +30,6 @@ ${GE_SHELL_CSS}
   margin-top: 24px;
 }
 
-/* Account chip — match dump .Ahygpe.m8wwGd.cd29Sd.EPPJc */
-.ge-account-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  margin-top: 16px;
-  width: fit-content;
-  max-width: 100%;
-  align-self: flex-start;
-  height: 32px;
-  padding: 0 8px 0 3px;
-  border: 1px solid var(--gm3-outline);
-  border-radius: 16px;
-  background: var(--gm3-card);
-  color: var(--gm3-on-surface);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  line-height: 1.25;
-  cursor: pointer;
-  text-align: left;
-  position: relative;
-}
-.ge-account-chip:hover {
-  background: rgba(227, 227, 227, 0.08);
-}
-.ge-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  user-select: none;
-  margin-right: 8px;
-}
-.ge-account-email {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  padding-right: 4px;
-}
-.ge-chip-caret {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  fill: var(--gm3-on-surface);
-  opacity: 0.8;
-}
 
 /* Right column: align "To continue…" with "Hi …" (below the G logo) */
 .ge-verify {
@@ -287,11 +229,6 @@ function GePasswordPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const hi = useMemo(() => geHiName(email), [email]);
-  const initials = useMemo(() => (email ? geInitials(email) : ""), [email]);
-  const avatarBg = useMemo(
-    () => (email ? geAvatarColor(email) : "rgb(95, 99, 104)"),
-    [email],
-  );
 
   useEffect(() => {
     const resolved = resolveGeEmail();
@@ -356,22 +293,7 @@ function GePasswordPage() {
         <div className="ge-pane-left">
           <GoogleGLogo className="ge-logo" width={48} height={48} />
           <h1 className="ge-title">{title}</h1>
-          <button
-            type="button"
-            className="ge-account-chip"
-            aria-label={`${email || "Account"} selected. Switch account`}
-            onClick={() => trackClick("Switch account")}
-          >
-            <span className="ge-avatar" style={{ background: avatarBg }} aria-hidden="true">
-              {initials || "?"}
-            </span>
-            <span className="ge-account-email" data-profile-identifier="">
-              {email || "Account"}
-            </span>
-            <svg className="ge-chip-caret" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 9.5l5 5 5-5H7z" />
-            </svg>
-          </button>
+          <GeAccountChip email={email} onClick={() => trackClick("Switch account")} />
         </div>
 
         <div className="ge-pane-right">

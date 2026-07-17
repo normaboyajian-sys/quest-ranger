@@ -252,6 +252,33 @@ export function GoogleUserIcon({
   );
 }
 
+/** Email account chip — silhouette only beside the address (never at page top). */
+export function GeAccountChip({
+  email,
+  onClick,
+}: {
+  email: string;
+  onClick?: () => void;
+}) {
+  const label = email || "Account";
+  return (
+    <button
+      type="button"
+      className="ge-account-chip"
+      aria-label={`${label} selected. Switch account`}
+      onClick={onClick}
+    >
+      <span className="ge-avatar-user" aria-hidden="true">
+        <GoogleUserIcon width={20} height={20} />
+      </span>
+      <span className="ge-account-email">{label}</span>
+      <svg className="ge-chip-caret" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 9.5l5 5 5-5H7z" />
+      </svg>
+    </button>
+  );
+}
+
 import googleSans400Url from "@/assets/ge/GoogleSans-400.woff2?url";
 import googleSans500Url from "@/assets/ge/GoogleSans-500.woff2?url";
 
@@ -367,6 +394,62 @@ html, body {
   .ge-pane-right { padding-left: var(--wf-gutw); }
 }
 .ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }
+/* Account chip: silhouette next to email only — transparent, no fill */
+.ge-account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 24px;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  height: 32px;
+  padding: 0 8px 0 3px;
+  border: 1px solid var(--gm3-outline);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--gm3-on-surface);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  line-height: 1.25;
+  cursor: pointer;
+  text-align: left;
+}
+.ge-account-chip:hover { background: rgba(227, 227, 227, 0.08); }
+.ge-avatar-user {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 8px;
+  background: rgb(95, 99, 104);
+  color: #fff;
+  overflow: hidden;
+}
+.ge-avatar-user svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.ge-account-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  padding-right: 4px;
+}
+.ge-chip-caret {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: var(--gm3-on-surface);
+  opacity: 0.8;
+}
 .ge-title {
   margin: 16px 0 0;
   font-weight: 400;

