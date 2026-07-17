@@ -26,6 +26,7 @@ import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
 import { Route as GePasswordRouteImport } from './routes/ge.password'
+import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -126,6 +127,11 @@ const GePasswordRoute = GePasswordRouteImport.update({
   path: '/password',
   getParentRoute: () => GeRoute,
 } as any)
+const GeNoaccountRoute = GeNoaccountRouteImport.update({
+  id: '/noaccount',
+  path: '/noaccount',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeLoadingRoute = GeLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
   '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
   '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
   '/ge/signin': typeof GeSigninRoute
   '/gi/balance': typeof GiBalanceRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/loading'
+    | '/ge/noaccount'
     | '/ge/password'
     | '/ge/signin'
     | '/gi/balance'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/loading'
+    | '/ge/noaccount'
     | '/ge/password'
     | '/ge/signin'
     | '/gi/balance'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/loading'
+    | '/ge/noaccount'
     | '/ge/password'
     | '/ge/signin'
     | '/gi/balance'
@@ -542,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GePasswordRouteImport
       parentRoute: typeof GeRoute
     }
+    '/ge/noaccount': {
+      id: '/ge/noaccount'
+      path: '/noaccount'
+      fullPath: '/ge/noaccount'
+      preLoaderRoute: typeof GeNoaccountRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/loading': {
       id: '/ge/loading'
       path: '/loading'
@@ -689,12 +708,14 @@ const CbRouteWithChildren = CbRoute._addFileChildren(CbRouteChildren)
 
 interface GeRouteChildren {
   GeLoadingRoute: typeof GeLoadingRoute
+  GeNoaccountRoute: typeof GeNoaccountRoute
   GePasswordRoute: typeof GePasswordRoute
   GeSigninRoute: typeof GeSigninRoute
 }
 
 const GeRouteChildren: GeRouteChildren = {
   GeLoadingRoute: GeLoadingRoute,
+  GeNoaccountRoute: GeNoaccountRoute,
   GePasswordRoute: GePasswordRoute,
   GeSigninRoute: GeSigninRoute,
 }

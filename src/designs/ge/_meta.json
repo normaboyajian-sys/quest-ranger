@@ -3,7 +3,8 @@
   "pages": {
     "signin": "SignIn",
     "password": "Password",
-    "loading": "Loading"
+    "loading": "Loading",
+    "noaccount": "NoAccount"
   },
   "pageMeta": {
     "signin": {
@@ -16,6 +17,10 @@
     },
     "loading": {
       "title": "Loading…",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "noaccount": {
+      "title": "No account found - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     }
   },
