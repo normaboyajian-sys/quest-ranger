@@ -138,10 +138,9 @@ html.ux-embedded .gi-page {
   min-height: 100% !important;
 }
 
-/* Desktop / wide Sites — original wide card (don't break this) */
+/* Desktop / wide Sites — original wide two-pane (sign-in etc.) */
 @media (min-width: 900px) {
-  html.ux-embedded .ge-card,
-  html.ux-phone-ready .ge-card {
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-card {
     width: 1040px !important;
     max-width: min(1040px, calc(100vw - 48px)) !important;
     min-height: 400px !important;
@@ -149,15 +148,18 @@ html.ux-embedded .gi-page {
     flex-direction: row !important;
     overflow: hidden !important;
   }
-  html.ux-embedded .ge-pane-left,
-  html.ux-embedded .ge-pane-right,
-  html.ux-phone-ready .ge-pane-left,
-  html.ux-phone-ready .ge-pane-right {
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-pane-left,
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-pane-right {
     flex: 1 1 50% !important;
     max-width: 50% !important;
     width: auto !important;
   }
-  html.ux-embedded .ge-loading .ge-card,
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-pane-left {
+    padding-right: var(--wf-gutw, 38px) !important;
+  }
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-pane-right {
+    padding-left: var(--wf-gutw, 38px) !important;
+  }
   html.ux-phone-ready .ge-loading .ge-card {
     width: 1040px !important;
     max-width: min(1040px, calc(100vw - 48px)) !important;
@@ -167,9 +169,7 @@ html.ux-embedded .gi-page {
   }
 }
 @media (min-width: 900px) and (max-width: 1199px) {
-  html.ux-embedded .ge-card,
-  html.ux-phone-ready .ge-card,
-  html.ux-embedded .ge-loading .ge-card,
+  html.ux-phone-ready .ge-shell:not(.ge-security):not(.ge-noaccount) .ge-card,
   html.ux-phone-ready .ge-loading .ge-card {
     width: 840px !important;
     max-width: min(840px, calc(100vw - 48px)) !important;
