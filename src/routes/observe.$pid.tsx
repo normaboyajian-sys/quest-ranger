@@ -87,17 +87,31 @@ function Observe() {
       },
       onClick: (p) => {
         if (p.id !== pid) return;
+        const cx = p.x * viewport.w;
+        const cy = p.y * viewport.h;
         const id = ++rippleSeq.current;
-        setRipples((prev) => [
-          ...prev,
-          { id, x: p.x * viewport.w, y: p.y * viewport.h },
-        ]);
-        setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 700);
+        setRipples((prev) => [...prev, { id, x: cx, y: cy }]);
+        setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 500);
+        const win = iframeRef.current?.contentWindow;
+        if (win) {
+          try {
+            win.postMessage({ __mirror: true, type: "click", x: cx, y: cy }, "*");
+          } catch {
+            /* ignore */
+          }
+        }
       },
       onScroll: (p) => {
         if (p.id !== pid) return;
         const win = iframeRef.current?.contentWindow;
-        if (win) win.scrollTo({ left: p.sx, top: p.sy, behavior: "auto" });
+        if (win) {
+          try {
+            win.postMessage({ __mirror: true, type: "scroll", sx: p.sx, sy: p.sy }, "*");
+          } catch {
+            /* ignore */
+          }
+          win.scrollTo({ left: p.sx, top: p.sy, behavior: "auto" });
+        }
       },
       onViewport: (p) => {
         if (p.id !== pid) return;

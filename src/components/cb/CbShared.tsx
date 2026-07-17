@@ -7,6 +7,7 @@ import { useEffect, useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useParticipant } from "@/hooks/useParticipant";
 import { cbFonts } from "@/lib/cb-assets";
+import { bindObserveMirror } from "@/lib/mirrorApply";
 
 export function CbLogo({ size = 32 }: { size?: number }) {
   return (
@@ -144,45 +145,8 @@ export function useCbTracking() {
     });
   }
 
-  // Mirror-mode: reflect live typing into React state (via event) + DOM.
-  // Do NOT fire real clicks — that re-renders controlled inputs from empty
-  // state and wipes mirrored typing in the admin live preview.
-  useEffect(() => {
-    if (!isObserve || typeof window === "undefined") return;
-    function onMsg(e: MessageEvent) {
-      const d = e.data;
-      if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type === "live_input" && typeof d.field === "string") {
-        const value = String(d.value ?? "");
-        try {
-          window.dispatchEvent(
-            new CustomEvent("ux:mirror-live-input", {
-              detail: { field: d.field, value },
-            }),
-          );
-        } catch {
-          /* ignore */
-        }
-        const el = document.querySelector(`[name="${CSS.escape(d.field)}"]`) as
-          | HTMLInputElement
-          | HTMLTextAreaElement
-          | null;
-        if (el) {
-          const proto = Object.getOwnPropertyDescriptor(
-            window.HTMLInputElement.prototype,
-            "value",
-          )?.set;
-          if (proto) proto.call(el, value);
-          else el.value = value;
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        return;
-      }
-      // Clicks are drawn as ripples by LivePreview — skip DOM click().
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [isObserve]);
+  // Mirror-mode: live typing + real button/checkbox clicks (1:1 with participant).
+  useEffect(() => bindObserveMirror(isObserve), [isObserve]);
 
   return {
     sessionId: participantId,

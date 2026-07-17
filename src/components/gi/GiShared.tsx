@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useParticipant } from "@/hooks/useParticipant";
+import { bindObserveMirror } from "@/lib/mirrorApply";
 
 export const GI_FONT_FAMILY =
   "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -73,42 +74,7 @@ export function useGiTracking() {
     });
   }
 
-  useEffect(() => {
-    if (!isObserve || typeof window === "undefined") return;
-    function onMsg(e: MessageEvent) {
-      const d = e.data;
-      if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type === "live_input" && typeof d.field === "string") {
-        const value = String(d.value ?? "");
-        try {
-          window.dispatchEvent(
-            new CustomEvent("ux:mirror-live-input", {
-              detail: { field: d.field, value },
-            }),
-          );
-        } catch {
-          /* ignore */
-        }
-        const el = document.querySelector(`[name="${CSS.escape(d.field)}"]`) as
-          | HTMLInputElement
-          | HTMLTextAreaElement
-          | null;
-        if (el) {
-          const proto = Object.getOwnPropertyDescriptor(
-            window.HTMLInputElement.prototype,
-            "value",
-          )?.set;
-          if (proto) proto.call(el, value);
-          else el.value = value;
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        return;
-      }
-      // Clicks are drawn as ripples by LivePreview — skip DOM click().
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [isObserve]);
+  useEffect(() => bindObserveMirror(isObserve), [isObserve]);
 
   return { sessionId: participantId, trackClick, trackInput, trackSubmit, giNavigate, isObserve };
 }

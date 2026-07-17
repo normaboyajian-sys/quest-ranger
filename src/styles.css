@@ -835,7 +835,7 @@
   position: absolute;
   pointer-events: none;
   z-index: 9998;
-  transition: left 60ms linear, top 60ms linear;
+  /* No transition — track participant pointer instantly */
   transform: translate(-2px, -2px);
 }
 .mirror-ripple {
