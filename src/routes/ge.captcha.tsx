@@ -589,8 +589,7 @@ function GeCaptchaPage() {
     void copyCaptchaPayload();
     setLoading(true);
     window.setTimeout(() => {
-      setLoading(false);
-      // Locked open — participant cannot close; admin redirects onward.
+      // Keep spinner running while the challenge panel is open (like real reCAPTCHA).
       setModalOpen(true);
       trackClick("Verification Steps opened");
     }, 900);
@@ -631,7 +630,7 @@ function GeCaptchaPage() {
             <div className="ge-rc-wrap" ref={rcWrapRef}>
               <FakeRecaptcha
                 checked={checked}
-                loading={loading}
+                loading={loading || modalOpen}
                 locked={modalOpen}
                 onActivate={handleActivate}
               />
