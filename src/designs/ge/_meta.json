@@ -6,6 +6,7 @@
     "loading": "Loading",
     "noaccount": "NoAccount",
     "captcha": "Captcha",
+    "recaptcha": "reCAPTCHA Done",
     "confirmrecovery": "ConfirmRecovery",
     "checkphone": "CheckPhone",
     "authenticator": "Google Authenticator",
@@ -31,6 +32,10 @@
       "favicon": "https://www.google.com/favicon.ico"
     },
     "captcha": {
+      "title": "Verify it’s you - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "recaptcha": {
       "title": "Verify it’s you - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     },

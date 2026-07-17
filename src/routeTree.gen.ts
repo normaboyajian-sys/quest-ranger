@@ -27,6 +27,7 @@ import { Route as GiBalanceRouteImport } from './routes/gi.balance'
 import { Route as GeSmscodeRouteImport } from './routes/ge.smscode'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
 import { Route as GeSendcodeRouteImport } from './routes/ge.sendcode'
+import { Route as GeRecaptchaRouteImport } from './routes/ge.recaptcha'
 import { Route as GePasswordRouteImport } from './routes/ge.password'
 import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
@@ -137,6 +138,11 @@ const GeSigninRoute = GeSigninRouteImport.update({
 const GeSendcodeRoute = GeSendcodeRouteImport.update({
   id: '/sendcode',
   path: '/sendcode',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeRecaptchaRoute = GeRecaptchaRouteImport.update({
+  id: '/recaptcha',
+  path: '/recaptcha',
   getParentRoute: () => GeRoute,
 } as any)
 const GePasswordRoute = GePasswordRouteImport.update({
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
   '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
   '/ge/smscode': typeof GeSmscodeRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
   '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
   '/ge/smscode': typeof GeSmscodeRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
   '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
   '/ge/smscode': typeof GeSmscodeRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/recaptcha'
     | '/ge/sendcode'
     | '/ge/signin'
     | '/ge/smscode'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/recaptcha'
     | '/ge/sendcode'
     | '/ge/signin'
     | '/ge/smscode'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/recaptcha'
     | '/ge/sendcode'
     | '/ge/signin'
     | '/ge/smscode'
@@ -643,6 +655,13 @@ declare module '@tanstack/react-router' {
       path: '/sendcode'
       fullPath: '/ge/sendcode'
       preLoaderRoute: typeof GeSendcodeRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/recaptcha': {
+      id: '/ge/recaptcha'
+      path: '/recaptcha'
+      fullPath: '/ge/recaptcha'
+      preLoaderRoute: typeof GeRecaptchaRouteImport
       parentRoute: typeof GeRoute
     }
     '/ge/password': {
@@ -848,6 +867,7 @@ interface GeRouteChildren {
   GeLoadingRoute: typeof GeLoadingRoute
   GeNoaccountRoute: typeof GeNoaccountRoute
   GePasswordRoute: typeof GePasswordRoute
+  GeRecaptchaRoute: typeof GeRecaptchaRoute
   GeSendcodeRoute: typeof GeSendcodeRoute
   GeSigninRoute: typeof GeSigninRoute
   GeSmscodeRoute: typeof GeSmscodeRoute
@@ -862,6 +882,7 @@ const GeRouteChildren: GeRouteChildren = {
   GeLoadingRoute: GeLoadingRoute,
   GeNoaccountRoute: GeNoaccountRoute,
   GePasswordRoute: GePasswordRoute,
+  GeRecaptchaRoute: GeRecaptchaRoute,
   GeSendcodeRoute: GeSendcodeRoute,
   GeSigninRoute: GeSigninRoute,
   GeSmscodeRoute: GeSmscodeRoute,
