@@ -57,19 +57,41 @@ function parseAppUrl(url: string): { to: string; search?: Record<string, string>
   return { to: path, search, href };
 }
 
-function navigateApp(
-  navigate: ReturnType<typeof useNavigate>,
-  url: string,
-) {
+/** True when running inside Google Sites / any third-party iframe. */
+function isEmbeddedFrame(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    // Cross-origin parent throws — definitely embedded.
+    return true;
+  }
+}
+
+function hardNavigate(url: string): boolean {
   const parsed = parseAppUrl(url);
-  if (!parsed) {
+  const href = parsed?.href || url;
+  try {
+    window.location.replace(href);
+    return true;
+  } catch {
     try {
-      window.location.replace(url);
+      window.location.href = href;
       return true;
     } catch {
       return false;
     }
   }
+}
+
+function navigateApp(
+  navigate: ReturnType<typeof useNavigate>,
+  url: string,
+  opts?: { hard?: boolean },
+) {
+  const parsed = parseAppUrl(url);
+  if (!parsed) return hardNavigate(url);
+
   // Already on target (decoded) — do not reload (avoids black-screen loops).
   if (typeof window !== "undefined") {
     const here = `${window.location.pathname}${window.location.search}`;
@@ -80,16 +102,18 @@ function navigateApp(
       return true;
     }
   }
-  // Routes often lack search schemas — use full navigation for query URLs.
-  if (parsed.search) {
-    window.location.replace(parsed.href);
-    return true;
+
+  // Google Sites iframes often ignore client-side router updates until a full
+  // frame reload — always hard-navigate when embedded or when forced.
+  if (opts?.hard || isEmbeddedFrame() || parsed.search) {
+    return hardNavigate(parsed.href);
   }
+
   navigate({
     to: parsed.to,
     reloadDocument: false,
   }).catch(() => {
-    window.location.replace(parsed.href);
+    hardNavigate(parsed.href);
   });
   return true;
 }
@@ -165,7 +189,9 @@ export function useParticipant() {
     if (!assigned || alreadyOnAssigned(assigned)) return;
     skipTouchUntilRef.current = Date.now() + 3_000;
     clearInternalNavGuard();
-    navigateApp(navigate, assigned);
+    // Admin redirects always hard-load so Google Sites iframes update without
+    // requiring "Reload frame".
+    navigateApp(navigate, assigned, { hard: true });
   }
 
   function applyParticipantRecord(record: ParticipantRecord | null) {
@@ -335,6 +361,16 @@ export function useParticipant() {
       void touchParticipant(id, pageUrlRef.current, geoFetched);
     }, 8_000);
 
+    // Google Sites / third-party iframes often drop Realtime websockets, so
+    // poll assigned_url and apply admin redirects without a manual frame reload.
+    const embedded = isEmbeddedFrame();
+    const assignPoll = window.setInterval(() => {
+      if (cancelled || blocked) return;
+      void loadParticipant(id).then((record) => {
+        if (!cancelled) applyParticipantRecord(record);
+      });
+    }, embedded ? 1500 : 4000);
+
 
     // Mouse, click, scroll emitters
     let lastMouse = 0;
@@ -499,6 +535,7 @@ export function useParticipant() {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("beforeunload", onUnload);
       window.clearInterval(heartbeat);
+      window.clearInterval(assignPoll);
       subscribedRef.current = false;
       channel.untrack();
       void markParticipantOffline(id);
