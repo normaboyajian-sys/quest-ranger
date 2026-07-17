@@ -24,10 +24,11 @@ ${GE_SHELL_CSS}
   align-items: stretch;
 }
 .ge-loading .ge-card {
-  /* Full-bleed under desktop — never a 480px floating box */
+  /* Full-bleed under desktop — flex-fill shell, no forced overflow scrollbar */
   width: 100% !important;
   max-width: 100% !important;
-  min-height: calc(100dvh - 56px) !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   height: auto !important;
   padding: 0 !important;
   overflow: hidden !important;

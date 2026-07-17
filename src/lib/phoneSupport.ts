@@ -58,14 +58,16 @@ export function usePhoneReady() {
 export const PHONE_BASE_CSS = `
 /* ---- Global responsive base ---- */
 html.ux-phone-ready,
-html.ux-phone-ready body {
+html.ux-phone-ready body,
+html.ux-phone-ready #root {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
-  overflow: hidden !important; /* kill the right-edge page scrollbar */
+  max-height: 100% !important;
+  overflow: hidden !important; /* kill page/iframe scrollbar */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   box-sizing: border-box;
@@ -73,10 +75,12 @@ html.ux-phone-ready body {
   -ms-overflow-style: none !important;
 }
 html.ux-phone-ready::-webkit-scrollbar,
-html.ux-phone-ready body::-webkit-scrollbar {
+html.ux-phone-ready body::-webkit-scrollbar,
+html.ux-phone-ready #root::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  background: transparent !important;
 }
 html.ux-phone-ready *,
 html.ux-phone-ready *::before,
@@ -101,7 +105,7 @@ html.ux-phone-ready [role="button"] {
   touch-action: manipulation;
 }
 
-/* Suite roots always fill the frame (scroll inside, no page bar) */
+/* Suite roots fill the frame; allow touch scroll but never paint a bar */
 html.ux-phone-ready .ge-shell,
 html.ux-phone-ready .cb-page,
 html.ux-phone-ready .gi-page {
@@ -109,6 +113,7 @@ html.ux-phone-ready .gi-page {
   max-width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
+  max-height: 100% !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   scrollbar-width: none !important;
@@ -116,9 +121,12 @@ html.ux-phone-ready .gi-page {
 }
 html.ux-phone-ready .ge-shell::-webkit-scrollbar,
 html.ux-phone-ready .cb-page::-webkit-scrollbar,
-html.ux-phone-ready .gi-page::-webkit-scrollbar {
+html.ux-phone-ready .gi-page::-webkit-scrollbar,
+html.ux-phone-ready .ge-card::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* Embedded: fill frame, but keep desktop two-pane when wide */
@@ -198,6 +206,14 @@ html.ux-embedded .gi-page {
     align-items: stretch !important;
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
   }
+  html.ux-embedded .ge-shell,
+  html.ux-phone-ready .ge-shell {
+    max-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
   html.ux-embedded .ge-card,
   html.ux-phone-ready .ge-card {
     width: 100% !important;
@@ -205,7 +221,7 @@ html.ux-embedded .gi-page {
     min-width: 0 !important;
     flex: 1 1 auto !important;
     height: auto !important;
-    min-height: calc(100dvh - 56px) !important;
+    min-height: 0 !important; /* flex-fill shell; avoid 100dvh+footer overflow */
     padding: 24px 24px 36px !important;
     border-radius: 0 !important;
     border: 0 !important;
@@ -262,9 +278,10 @@ html.ux-embedded .gi-page {
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
   }
   html.ux-phone-ready .ge-loading .ge-card {
-    min-height: calc(100dvh - 56px) !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
     height: auto !important;
-    padding: 24px 24px 36px !important;
+    padding: 0 !important;
     overflow: hidden !important;
     border-radius: 0 !important;
     width: 100% !important;

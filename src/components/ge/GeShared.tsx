@@ -306,26 +306,27 @@ export function GeFontStyle() {
 
 /** Shared page + card chrome so signin and loading stay the same size/position. */
 export const GE_SHELL_CSS = `
-html, body {
+html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   max-width: 100%;
-  overflow: hidden; /* no page scrollbar — shell handles scroll if needed */
+  overflow: hidden; /* never show a page/iframe scrollbar */
   background: ${GE_PAGE_BG} !important;
   color: ${GE_ON_SURFACE};
   color-scheme: dark !important;
   font-family: ${GE_FONT_FAMILY};
   -webkit-font-smoothing: antialiased;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 .ge-shell {
   --gm3-page: ${GE_PAGE_BG};
@@ -342,6 +343,7 @@ body::-webkit-scrollbar {
   box-sizing: border-box;
   min-height: 100%;
   height: 100%;
+  max-height: 100%;
   width: 100%;
   max-width: 100%;
   display: flex;
@@ -353,14 +355,15 @@ body::-webkit-scrollbar {
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
   overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow-y: auto; /* touch-scroll if needed; bar is hidden */
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 .ge-shell::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 .ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
 .ge-card {
@@ -399,17 +402,22 @@ body::-webkit-scrollbar {
   .ge-shell {
     width: 100%;
     max-width: 100%;
+    height: 100%;
+    max-height: 100%;
     padding: 0;
     justify-content: flex-start;
     align-items: stretch;
     background: var(--gm3-card);
+    /* fit viewport — no forced 100dvh+footer overflow that paints a scrollbar */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   .ge-card {
     width: 100%;
     max-width: 100%;
     flex: 1 1 auto;
     height: auto;
-    min-height: calc(100dvh - 56px);
+    min-height: 0; /* grow via flex, do not force past the shell */
     flex-direction: column;
     padding: 24px 24px 36px;
     border-radius: 0;
@@ -434,6 +442,7 @@ body::-webkit-scrollbar {
     margin-top: 0;
     padding: 8px 16px 16px;
     background: var(--gm3-card);
+    flex-shrink: 0;
   }
 }
 /* Desktop — restore original wide two-pane card */

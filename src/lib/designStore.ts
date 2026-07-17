@@ -1494,10 +1494,11 @@ html,body{margin:0;padding:0;width:100%;max-width:100%;height:100%;min-height:10
 input,select,textarea{font-size:16px;max-width:100%}
 img,svg{max-width:100%;height:auto}
 @media (max-width:899px){
-  html,body{padding:0!important;background:rgb(14,14,14)!important}
+  html,body,#root{padding:0!important;height:100%!important;max-height:100%!important;overflow:hidden!important;scrollbar-width:none!important;background:rgb(14,14,14)!important}
+  html::-webkit-scrollbar,body::-webkit-scrollbar,#root::-webkit-scrollbar,.ge-shell::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
   .Svhjgc,.card,.ge-card,.ge-shell{width:100%!important;max-width:100%!important;min-width:0!important}
-  .ge-shell{padding:0!important;align-items:stretch!important;justify-content:flex-start!important}
-  .Svhjgc,.card,.ge-card{min-height:calc(100dvh - 56px)!important;height:auto!important;border-radius:0!important;padding:24px 24px 36px!important;box-shadow:none!important}
+  .ge-shell{padding:0!important;align-items:stretch!important;justify-content:flex-start!important;height:100%!important;max-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important;scrollbar-width:none!important;-ms-overflow-style:none!important}
+  .Svhjgc,.card,.ge-card{flex:1 1 auto!important;min-height:0!important;height:auto!important;border-radius:0!important;padding:24px 24px 36px!important;box-shadow:none!important}
 }
 @media (max-width:480px){
   .Svhjgc,.card,.ge-card{padding:20px 20px 32px!important;border-radius:0!important;width:100%!important;max-width:100%!important}
