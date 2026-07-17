@@ -310,12 +310,22 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  max-width: 100%;
+  overflow: hidden; /* no page scrollbar — shell handles scroll if needed */
   background: ${GE_PAGE_BG} !important;
   color: ${GE_ON_SURFACE};
   color-scheme: dark !important;
   font-family: ${GE_FONT_FAMILY};
   -webkit-font-smoothing: antialiased;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .ge-shell {
   --gm3-page: ${GE_PAGE_BG};
@@ -330,8 +340,8 @@ html, body {
   --c-ps-e: 24px;
   --wf-gutw: 24px;
   box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100%;
+  height: 100%;
   width: 100%;
   max-width: 100%;
   display: flex;
@@ -342,6 +352,15 @@ html, body {
   padding: 16px;
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ge-shell::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
 .ge-card {

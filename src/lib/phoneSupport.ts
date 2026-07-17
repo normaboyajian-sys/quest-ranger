@@ -63,11 +63,20 @@ html.ux-phone-ready body {
   padding: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
-  min-height: 100vh !important;
-  overflow-x: hidden !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: hidden !important; /* kill the right-edge page scrollbar */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   box-sizing: border-box;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html.ux-phone-ready::-webkit-scrollbar,
+html.ux-phone-ready body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 html.ux-phone-ready *,
 html.ux-phone-ready *::before,
@@ -92,14 +101,24 @@ html.ux-phone-ready [role="button"] {
   touch-action: manipulation;
 }
 
-/* Suite roots always fill the frame */
+/* Suite roots always fill the frame (scroll inside, no page bar) */
 html.ux-phone-ready .ge-shell,
 html.ux-phone-ready .cb-page,
 html.ux-phone-ready .gi-page {
   width: 100% !important;
   max-width: 100% !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html.ux-phone-ready .ge-shell::-webkit-scrollbar,
+html.ux-phone-ready .cb-page::-webkit-scrollbar,
+html.ux-phone-ready .gi-page::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
 }
 
 /* Google Sites iframe: fill parent completely, never a fixed desktop card */
