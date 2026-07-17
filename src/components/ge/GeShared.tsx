@@ -401,27 +401,30 @@ body::-webkit-scrollbar {
     overflow: hidden;
   }
 }
-/* Wide desktop only (never forced inside narrow Sites iframes) */
+/* Desktop — restore original wide two-pane card */
 @media (min-width: 900px) {
   .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
   .ge-card {
-    width: 100%;
+    width: 1040px;
     max-width: min(1040px, calc(100vw - 48px));
     min-height: 400px;
-    height: auto;
+    height: 400px;
     padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
     flex-direction: row;
     align-items: stretch;
+    overflow: hidden;
   }
   .ge-pane-left, .ge-pane-right {
     flex: 1 1 50%;
     max-width: 50%;
+    width: auto;
   }
   .ge-pane-left { padding-right: var(--wf-gutw); }
   .ge-pane-right { padding-left: var(--wf-gutw); }
 }
 @media (min-width: 900px) and (max-width: 1199px) {
   .ge-card {
+    width: 840px;
     max-width: min(840px, calc(100vw - 48px));
   }
 }

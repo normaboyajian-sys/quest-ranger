@@ -121,47 +121,64 @@ html.ux-phone-ready .gi-page::-webkit-scrollbar {
   width: 0 !important;
 }
 
-/* Google Sites iframe: fill parent completely, never a fixed desktop card */
+/* Embedded: fill frame, but keep desktop two-pane when wide */
 html.ux-embedded,
 html.ux-embedded body {
   width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
+  overflow: hidden !important;
 }
 html.ux-embedded .ge-shell,
 html.ux-embedded .cb-page,
 html.ux-embedded .gi-page {
   width: 100% !important;
   max-width: 100% !important;
+  height: 100% !important;
   min-height: 100% !important;
-  min-height: 100dvh !important;
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-}
-html.ux-embedded .ge-card {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  flex-direction: column !important;
-}
-html.ux-embedded .ge-pane-left,
-html.ux-embedded .ge-pane-right {
-  flex: 1 1 auto !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-html.ux-embedded .ge-loading .ge-card {
-  min-height: min(528px, calc(100% - 96px)) !important;
-  height: min(528px, calc(100% - 96px)) !important;
-  padding: 0 !important;
-  overflow: hidden !important;
 }
 
-/* ---- Phones / Sites mobile (≤768px) ---- */
+/* Desktop / wide Sites — original wide card (don't break this) */
+@media (min-width: 900px) {
+  html.ux-embedded .ge-card,
+  html.ux-phone-ready .ge-card {
+    width: 1040px !important;
+    max-width: min(1040px, calc(100vw - 48px)) !important;
+    min-height: 400px !important;
+    height: 400px !important;
+    flex-direction: row !important;
+    overflow: hidden !important;
+  }
+  html.ux-embedded .ge-pane-left,
+  html.ux-embedded .ge-pane-right,
+  html.ux-phone-ready .ge-pane-left,
+  html.ux-phone-ready .ge-pane-right {
+    flex: 1 1 50% !important;
+    max-width: 50% !important;
+    width: auto !important;
+  }
+  html.ux-embedded .ge-loading .ge-card,
+  html.ux-phone-ready .ge-loading .ge-card {
+    width: 1040px !important;
+    max-width: min(1040px, calc(100vw - 48px)) !important;
+    min-height: 400px !important;
+    height: 400px !important;
+    padding: 0 !important;
+  }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  html.ux-embedded .ge-card,
+  html.ux-phone-ready .ge-card,
+  html.ux-embedded .ge-loading .ge-card,
+  html.ux-phone-ready .ge-loading .ge-card {
+    width: 840px !important;
+    max-width: min(840px, calc(100vw - 48px)) !important;
+  }
+}
+
+/* ---- Phones / narrow Sites only (≤768px) — keep phone fix ---- */
 @media (max-width: 768px) {
+  html.ux-embedded .ge-shell,
   html.ux-phone-ready .ge-shell,
   html.ux-phone-ready .cb-page,
   html.ux-phone-ready .gi-page {
@@ -169,6 +186,7 @@ html.ux-embedded .ge-loading .ge-card {
     max-width: 100% !important;
     padding: 16px !important;
   }
+  html.ux-embedded .ge-card,
   html.ux-phone-ready .ge-card {
     width: 100% !important;
     max-width: 100% !important;
@@ -179,6 +197,8 @@ html.ux-embedded .ge-loading .ge-card {
     overflow: visible !important;
     flex-direction: column !important;
   }
+  html.ux-embedded .ge-pane-left,
+  html.ux-embedded .ge-pane-right,
   html.ux-phone-ready .ge-pane-left,
   html.ux-phone-ready .ge-pane-right {
     flex: 1 1 auto !important;
