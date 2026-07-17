@@ -97,8 +97,9 @@ function navigateApp(
 export function useParticipant() {
   const navigate = useNavigate();
   // Include query (?code=, ?email=, ?hint=) so live preview follows redirects 1:1.
+  // IMPORTANT: location.search is a parsed object — use searchStr for the raw "?…".
   const pageUrl = useRouterState({
-    select: (s) => `${s.location.pathname}${s.location.search}`,
+    select: (s) => `${s.location.pathname}${s.location.searchStr || ""}`,
   });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
