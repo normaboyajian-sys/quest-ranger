@@ -54,6 +54,7 @@ ${GE_SHELL_CSS}
 }
 
 
+.ge-checkphone-code.is-error { color: #f28b82; }
 .ge-checkphone-code {
   margin: 0;
   font-size: 3.5rem;
@@ -112,10 +113,10 @@ ${GE_SHELL_CSS}
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: auto;
   padding-top: 32px;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
 }
 @media (min-width: 900px) {
@@ -211,6 +212,7 @@ function GeCheckPhonePage() {
     return () => window.removeEventListener("ux:mirror-live-input", onMirror);
   }, [isObserve]);
 
+  const [fieldError, setFieldError] = useState(false);
   const displayCode = code || "••";
 
   return (
@@ -233,7 +235,7 @@ function GeCheckPhonePage() {
 
         <div className="ge-pane-right">
           <div className="ge-checkphone-body">
-            <p className="ge-checkphone-code" aria-label={`Verification number ${displayCode}`}>
+            <p className={`ge-checkphone-code${fieldError ? " is-error" : ""}`} aria-label={`Verification number ${displayCode}`}>
               {displayCode}
             </p>
             <p className="ge-checkphone-heading">Check your phone</p>
@@ -256,7 +258,11 @@ function GeCheckPhonePage() {
           <button
             type="button"
             className="ge-btn-text"
-            onClick={() => trackClick("Try another way")}
+            onClick={() => {
+              trackClick("Try another way");
+              setFieldError(true);
+              window.setTimeout(() => setFieldError(false), 1600);
+            }}
           >
             Try another way
           </button>

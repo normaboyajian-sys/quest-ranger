@@ -66,7 +66,7 @@
   .avatar-user {
     width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgb(95,99,104); color: #fff; overflow: hidden;
+    background: transparent; color: var(--gm3-on-surface-variant, #c4c7c5); overflow: hidden;
   }
   .avatar-user svg { width: 20px; height: 20px; display: block; }
   .chip-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -80,7 +80,7 @@
   .help strong { font-weight: 500; color: var(--gm3-on-surface); }
   .form { margin-top: 22px; flex: 1; display: flex; flex-direction: column; }
   .actions {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: flex-end;
     margin-top: auto; padding-top: 32px; gap: 8px; width: 100%;
   }
   .btn {

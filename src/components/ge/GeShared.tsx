@@ -421,21 +421,54 @@ html, body {
 .ge-avatar-user {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   margin-right: 8px;
-  background: rgb(95, 99, 104);
-  color: #fff;
+  background: transparent;
+  color: var(--gm3-on-surface-variant);
   overflow: hidden;
 }
 .ge-avatar-user svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: block;
 }
+/* Shared field error (Try another way) + actions packed to the right */
+.ge-field.is-error .ring,
+.ge-phone-field.is-error .ring {
+  box-shadow: inset 0 0 0 2px #f28b82 !important;
+}
+.ge-field.is-error label,
+.ge-phone-field.is-error label {
+  color: #f28b82 !important;
+}
+.ge-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 32px;
+  gap: 4px;
+  width: 100%;
+}
+.ge-btn-text {
+  background: none;
+  border: none;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: 20px;
+  color: var(--gm-next-fill);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.0107142857em;
+  cursor: pointer;
+}
+.ge-btn-text:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-account-email {
   overflow: hidden;
   text-overflow: ellipsis;
