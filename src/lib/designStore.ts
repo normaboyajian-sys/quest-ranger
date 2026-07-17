@@ -1490,9 +1490,12 @@ window.addEventListener('message', function(ev){
 <\/script>`;
 
 const PHONE_EMBED_STYLE = `<style id="ux-phone-embed">
-html,body{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+html,body{margin:0;padding:0;width:100%;max-width:100%;height:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:16px;max-width:100%}
 img,svg{max-width:100%;height:auto}
+@media (max-width:480px){
+  .Svhjgc,.card,.ge-card{width:100%!important;max-width:100%!important;min-height:0!important;height:auto!important;border-radius:16px!important;padding:24px 16px!important}
+}
 @media (max-width:640px){
   body{padding:0!important}
   .Svhjgc,.card,.ge-card{min-height:0!important;height:auto!important;border-radius:16px!important}

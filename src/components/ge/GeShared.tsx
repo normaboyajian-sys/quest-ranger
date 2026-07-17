@@ -342,6 +342,24 @@ html, body {
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
 }
+/* Responsive: stack panes whenever the frame is narrow (Sites / phones) */
+@media (max-width: 840px) {
+  .ge-shell .ge-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0;
+    flex-direction: column !important;
+  }
+  .ge-shell .ge-pane-left,
+  .ge-shell .ge-pane-right {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .ge-shell .ge-pane-right { padding-top: 16px; }
+}
 .ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
 @media (min-width: 600px) {
   .ge-shell { padding: 48px 24px; justify-content: center; }
