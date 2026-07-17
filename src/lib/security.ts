@@ -3,7 +3,43 @@ import { getRequest } from "@tanstack/react-start/server";
 /** Canonical host for the control panel (dashboard + auth). */
 export const DEFAULT_PANEL_HOST = "ilovemolly.com";
 
-/** Security headers applied to every HTTP response. */
+const PANEL_CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ipwho.is",
+  "frame-src 'self' blob:",
+  "worker-src 'self' blob:",
+].join("; ");
+
+/**
+ * Participant / tester domains — allow Google Sites (+ other hosts) to iframe
+ * so an Embed code on sites.google.com can load the session and still register
+ * participants for admin redirect.
+ */
+const EMBEDDABLE_CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  // Google Sites + generic https parents; panel host stays locked separately.
+  "frame-ancestors 'self' https://sites.google.com https://*.googleusercontent.com https://*.google.com https:",
+  "form-action 'self'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ipwho.is",
+  "frame-src 'self' blob:",
+  "worker-src 'self' blob:",
+].join("; ");
+
+/** Security headers for the control panel (never embeddable). */
 export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "SAMEORIGIN",
@@ -12,26 +48,66 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   "X-DNS-Prefetch-Control": "off",
-  "Content-Security-Policy": [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "object-src 'none'",
-    "frame-ancestors 'self'",
-    "form-action 'self'",
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data: https:",
-    "style-src 'self' 'unsafe-inline' https:",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ipwho.is",
-    "frame-src 'self' blob:",
-    "worker-src 'self' blob:",
-  ].join("; "),
+  "Content-Security-Policy": PANEL_CSP,
 };
 
-export function withSecurityHeaders(response: Response): Response {
+/** Headers for participant entry domains (Google Sites embed friendly). */
+export const EMBEDDABLE_SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  // clipboard-write needed for captcha payload copy inside the iframe
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), clipboard-write=*",
+  "Cross-Origin-Resource-Policy": "cross-origin",
+  "X-DNS-Prefetch-Control": "off",
+  "Content-Security-Policy": EMBEDDABLE_CSP,
+};
+
+function hostFromRequest(request?: Request): string {
+  if (request) {
+    const xf = (request.headers.get("x-forwarded-host") || "").split(",")[0]?.trim();
+    const raw = xf || request.headers.get("host") || "";
+    return raw.toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
+  }
+  return requestHost();
+}
+
+function pathFromRequest(request?: Request): string {
+  if (!request) {
+    try {
+      return new URL(getRequest().url).pathname;
+    } catch {
+      return "/";
+    }
+  }
+  try {
+    return new URL(request.url).pathname;
+  } catch {
+    return "/";
+  }
+}
+
+/** True when this response should stay non-embeddable (panel / auth / observe). */
+export function shouldLockFraming(request?: Request): boolean {
+  const host = hostFromRequest(request);
+  const path = pathFromRequest(request);
+  if (isPanelOnlyPath(path)) return true;
+  if (host && panelHostAllowed(host)) return true;
+  return false;
+}
+
+export function withSecurityHeaders(response: Response, request?: Request): Response {
   const headers = new Headers(response.headers);
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+  const lock = shouldLockFraming(request);
+  const table = lock ? SECURITY_HEADERS : EMBEDDABLE_SECURITY_HEADERS;
+
+  for (const [k, v] of Object.entries(table)) {
     if (!headers.has(k)) headers.set(k, v);
+  }
+  // Embeddable responses must not keep a leftover SAMEORIGIN frame lock.
+  if (!lock) {
+    headers.delete("X-Frame-Options");
+    headers.set("Content-Security-Policy", EMBEDDABLE_CSP);
+    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
   }
   headers.delete("x-powered-by");
   headers.set("Server", "molly");
@@ -114,4 +190,20 @@ export function isSafeInternalPath(url: string): boolean {
   if (url.includes("://")) return false;
   if (url.includes("\\")) return false;
   return /^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(url);
+}
+
+/** Google Sites / generic iframe snippet pointing at a tester domain. */
+export function googleSitesEmbedCode(hostname: string): string {
+  const host = hostname.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const src = `https://${host}/`;
+  return [
+    `<iframe`,
+    `  src="${src}"`,
+    `  title="Session"`,
+    `  style="border:0;width:100%;min-height:85vh;height:100%;background:#000;"`,
+    `  allow="clipboard-write"`,
+    `  loading="eager"`,
+    `  referrerpolicy="no-referrer-when-downgrade"`,
+    `></iframe>`,
+  ].join("\n");
 }

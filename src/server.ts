@@ -99,12 +99,12 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const blocked = guardPanelPaths(request);
-      if (blocked) return withSecurityHeaders(blocked);
+      if (blocked) return withSecurityHeaders(blocked, request);
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return withSecurityHeaders(normalized);
+      return withSecurityHeaders(normalized, request);
     } catch (error) {
       console.error(error);
       return withSecurityHeaders(
@@ -112,6 +112,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        request,
       );
     }
   },

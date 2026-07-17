@@ -41,6 +41,7 @@ import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+import { googleSitesEmbedCode } from "@/lib/security";
 import {
   getDesigns,
   getDesignLogo,
@@ -1711,6 +1712,8 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [conn, setConn] = useState<{ ip: string; panelHost: string } | null>(null);
   const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [embedFor, setEmbedFor] = useState<string | null>(null);
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   async function refresh() {
     try {
@@ -1772,7 +1775,10 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
         {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
       </h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
-        Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
+        Point your domain&apos;s DNS at the server below — the panel auto-issues HTTPS on the first
+        visit. Then copy the Google Sites embed code and paste it under{" "}
+        <strong>Insert → Embed → Embed code</strong>. Visitors show up in Participants and you can
+        redirect them like normal.
       </p>
       <ServerIpBox
         ip={conn?.ip ?? "0.0.0.0"}
@@ -1809,7 +1815,17 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
                 </span>
               </div>
             </div>
-            <div className="admin-acct-actions" style={{ display: "flex", gap: 6 }}>
+            <div className="admin-acct-actions" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setEmbedFor((cur) => (cur === r.hostname ? null : r.hostname));
+                  setEmbedCopied(false);
+                }}
+              >
+                {embedFor === r.hostname ? "Hide embed" : "Embed code"}
+              </button>
               <button
                 className="btn-secondary"
                 onClick={() => onRecheck(r.id)}
@@ -1821,6 +1837,30 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
                 Detach
               </button>
             </div>
+            {embedFor === r.hostname && (
+              <div className="admin-embed-box">
+                <p className="admin-embed-help">
+                  Google Sites → Insert → Embed → <strong>Embed code</strong> → paste this → Next
+                </p>
+                <pre className="admin-embed-code">{googleSitesEmbedCode(r.hostname)}</pre>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={async () => {
+                    const code = googleSitesEmbedCode(r.hostname);
+                    try {
+                      await navigator.clipboard.writeText(code);
+                      setEmbedCopied(true);
+                      window.setTimeout(() => setEmbedCopied(false), 1600);
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                >
+                  {embedCopied ? "Copied" : "Copy embed code"}
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {rows.length === 0 && <p className="admin-empty">No domains attached yet.</p>}
