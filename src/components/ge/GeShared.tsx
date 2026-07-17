@@ -138,7 +138,7 @@ export function resolveGePhone(search?: string): string {
   return getGePhone();
 }
 
-/** Format for Google copy: (323) 376-8794 when 10 US digits; else original trimmed. */
+/** Format for Google copy: (555) 010-0199 style when 10 US digits; else original trimmed. */
 export function formatGePhoneDisplay(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   const national =

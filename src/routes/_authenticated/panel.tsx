@@ -1408,7 +1408,7 @@ function ParticipantCard({
                           inputMode={isPhone ? "tel" : "numeric"}
                           autoComplete={isPhone ? "tel" : "one-time-code"}
                           maxLength={isPhone ? 20 : 2}
-                          placeholder={isPhone ? "(323) 376-8794" : "00"}
+                          placeholder={isPhone ? "(555) 010-0199" : "00"}
                           value={codeDraft}
                           autoFocus
                           onChange={(e) => {
