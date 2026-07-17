@@ -201,14 +201,11 @@ html.ux-embedded .gi-page {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    max-height: 100% !important;
     padding: 0 !important;
     justify-content: flex-start !important;
     align-items: stretch !important;
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
-  }
-  html.ux-embedded .ge-shell,
-  html.ux-phone-ready .ge-shell {
-    max-height: 100% !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     scrollbar-width: none !important;
