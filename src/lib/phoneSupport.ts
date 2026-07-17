@@ -105,8 +105,17 @@ html.ux-phone-ready [role="button"] {
   touch-action: manipulation;
 }
 
-/* Suite roots fill the frame; allow touch scroll but never paint a bar */
-html.ux-phone-ready .ge-shell,
+/* Suite roots fill the frame — Google shell has ZERO scroll room */
+html.ux-phone-ready .ge-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
 html.ux-phone-ready .cb-page,
 html.ux-phone-ready .gi-page {
   width: 100% !important;
@@ -143,7 +152,11 @@ html.ux-embedded .gi-page {
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
-  min-height: 100% !important;
+  max-height: 100% !important;
+}
+html.ux-embedded .ge-shell {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
 }
 
 /* Desktop / wide Sites — original wide two-pane (sign-in etc.) */
@@ -201,13 +214,14 @@ html.ux-embedded .gi-page {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    height: 100% !important;
     max-height: 100% !important;
     padding: 0 !important;
     justify-content: flex-start !important;
     align-items: stretch !important;
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
+    overflow: hidden !important; /* no empty scroll space below */
+    overscroll-behavior: none !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
@@ -216,41 +230,55 @@ html.ux-embedded .gi-page {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     height: auto !important;
-    min-height: 0 !important; /* flex-fill shell; avoid 100dvh+footer overflow */
-    padding: 24px 24px 36px !important;
+    min-height: 0 !important;
+    padding: 20px 24px 16px !important;
     border-radius: 0 !important;
     border: 0 !important;
     box-shadow: none !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     flex-direction: column !important;
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
   }
   html.ux-embedded .ge-pane-left,
-  html.ux-embedded .ge-pane-right,
-  html.ux-phone-ready .ge-pane-left,
-  html.ux-phone-ready .ge-pane-right {
-    flex: 1 1 auto !important;
+  html.ux-phone-ready .ge-pane-left {
+    flex: 0 0 auto !important;
     max-width: 100% !important;
     width: 100% !important;
     padding: 0 !important;
   }
+  html.ux-embedded .ge-pane-right,
   html.ux-phone-ready .ge-pane-right {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    flex: 1 1 auto !important;
+    overflow: hidden !important;
   }
   html.ux-phone-ready .ge-form {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
     width: 100% !important;
+    overflow: hidden !important;
   }
   html.ux-phone-ready .ge-actions {
     margin-top: auto !important;
+    padding-top: 16px !important;
     width: 100% !important;
+    flex: 0 0 auto !important;
+  }
+  html.ux-phone-ready .ge-guest {
+    margin-top: 16px !important;
+  }
+  html.ux-phone-ready .ge-footer {
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
   }
   html.ux-phone-ready .ge-logo {
     width: 40px !important;

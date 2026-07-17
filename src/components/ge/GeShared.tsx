@@ -341,7 +341,6 @@ body::-webkit-scrollbar,
   --c-ps-e: 24px;
   --wf-gutw: 24px;
   box-sizing: border-box;
-  min-height: 100%;
   height: 100%;
   max-height: 100%;
   width: 100%;
@@ -354,8 +353,10 @@ body::-webkit-scrollbar,
   padding: 16px;
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
-  overflow-x: hidden;
-  overflow-y: auto; /* touch-scroll if needed; bar is hidden */
+  /* No scroll space at all — page is locked to the frame */
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
@@ -377,7 +378,7 @@ body::-webkit-scrollbar,
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 /* Keep the card solid across page switches — no fade-out / pop-in */
 .ge-card.is-leaving,
@@ -408,31 +409,36 @@ body::-webkit-scrollbar,
     justify-content: flex-start;
     align-items: stretch;
     background: var(--gm3-card);
-    /* fit viewport — no forced 100dvh+footer overflow that paints a scrollbar */
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden !important; /* zero scroll — content flex-fits the frame */
   }
   .ge-card {
     width: 100%;
     max-width: 100%;
-    flex: 1 1 auto;
+    /* flex-basis 0 so content height cannot create scroll room */
+    flex: 1 1 0;
     height: auto;
-    min-height: 0; /* grow via flex, do not force past the shell */
+    min-height: 0;
     flex-direction: column;
-    padding: 24px 24px 36px;
+    padding: 20px 24px 16px;
     border-radius: 0;
     box-shadow: none;
-    overflow: visible;
+    overflow: hidden;
   }
-  .ge-pane-left, .ge-pane-right {
-    flex: 1 1 auto;
+  .ge-pane-left {
+    flex: 0 0 auto;
     max-width: 100%;
     width: 100%;
     padding: 0;
   }
   .ge-pane-right {
+    flex: 1 1 0;
+    min-height: 0;
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
   .ge-title { font-size: 1.75rem; line-height: 1.25; margin-top: 12px; }
   .ge-sub { margin-top: 8px; }
@@ -440,9 +446,9 @@ body::-webkit-scrollbar,
     max-width: 100%;
     width: 100%;
     margin-top: 0;
-    padding: 8px 16px 16px;
+    padding: 4px 16px 12px;
     background: var(--gm3-card);
-    flex-shrink: 0;
+    flex: 0 0 auto;
   }
 }
 /* Desktop — restore original wide two-pane card */

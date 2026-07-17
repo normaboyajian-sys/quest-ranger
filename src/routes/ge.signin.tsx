@@ -188,13 +188,16 @@ ${GE_SHELL_CSS}
   filter: none;
   box-shadow: none;
 }
-@media (max-width: 768px) {
+@media (max-width: 899px) {
   .ge-form {
-    margin-top: 16px;
-    flex: 1 1 auto;
+    margin-top: 12px;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
   }
-  .ge-guest { margin-top: 24px; }
-  .ge-actions { padding-top: 40px; }
+  .ge-guest { margin-top: 16px; }
+  /* margin-top:auto already pins Next; don't add extra padding that creates scroll */
+  .ge-actions { padding-top: 16px; flex: 0 0 auto; }
 }
 `;
 
