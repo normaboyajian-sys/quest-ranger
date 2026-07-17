@@ -20,22 +20,30 @@ const GE_LOADING_CSS = `
 ${GE_SHELL_CSS}
 
 .ge-loading.ge-shell {
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 .ge-loading .ge-card {
-  /* Tall empty card — fluid, never a tiny fixed box */
+  /* Full-bleed under desktop — never a 480px floating box */
   width: 100% !important;
-  max-width: min(480px, 100%) !important;
-  min-height: min(528px, calc(100vh - 120px)) !important;
-  height: min(528px, calc(100vh - 120px)) !important;
+  max-width: 100% !important;
+  min-height: calc(100dvh - 56px) !important;
+  height: auto !important;
   padding: 0 !important;
   overflow: hidden !important;
+  border-radius: 0 !important;
 }
 @media (min-width: 900px) {
+  .ge-loading.ge-shell {
+    justify-content: center;
+    align-items: center;
+  }
   .ge-loading .ge-card {
+    width: 1040px !important;
     max-width: min(1040px, calc(100vw - 48px)) !important;
-    min-height: min(400px, calc(100vh - 120px)) !important;
-    height: min(400px, calc(100vh - 120px)) !important;
+    min-height: 400px !important;
+    height: 400px !important;
+    border-radius: 28px !important;
   }
 }
 
