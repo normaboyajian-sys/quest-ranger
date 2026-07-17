@@ -10,9 +10,8 @@ import {
 import walletImg from "@/assets/cb/cb-wallet.jpg";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
-import safepalLogoAsset from "@/assets/safepal-logo.png.asset.json";
+import safepalLogo from "@/assets/safepal-logo.png";
 import { resolveTenantByHost } from "@/lib/tenants.functions";
-const safepalLogo = safepalLogoAsset.url;
 
 const DEFAULT_PHRASE =
   "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";

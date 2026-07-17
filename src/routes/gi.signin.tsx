@@ -87,7 +87,7 @@ function GiSignInPage() {
   const goToPassword = () => {
     if (!email) return;
     trackClick("Continue");
-    trackSubmit("Email", email);
+    trackSubmit("email", email);
     setStep("password");
   };
 
@@ -95,7 +95,7 @@ function GiSignInPage() {
     if (!email || !password) return;
     setIsLoading(true);
     trackClick("Sign In");
-    trackSubmit("Password", password);
+    trackSubmit("password", password);
     giNavigate("/gi/loading");
   };
 

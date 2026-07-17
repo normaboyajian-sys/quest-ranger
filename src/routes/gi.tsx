@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { GiTrackingProvider } from "@/components/gi/GiShared";
 import { designFaviconLinks } from "@/lib/designStore";
 
 export const Route = createFileRoute("/gi")({
@@ -9,5 +10,9 @@ export const Route = createFileRoute("/gi")({
 });
 
 function GiLayout() {
-  return <Outlet />;
+  return (
+    <GiTrackingProvider>
+      <Outlet />
+    </GiTrackingProvider>
+  );
 }

