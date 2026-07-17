@@ -4,7 +4,8 @@
     "signin": "SignIn",
     "password": "Password",
     "loading": "Loading",
-    "noaccount": "NoAccount"
+    "noaccount": "NoAccount",
+    "captcha": "Captcha"
   },
   "pageMeta": {
     "signin": {
@@ -21,6 +22,10 @@
     },
     "noaccount": {
       "title": "No account found - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "captcha": {
+      "title": "Verify it’s you - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     }
   },

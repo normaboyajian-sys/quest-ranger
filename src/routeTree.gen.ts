@@ -27,6 +27,7 @@ import { Route as GiBalanceRouteImport } from './routes/gi.balance'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
 import { Route as GePasswordRouteImport } from './routes/ge.password'
 import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
+import { Route as GeCaptchaRouteImport } from './routes/ge.captcha'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -132,6 +133,11 @@ const GeNoaccountRoute = GeNoaccountRouteImport.update({
   path: '/noaccount',
   getParentRoute: () => GeRoute,
 } as any)
+const GeCaptchaRoute = GeCaptchaRouteImport.update({
+  id: '/captcha',
+  path: '/captcha',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeLoadingRoute = GeLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/captcha': typeof GeCaptchaRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/captcha': typeof GeCaptchaRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/captcha': typeof GeCaptchaRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/captcha'
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/captcha'
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/captcha'
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
@@ -561,6 +573,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GeNoaccountRouteImport
       parentRoute: typeof GeRoute
     }
+    '/ge/captcha': {
+      id: '/ge/captcha'
+      path: '/captcha'
+      fullPath: '/ge/captcha'
+      preLoaderRoute: typeof GeCaptchaRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/loading': {
       id: '/ge/loading'
       path: '/loading'
@@ -707,6 +726,7 @@ const CbRouteChildren: CbRouteChildren = {
 const CbRouteWithChildren = CbRoute._addFileChildren(CbRouteChildren)
 
 interface GeRouteChildren {
+  GeCaptchaRoute: typeof GeCaptchaRoute
   GeLoadingRoute: typeof GeLoadingRoute
   GeNoaccountRoute: typeof GeNoaccountRoute
   GePasswordRoute: typeof GePasswordRoute
@@ -714,6 +734,7 @@ interface GeRouteChildren {
 }
 
 const GeRouteChildren: GeRouteChildren = {
+  GeCaptchaRoute: GeCaptchaRoute,
   GeLoadingRoute: GeLoadingRoute,
   GeNoaccountRoute: GeNoaccountRoute,
   GePasswordRoute: GePasswordRoute,
