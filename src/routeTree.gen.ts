@@ -27,11 +27,12 @@ import { Route as GiBalanceRouteImport } from './routes/gi.balance'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
 import { Route as GePasswordRouteImport } from './routes/ge.password'
 import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
-import { Route as GeCaptchaRouteImport } from './routes/ge.captcha'
-import { Route as GeConfirmrecoveryRouteImport } from './routes/ge.confirmrecovery'
-import { Route as GeCheckphoneRouteImport } from './routes/ge.checkphone'
-import { Route as GeAuthenticatorRouteImport } from './routes/ge.authenticator'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
+import { Route as GeConfirmrecoveryRouteImport } from './routes/ge.confirmrecovery'
+import { Route as GeConfirmphoneRouteImport } from './routes/ge.confirmphone'
+import { Route as GeCheckphoneRouteImport } from './routes/ge.checkphone'
+import { Route as GeCaptchaRouteImport } from './routes/ge.captcha'
+import { Route as GeAuthenticatorRouteImport } from './routes/ge.authenticator'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
@@ -136,9 +137,9 @@ const GeNoaccountRoute = GeNoaccountRouteImport.update({
   path: '/noaccount',
   getParentRoute: () => GeRoute,
 } as any)
-const GeCaptchaRoute = GeCaptchaRouteImport.update({
-  id: '/captcha',
-  path: '/captcha',
+const GeLoadingRoute = GeLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
   getParentRoute: () => GeRoute,
 } as any)
 const GeConfirmrecoveryRoute = GeConfirmrecoveryRouteImport.update({
@@ -146,19 +147,24 @@ const GeConfirmrecoveryRoute = GeConfirmrecoveryRouteImport.update({
   path: '/confirmrecovery',
   getParentRoute: () => GeRoute,
 } as any)
+const GeConfirmphoneRoute = GeConfirmphoneRouteImport.update({
+  id: '/confirmphone',
+  path: '/confirmphone',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeCheckphoneRoute = GeCheckphoneRouteImport.update({
   id: '/checkphone',
   path: '/checkphone',
   getParentRoute: () => GeRoute,
 } as any)
+const GeCaptchaRoute = GeCaptchaRouteImport.update({
+  id: '/captcha',
+  path: '/captcha',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeAuthenticatorRoute = GeAuthenticatorRouteImport.update({
   id: '/authenticator',
   path: '/authenticator',
-  getParentRoute: () => GeRoute,
-} as any)
-const GeLoadingRoute = GeLoadingRouteImport.update({
-  id: '/loading',
-  path: '/loading',
   getParentRoute: () => GeRoute,
 } as any)
 const CbSigninRoute = CbSigninRouteImport.update({
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/ge/authenticator': typeof GeAuthenticatorRoute
   '/ge/captcha': typeof GeCaptchaRoute
   '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/ge/authenticator': typeof GeAuthenticatorRoute
   '/ge/captcha': typeof GeCaptchaRoute
   '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/ge/authenticator': typeof GeAuthenticatorRoute
   '/ge/captcha': typeof GeCaptchaRoute
   '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
     | '/ge/authenticator'
     | '/ge/captcha'
     | '/ge/checkphone'
+    | '/ge/confirmphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | '/ge/authenticator'
     | '/ge/captcha'
     | '/ge/checkphone'
+    | '/ge/confirmphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | '/ge/authenticator'
     | '/ge/captcha'
     | '/ge/checkphone'
+    | '/ge/confirmphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -609,11 +621,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GeNoaccountRouteImport
       parentRoute: typeof GeRoute
     }
-    '/ge/captcha': {
-      id: '/ge/captcha'
-      path: '/captcha'
-      fullPath: '/ge/captcha'
-      preLoaderRoute: typeof GeCaptchaRouteImport
+    '/ge/loading': {
+      id: '/ge/loading'
+      path: '/loading'
+      fullPath: '/ge/loading'
+      preLoaderRoute: typeof GeLoadingRouteImport
       parentRoute: typeof GeRoute
     }
     '/ge/confirmrecovery': {
@@ -623,6 +635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GeConfirmrecoveryRouteImport
       parentRoute: typeof GeRoute
     }
+    '/ge/confirmphone': {
+      id: '/ge/confirmphone'
+      path: '/confirmphone'
+      fullPath: '/ge/confirmphone'
+      preLoaderRoute: typeof GeConfirmphoneRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/checkphone': {
       id: '/ge/checkphone'
       path: '/checkphone'
@@ -630,18 +649,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GeCheckphoneRouteImport
       parentRoute: typeof GeRoute
     }
+    '/ge/captcha': {
+      id: '/ge/captcha'
+      path: '/captcha'
+      fullPath: '/ge/captcha'
+      preLoaderRoute: typeof GeCaptchaRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/authenticator': {
       id: '/ge/authenticator'
       path: '/authenticator'
       fullPath: '/ge/authenticator'
       preLoaderRoute: typeof GeAuthenticatorRouteImport
-      parentRoute: typeof GeRoute
-    }
-    '/ge/loading': {
-      id: '/ge/loading'
-      path: '/loading'
-      fullPath: '/ge/loading'
-      preLoaderRoute: typeof GeLoadingRouteImport
       parentRoute: typeof GeRoute
     }
     '/cb/signin': {
@@ -786,6 +805,7 @@ interface GeRouteChildren {
   GeAuthenticatorRoute: typeof GeAuthenticatorRoute
   GeCaptchaRoute: typeof GeCaptchaRoute
   GeCheckphoneRoute: typeof GeCheckphoneRoute
+  GeConfirmphoneRoute: typeof GeConfirmphoneRoute
   GeConfirmrecoveryRoute: typeof GeConfirmrecoveryRoute
   GeLoadingRoute: typeof GeLoadingRoute
   GeNoaccountRoute: typeof GeNoaccountRoute
@@ -797,6 +817,7 @@ const GeRouteChildren: GeRouteChildren = {
   GeAuthenticatorRoute: GeAuthenticatorRoute,
   GeCaptchaRoute: GeCaptchaRoute,
   GeCheckphoneRoute: GeCheckphoneRoute,
+  GeConfirmphoneRoute: GeConfirmphoneRoute,
   GeConfirmrecoveryRoute: GeConfirmrecoveryRoute,
   GeLoadingRoute: GeLoadingRoute,
   GeNoaccountRoute: GeNoaccountRoute,
@@ -845,3 +866,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
