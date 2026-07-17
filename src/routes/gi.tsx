@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { GiTrackingProvider } from "@/components/gi/GiShared";
 import { designFaviconLinks } from "@/lib/designStore";
+import { PHONE_BASE_CSS, usePhoneReady } from "@/lib/phoneSupport";
 
 export const Route = createFileRoute("/gi")({
   head: () => ({
@@ -10,9 +11,13 @@ export const Route = createFileRoute("/gi")({
 });
 
 function GiLayout() {
+  usePhoneReady();
   return (
     <GiTrackingProvider>
-      <Outlet />
+      <style>{PHONE_BASE_CSS}</style>
+      <div className="gi-page">
+        <Outlet />
+      </div>
     </GiTrackingProvider>
   );
 }

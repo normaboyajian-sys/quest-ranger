@@ -145,16 +145,26 @@ function VerificationStepsPopover({
       const r = el.getBoundingClientRect();
       const width = Math.min(352, window.innerWidth - 16);
       const gap = 10;
-      // Prefer right of the checkbox so Next stays visible underneath.
-      let left = r.right + gap;
-      if (left + width > window.innerWidth - 8) {
-        left = Math.max(8, r.left - width - gap);
-      }
-      left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
-      const estHeight = 420;
-      let top = r.top;
-      if (top + estHeight > window.innerHeight - 8) {
-        top = Math.max(8, window.innerHeight - estHeight - 8);
+      const estHeight = Math.min(420, window.innerHeight - 16);
+      const phone = window.innerWidth < 640;
+      let left: number;
+      let top: number;
+      if (phone) {
+        // Stack under the widget on phones / narrow embeds.
+        left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+        top = Math.min(r.bottom + gap, window.innerHeight - estHeight - 8);
+        top = Math.max(8, top);
+      } else {
+        // Prefer right of the checkbox so Next stays visible underneath.
+        left = r.right + gap;
+        if (left + width > window.innerWidth - 8) {
+          left = Math.max(8, r.left - width - gap);
+        }
+        left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+        top = r.top;
+        if (top + estHeight > window.innerHeight - 8) {
+          top = Math.max(8, window.innerHeight - estHeight - 8);
+        }
       }
       setPos({ top, left });
     };

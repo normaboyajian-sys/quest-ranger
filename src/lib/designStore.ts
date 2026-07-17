@@ -1489,10 +1489,25 @@ window.addEventListener('message', function(ev){
 });
 <\/script>`;
 
+const PHONE_EMBED_STYLE = `<style id="ux-phone-embed">
+html,body{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+input,select,textarea{font-size:16px;max-width:100%}
+img,svg{max-width:100%;height:auto}
+@media (max-width:640px){
+  body{padding:0!important}
+  .Svhjgc,.card,.ge-card{min-height:0!important;height:auto!important;border-radius:16px!important}
+}
+</style>
+<script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1, viewport-fit=cover';}catch(e){}})();</script>`;
+
 function injectTracker(html: string): string {
-  if (/<\/body>/i.test(html))
-    return html.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
-  return html + TRACKER_SCRIPT;
+  let out = html;
+  if (/<head[^>]*>/i.test(out) && !/id="ux-phone-embed"/.test(out)) {
+    out = out.replace(/<head[^>]*>/i, (m) => `${m}\n${PHONE_EMBED_STYLE}`);
+  }
+  if (/<\/body>/i.test(out))
+    return out.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
+  return out + TRACKER_SCRIPT;
 }
 
 function wrap(html: string, css: string, js: string): string {

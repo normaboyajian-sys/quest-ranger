@@ -100,23 +100,29 @@ function GiSignInPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff", fontFamily: GI_FONT_FAMILY, color: "rgb(1,3,4)", fontSize: 16, lineHeight: "24px" }}>
+    <div className="gi-page" style={{ minHeight: "100vh", background: "#fff", fontFamily: GI_FONT_FAMILY, color: "rgb(1,3,4)", fontSize: 16, lineHeight: "24px" }}>
       <GiFontStyle />
-      <style>{`@keyframes gi-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes gi-spin { to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .gi-signin-header { height: auto !important; min-height: 56px; padding: 12px 16px !important; }
+          .gi-signin-title { font-size: 28px !important; line-height: 36px !important; }
+        }
+      `}</style>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", height: 75 }}>
+      <div className="gi-signin-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", height: 75, gap: 12, flexWrap: "wrap" }}>
         <GeminiLogo />
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="gi-topbar-extra" style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 12, color: "rgb(103,104,104)" }}>Don't have a Gemini account?</span>
           <button onClick={() => trackClick("Create Account")} style={{ padding: "0 16px", border: "none", borderRadius: 999, cursor: "pointer", height: 32, fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "rgba(1,3,4,0.08)", color: "rgb(1,3,4)" }}>Create a new account</button>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ width: 420, maxWidth: "100%", marginTop: 48, padding: "0 24px" }}>
+        <div className="gi-content" style={{ width: 420, maxWidth: "100%", marginTop: 48, padding: "0 24px", boxSizing: "border-box" }}>
           {step === "email" ? (
             <>
-              <h1 style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 24px 0" }}>Sign in</h1>
+              <h1 className="gi-signin-title" style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 24px 0" }}>Sign in</h1>
               <FloatingInput label="Email address" name="email" type="email" value={email} onChange={(v) => { setEmail(v); trackInput("email", v); }} onKeyDown={(e) => e.key === "Enter" && goToPassword()} inputRef={emailRef} />
               <button onClick={goToPassword} disabled={!email} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 56, borderRadius: 999, border: "none", cursor: email ? "pointer" : "default", fontSize: 16, fontWeight: 600, fontFamily: "inherit", marginTop: 24, background: email ? "rgb(1,3,4)" : "rgba(1,3,4,0.08)", color: email ? "#fff" : "rgba(1,3,4,0.3)" }}>Continue</button>
               <div style={{ display: "flex", alignItems: "center", gap: 24, margin: "32px 0" }}>

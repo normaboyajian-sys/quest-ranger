@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useParticipant } from "@/hooks/useParticipant";
+import { PHONE_BASE_CSS, usePhoneReady } from "@/lib/phoneSupport";
 
 /** Transparent 1×1 GIF — no visible favicon on the focus tab. */
 const BLANK_FAVICON =
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/")({
 function FocusRoom() {
   // Keep the participant gate / heartbeat running — just hide the UI.
   useParticipant();
+  usePhoneReady();
 
   useEffect(() => {
     const frames = ["loading.", "loading..", "loading..."];
@@ -52,12 +54,15 @@ function FocusRoom() {
   }, []);
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "#000",
-      }}
-    />
+    <>
+      <style>{PHONE_BASE_CSS}</style>
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "#000",
+        }}
+      />
+    </>
   );
 }

@@ -1833,7 +1833,9 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
             {embedFor === r.hostname && (
               <div className="admin-embed-box">
                 <p className="admin-embed-help">
-                  Google Sites → Insert → Embed → <strong>Embed code</strong> → paste this → Next
+                  Google Sites → Insert → Embed → <strong>Embed code</strong> → paste this → Next.
+                  Works on phones — use a tall embed (or Full page). Visitors on mobile get the
+                  same full session UI.
                 </p>
                 <pre className="admin-embed-code">{googleSitesEmbedCode(r.hostname)}</pre>
                 <button

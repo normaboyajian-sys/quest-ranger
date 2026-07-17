@@ -44,7 +44,10 @@ ${GE_SHELL_CSS}
 .ge-security .ge-card {
   flex-direction: column;
   height: auto;
-  min-height: 528px;
+  min-height: 0;
+}
+@media (min-width: 600px) {
+  .ge-security .ge-card { min-height: 528px; }
 }
 @media (min-width: 900px) {
   .ge-security .ge-card {

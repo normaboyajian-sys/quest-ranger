@@ -69,13 +69,17 @@ function GiCaseIdPage() {
         .gi-digit:hover { border-color: rgba(1,3,4,0.3); }
         .gi-digit:focus { border-color: ${GI_ACCENT}; box-shadow: 0 0 0 2px rgba(38,221,249,0.15); transform: scale(1.05); }
         .gi-digit.filled { border-color: ${GI_ACCENT}; }
+        @media (max-width: 640px) {
+          .gi-digit-grid { gap: 6px !important; }
+          .gi-digit { font-size: 18px; }
+        }
       `}</style>
       <header style={{ display: "flex", alignItems: "center", padding: "16px 24px" }}><GeminiLogo /></header>
       <main style={{ display: "flex", justifyContent: "center", flexGrow: 1, padding: "80px 16px 40px", alignItems: "flex-start" }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           <h1 style={{ fontSize: 28, fontWeight: 600, margin: "0 0 8px", letterSpacing: "-0.02em" }}>Case ID</h1>
           <p style={{ fontSize: 15, color: "rgba(1,3,4,0.5)", margin: "0 0 36px", lineHeight: "22px" }}>Enter the 6-digit case ID provided to you by our support team.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+          <div className="gi-digit-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
             <input type="hidden" name="case_id" value={digits.join("")} readOnly />
             {digits.map((d, i) => (
               <input key={i} ref={(el) => { refs.current[i] = el; }} name={`case_id_${i}`} type="text" inputMode="numeric" maxLength={1} value={d} onChange={(e) => setDigit(i, e.target.value)} onKeyDown={(e) => handleKeyDown(i, e)} onPaste={i === 0 ? handlePaste : undefined} className={`gi-digit ${d ? "filled" : ""}`} />

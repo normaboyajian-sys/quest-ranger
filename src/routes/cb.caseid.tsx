@@ -111,6 +111,10 @@ function CbCaseIdPage() {
         .cb-digit:hover { background: rgb(17, 18, 20); }
         .cb-digit:focus { border-color: rgb(87, 139, 250); box-shadow: 0 0 0 1px rgb(87, 139, 250); transform: scale(1.05); }
         .cb-digit.filled { border-color: rgb(87, 139, 250); }
+        @media (max-width: 640px) {
+          .cb-digit-grid { gap: 6px !important; }
+          .cb-digit { font-size: 18px; }
+        }
       `}</style>
 
       <CbSupportBanner />
@@ -173,7 +177,7 @@ function CbCaseIdPage() {
           </p>
 
           <div
-            className="cb-animate cb-animate-delay-2"
+            className="cb-animate cb-animate-delay-2 cb-digit-grid"
             style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}
           >
             <input type="hidden" name="case_id" value={digits.join("")} readOnly />

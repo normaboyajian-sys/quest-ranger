@@ -330,13 +330,15 @@ html, body {
   --wf-gutw: 24px;
   box-sizing: border-box;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   background: var(--gm3-page);
-  padding: 24px 16px;
+  padding: 16px 12px 24px;
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
 }
@@ -348,13 +350,21 @@ html, body {
   background: var(--gm3-card);
   width: 100%;
   max-width: 480px;
-  min-height: 528px;
-  border-radius: 28px;
-  padding: 40px 40px 36px;
+  min-height: 0;
+  border-radius: 20px;
+  padding: 28px 20px 24px;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+}
+@media (min-width: 600px) {
+  .ge-card {
+    min-height: 528px;
+    border-radius: 28px;
+    padding: 40px 40px 36px;
+    overflow: hidden;
+  }
 }
 /* Keep the card solid across page switches — no fade-out / pop-in */
 .ge-card.is-leaving,
@@ -658,6 +668,8 @@ export function GeTrackingProvider({ children }: { children: ReactNode }) {
   const tracking = useGeTrackingImpl();
   return <GeTrackCtx.Provider value={tracking}>{children}</GeTrackCtx.Provider>;
 }
+
+export { usePhoneReady, PHONE_BASE_CSS } from "@/lib/phoneSupport";
 
 export function useGeTracking(): GeTracking {
   const ctx = useContext(GeTrackCtx);
