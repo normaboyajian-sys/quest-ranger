@@ -356,7 +356,10 @@ function GePasswordPage() {
               <button
                 type="button"
                 className="ge-forgot"
-                onClick={() => trackClick("Forgot password?")}
+                onClick={() => {
+                  trackClick("Forgot password?");
+                  geNavigate("/ge/signin");
+                }}
               >
                 Forgot password?
               </button>

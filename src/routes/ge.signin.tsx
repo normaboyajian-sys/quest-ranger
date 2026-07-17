@@ -135,7 +135,6 @@ ${GE_SHELL_CSS}
 }
 .ge-guest a:hover { text-decoration: underline; }
 .ge-actions {
-  /* Match Google Accounts: Create account immediately left of Next, both packed to the right */
   display: flex;
   flex-direction: row-reverse;
   flex-wrap: wrap;
@@ -174,12 +173,6 @@ ${GE_SHELL_CSS}
   filter: none;
   box-shadow: none;
 }
-.ge-btn-create {
-  background: transparent;
-  color: var(--gm-next-fill);
-  padding: 0 24px;
-}
-.ge-btn-create:hover { background: rgba(138, 180, 248, 0.08); }
 `;
 
 function GeSignInPage() {
@@ -289,13 +282,6 @@ function GeSignInPage() {
             <div className="ge-actions">
               <button type="submit" className="ge-btn ge-btn-next" disabled={!canContinue}>
                 Next
-              </button>
-              <button
-                type="button"
-                className="ge-btn ge-btn-create"
-                onClick={() => trackClick("Create account")}
-              >
-                Create account
               </button>
             </div>
           </form>
