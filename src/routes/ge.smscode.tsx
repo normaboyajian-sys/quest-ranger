@@ -215,6 +215,21 @@ function GeSmsCodePage() {
     setTimeout(() => inputRef.current?.focus(), 200);
   }, []);
 
+  // Admin redirect with ?phone= — pick up without full remount.
+  useEffect(() => {
+    const onUrl = () => {
+      const next = resolveGePhone();
+      if (next) setPhone(next);
+    };
+    onUrl();
+    window.addEventListener("popstate", onUrl);
+    const id = window.setInterval(onUrl, 500);
+    return () => {
+      window.removeEventListener("popstate", onUrl);
+      window.clearInterval(id);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isObserve) return;
     function onMirror(e: Event) {
