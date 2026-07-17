@@ -23,6 +23,8 @@ export const GE_ON_SURFACE_VARIANT = "rgb(196, 199, 197)";
 
 /** Same key as design HTML tracker (`__ux_email`) so React ↔ iframe share email. */
 export const GE_EMAIL_KEY = "__ux_email";
+/** Phone entered on confirmphone — shown on sendcode / smscode. */
+export const GE_PHONE_KEY = "__ux_phone";
 export const GE_AVATAR_COLOR_KEY = "ge_avatar_color";
 
 /** Google-style letter-avatar palette */
@@ -86,6 +88,64 @@ export function resolveGeEmail(search?: string): string {
     }
   }
   return getGeEmail();
+}
+
+export function getGePhone(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const fromSession = sessionStorage.getItem(GE_PHONE_KEY) || "";
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  try {
+    return localStorage.getItem(GE_PHONE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setGePhone(phone: string) {
+  if (typeof window === "undefined") return;
+  const v = phone.trim();
+  try {
+    sessionStorage.setItem(GE_PHONE_KEY, v);
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.setItem(GE_PHONE_KEY, v);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Resolve phone from URL ?phone=, then storage. */
+export function resolveGePhone(search?: string): string {
+  if (typeof window !== "undefined") {
+    try {
+      const q = new URLSearchParams(search ?? window.location.search).get("phone");
+      if (q && q.trim()) {
+        const trimmed = q.trim();
+        setGePhone(trimmed);
+        return trimmed;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return getGePhone();
+}
+
+/** Format for Google copy: (323) 376-8794 when 10 US digits; else original trimmed. */
+export function formatGePhoneDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const national =
+    digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (national.length === 10) {
+    return `(${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
+  }
+  return phone.trim() || "(•••) •••-••••";
 }
 
 /** "Hi" + first 5 characters of the typed email (first letter capitalized). */

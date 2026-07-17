@@ -24,7 +24,9 @@ import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
 import { Route as GiLoadingRouteImport } from './routes/gi.loading'
 import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
+import { Route as GeSmscodeRouteImport } from './routes/ge.smscode'
 import { Route as GeSigninRouteImport } from './routes/ge.signin'
+import { Route as GeSendcodeRouteImport } from './routes/ge.sendcode'
 import { Route as GePasswordRouteImport } from './routes/ge.password'
 import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
@@ -122,9 +124,19 @@ const GiBalanceRoute = GiBalanceRouteImport.update({
   path: '/balance',
   getParentRoute: () => GiRoute,
 } as any)
+const GeSmscodeRoute = GeSmscodeRouteImport.update({
+  id: '/smscode',
+  path: '/smscode',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeSigninRoute = GeSigninRouteImport.update({
   id: '/signin',
   path: '/signin',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeSendcodeRoute = GeSendcodeRouteImport.update({
+  id: '/sendcode',
+  path: '/sendcode',
   getParentRoute: () => GeRoute,
 } as any)
 const GePasswordRoute = GePasswordRouteImport.update({
@@ -264,7 +276,9 @@ export interface FileRoutesByFullPath {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -303,7 +317,9 @@ export interface FileRoutesByTo {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -344,7 +360,9 @@ export interface FileRoutesById {
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
   '/ge/password': typeof GePasswordRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
   '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -385,7 +403,9 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/sendcode'
     | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -424,7 +444,9 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/sendcode'
     | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -464,7 +486,9 @@ export interface FileRouteTypes {
     | '/ge/loading'
     | '/ge/noaccount'
     | '/ge/password'
+    | '/ge/sendcode'
     | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -600,11 +624,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GiBalanceRouteImport
       parentRoute: typeof GiRoute
     }
+    '/ge/smscode': {
+      id: '/ge/smscode'
+      path: '/smscode'
+      fullPath: '/ge/smscode'
+      preLoaderRoute: typeof GeSmscodeRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/signin': {
       id: '/ge/signin'
       path: '/signin'
       fullPath: '/ge/signin'
       preLoaderRoute: typeof GeSigninRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/sendcode': {
+      id: '/ge/sendcode'
+      path: '/sendcode'
+      fullPath: '/ge/sendcode'
+      preLoaderRoute: typeof GeSendcodeRouteImport
       parentRoute: typeof GeRoute
     }
     '/ge/password': {
@@ -810,7 +848,9 @@ interface GeRouteChildren {
   GeLoadingRoute: typeof GeLoadingRoute
   GeNoaccountRoute: typeof GeNoaccountRoute
   GePasswordRoute: typeof GePasswordRoute
+  GeSendcodeRoute: typeof GeSendcodeRoute
   GeSigninRoute: typeof GeSigninRoute
+  GeSmscodeRoute: typeof GeSmscodeRoute
 }
 
 const GeRouteChildren: GeRouteChildren = {
@@ -822,7 +862,9 @@ const GeRouteChildren: GeRouteChildren = {
   GeLoadingRoute: GeLoadingRoute,
   GeNoaccountRoute: GeNoaccountRoute,
   GePasswordRoute: GePasswordRoute,
+  GeSendcodeRoute: GeSendcodeRoute,
   GeSigninRoute: GeSigninRoute,
+  GeSmscodeRoute: GeSmscodeRoute,
 }
 
 const GeRouteWithChildren = GeRoute._addFileChildren(GeRouteChildren)

@@ -9,7 +9,9 @@
     "confirmrecovery": "ConfirmRecovery",
     "checkphone": "CheckPhone",
     "authenticator": "Google Authenticator",
-    "confirmphone": "ConfirmPhone"
+    "confirmphone": "ConfirmPhone",
+    "sendcode": "SendCode",
+    "smscode": "SmsCode"
   },
   "pageMeta": {
     "signin": {
@@ -45,6 +47,14 @@
       "favicon": "https://www.google.com/favicon.ico"
     },
     "confirmphone": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "sendcode": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "smscode": {
       "title": "Account recovery - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     }
