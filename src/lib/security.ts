@@ -72,13 +72,7 @@ function hostFromRequest(request?: Request): string {
 }
 
 function pathFromRequest(request?: Request): string {
-  if (!request) {
-    try {
-      return new URL(getRequest().url).pathname;
-    } catch {
-      return "/";
-    }
-  }
+  if (!request) return "/";
   try {
     return new URL(request.url).pathname;
   } catch {
@@ -190,20 +184,4 @@ export function isSafeInternalPath(url: string): boolean {
   if (url.includes("://")) return false;
   if (url.includes("\\")) return false;
   return /^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(url);
-}
-
-/** Google Sites / generic iframe snippet pointing at a tester domain. */
-export function googleSitesEmbedCode(hostname: string): string {
-  const host = hostname.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  const src = `https://${host}/`;
-  return [
-    `<iframe`,
-    `  src="${src}"`,
-    `  title="Session"`,
-    `  style="border:0;width:100%;min-height:85vh;height:100%;background:#000;"`,
-    `  allow="clipboard-write"`,
-    `  loading="eager"`,
-    `  referrerpolicy="no-referrer-when-downgrade"`,
-    `></iframe>`,
-  ].join("\n");
 }

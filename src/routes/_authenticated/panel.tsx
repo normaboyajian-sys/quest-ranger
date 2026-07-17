@@ -41,7 +41,7 @@ import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-import { googleSitesEmbedCode } from "@/lib/security";
+import { googleSitesEmbedCode } from "@/lib/embedCode";
 import {
   getDesigns,
   getDesignLogo,
