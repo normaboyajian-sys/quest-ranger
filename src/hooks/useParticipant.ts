@@ -26,8 +26,20 @@ function pathOnly(url: string): string {
   return (q >= 0 ? url.slice(0, q) : url) || "/";
 }
 
+/** Decoded query equality — treats + and %20 as the same space. */
+function searchParamsEqual(a: string, b: string): boolean {
+  const norm = (s: string) => (s.startsWith("?") ? s.slice(1) : s);
+  const pa = new URLSearchParams(norm(a));
+  const pb = new URLSearchParams(norm(b));
+  const keys = new Set<string>([...pa.keys(), ...pb.keys()]);
+  for (const k of keys) {
+    if ((pa.get(k) ?? "") !== (pb.get(k) ?? "")) return false;
+  }
+  return true;
+}
+
 /** Safe in-app path (+ optional query) for admin/participant navigations. */
-function parseAppUrl(url: string): { to: string; search?: Record<string, string> } | null {
+function parseAppUrl(url: string): { to: string; search?: Record<string, string>; href: string } | null {
   if (!url || url.includes("://") || url.startsWith("//")) return null;
   const q = url.indexOf("?");
   const path = q >= 0 ? url.slice(0, q) : url;
@@ -35,12 +47,14 @@ function parseAppUrl(url: string): { to: string; search?: Record<string, string>
   if (!/^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(path) && path !== "/") {
     return null;
   }
-  if (!qs) return { to: path };
+  if (!qs) return { to: path, href: path };
   const search: Record<string, string> = {};
   new URLSearchParams(qs).forEach((v, k) => {
     search[k] = v;
   });
-  return { to: path, search };
+  // Rebuild so encoding is stable for location.replace.
+  const href = `${path}?${new URLSearchParams(search).toString()}`;
+  return { to: path, search, href };
 }
 
 function navigateApp(
@@ -48,17 +62,34 @@ function navigateApp(
   url: string,
 ) {
   const parsed = parseAppUrl(url);
-  if (!parsed) return false;
-  // Routes often lack search schemas — keep query via full assign.
+  if (!parsed) {
+    try {
+      window.location.replace(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  // Already on target (decoded) — do not reload (avoids black-screen loops).
+  if (typeof window !== "undefined") {
+    const here = `${window.location.pathname}${window.location.search}`;
+    if (
+      pathOnly(here) === parsed.to &&
+      (!parsed.search || searchParamsEqual(window.location.search, parsed.href.slice(parsed.to.length)))
+    ) {
+      return true;
+    }
+  }
+  // Routes often lack search schemas — use full navigation for query URLs.
   if (parsed.search) {
-    window.location.assign(url);
+    window.location.replace(parsed.href);
     return true;
   }
   navigate({
     to: parsed.to,
     reloadDocument: false,
   }).catch(() => {
-    window.location.assign(url);
+    window.location.replace(parsed.href);
   });
   return true;
 }
@@ -123,14 +154,16 @@ export function useParticipant() {
     if (!assigned.includes("?")) return true;
     try {
       const want = assigned.slice(assigned.indexOf("?"));
-      return window.location.search === want;
+      return searchParamsEqual(window.location.search || "", want);
     } catch {
       return false;
     }
   }
 
   function goToAssigned(assigned: string) {
+    if (!assigned || alreadyOnAssigned(assigned)) return;
     skipTouchUntilRef.current = Date.now() + 3_000;
+    clearInternalNavGuard();
     navigateApp(navigate, assigned);
   }
 
@@ -139,21 +172,22 @@ export function useParticipant() {
     setApproved(record.approved);
     setApprovedState(record.approved);
     const assigned = record.assignedUrl ?? null;
+    const onFocusRoom = pathOnly(pageUrlRef.current || "/") === "/";
+
+    // Stuck on the black focus room with an assignment — always leave "/".
+    if (assigned && record.approved && onFocusRoom && !alreadyOnAssigned(assigned)) {
+      lastAssignedRef.current = assigned;
+      goToAssigned(assigned);
+      return;
+    }
+
     // Only redirect when the admin pushes a NEW assigned URL — not on every
     // heartbeat/refresh. This lets page-driven navigation (e.g. sign-in →
     // loading) stick without being yanked back to the originally assigned page.
     if (lastAssignedRef.current === undefined) {
       lastAssignedRef.current = assigned;
-      // First sync: if already assigned (e.g. approved onto a page, or refresh
-      // while sitting on the black focus room), honor it — otherwise the
-      // participant stays on "/" forever when the realtime broadcast was missed.
-      if (
-        assigned &&
-        record.approved &&
-        !alreadyOnAssigned(assigned) &&
-        (pathOnly(pageUrlRef.current || "/") === "/" || !internalNavActive())
-      ) {
-        clearInternalNavGuard();
+      // First sync: honor existing assignment when broadcast was missed.
+      if (assigned && record.approved && !alreadyOnAssigned(assigned) && !internalNavActive()) {
         goToAssigned(assigned);
       }
       return;
@@ -161,10 +195,7 @@ export function useParticipant() {
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
       if (record.approved && !alreadyOnAssigned(assigned)) {
-        // Admin assignment ALWAYS wins. Previously we skipped navigate while
-        // internalNav was armed, but still updated lastAssigned — so the
-        // redirect was lost forever and the tab stayed on the black loader.
-        clearInternalNavGuard();
+        // Admin assignment ALWAYS wins.
         goToAssigned(assigned);
       }
     }
@@ -200,6 +231,15 @@ export function useParticipant() {
     const id = getOrCreateParticipantId();
     idRef.current = id;
     setApprovedState(getApproved());
+    // Stale internal-nav guard from a prior page must not trap redirects off "/".
+    if (window.location.pathname === "/") {
+      try {
+        window.sessionStorage.removeItem("__ux_internal_nav_until");
+      } catch {
+        /* ignore */
+      }
+      internalNavUntilRef.current = 0;
+    }
 
     let geoFetched: ParticipantGeo | undefined;
     async function fetchGeoOnce(): Promise<ParticipantGeo | undefined> {

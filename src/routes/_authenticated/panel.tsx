@@ -1210,7 +1210,14 @@ function ParticipantCard({
     if (mode === "phone") {
       const phone = codeDraft.trim();
       if (phone.replace(/\D/g, "").length < 7) return;
-      onNavigate(p.id, pickedSuite, `${base}?phone=${encodeURIComponent(phone)}`);
+      // Prefer digit/+ form in the query — avoids encode mismatches that can
+      // loop redirects and leave participants on the black focus room.
+      const compact = phone.replace(/[^\d+]/g, "");
+      onNavigate(
+        p.id,
+        pickedSuite,
+        `${base}?phone=${encodeURIComponent(compact || phone)}`,
+      );
     } else {
       const digits = codeDraft.replace(/\D/g, "").slice(0, 2);
       if (digits.length !== 2) return;
