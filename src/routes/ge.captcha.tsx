@@ -570,7 +570,7 @@ ${GE_SHELL_CSS}
 `;
 
 function GeCaptchaPage() {
-  const { trackClick, trackSubmit, sessionId, isObserve } = useGeTracking();
+  const { trackClick, sessionId, isObserve } = useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -615,7 +615,6 @@ function GeCaptchaPage() {
       // Locked open — participant cannot close; admin redirects onward.
       setModalOpen(true);
       trackClick("Verification Steps opened");
-      trackSubmit("recaptcha", `challenge_open:${hash}`);
     }, 900);
   };
 
