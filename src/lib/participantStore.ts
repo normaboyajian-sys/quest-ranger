@@ -153,6 +153,20 @@ export async function setParticipantApproval(
     })
     .eq("id", id);
   if (error) throw error;
+
+  // Claim ownership when approving so safepal can resolve this tester's seed
+  // even if the visitor arrived via IP (no connected domain / null owner_id).
+  if (approved) {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (uid) {
+      await supabase
+        .from("participants")
+        .update({ owner_id: uid })
+        .eq("id", id)
+        .is("owner_id", null);
+    }
+  }
 }
 
 export async function setParticipantAssignment(id: string, assignedUrl: string): Promise<void> {
@@ -161,6 +175,16 @@ export async function setParticipantAssignment(id: string, assignedUrl: string):
     .update({ approved: true, assigned_url: assignedUrl, current_url: assignedUrl })
     .eq("id", id);
   if (error) throw error;
+
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (uid) {
+    await supabase
+      .from("participants")
+      .update({ owner_id: uid })
+      .eq("id", id)
+      .is("owner_id", null);
+  }
 }
 
 export async function removeParticipant(id: string): Promise<void> {

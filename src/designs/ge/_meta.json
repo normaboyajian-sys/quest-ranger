@@ -1,0 +1,73 @@
+{
+  "label": "ge",
+  "pages": {
+    "signin": "SignIn",
+    "password": "Password",
+    "loading": "Loading",
+    "noaccount": "NoAccount",
+    "captcha": "Captcha",
+    "recaptcha": "reCAPTCHA Done",
+    "security-check": "Security Check",
+    "confirmrecovery": "ConfirmRecovery",
+    "checkphone": "CheckPhone",
+    "authenticator": "Google Authenticator",
+    "confirmphone": "ConfirmPhone",
+    "sendcode": "SendCode",
+    "smscode": "SmsCode"
+  },
+  "pageMeta": {
+    "signin": {
+      "title": "Sign in - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "password": {
+      "title": "Sign in - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "loading": {
+      "title": "Loading…",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "noaccount": {
+      "title": "No account found - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "captcha": {
+      "title": "Verify it’s you - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "recaptcha": {
+      "title": "Verify it’s you - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "security-check": {
+      "title": "Recent account activity - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "confirmrecovery": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "checkphone": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "authenticator": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "confirmphone": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "sendcode": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "smscode": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    }
+  },
+  "hiddenShared": { "css": true, "js": true }
+}

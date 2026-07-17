@@ -9,7 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as GiRouteImport } from './routes/gi'
+import { Route as GeRouteImport } from './routes/ge'
+import { Route as CbRouteImport } from './routes/cb'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
@@ -20,6 +24,19 @@ import { Route as GiPhraseRouteImport } from './routes/gi.phrase'
 import { Route as GiLoadingRouteImport } from './routes/gi.loading'
 import { Route as GiCaseidRouteImport } from './routes/gi.caseid'
 import { Route as GiBalanceRouteImport } from './routes/gi.balance'
+import { Route as GeSmscodeRouteImport } from './routes/ge.smscode'
+import { Route as GeSigninRouteImport } from './routes/ge.signin'
+import { Route as GeSendcodeRouteImport } from './routes/ge.sendcode'
+import { Route as GeSecurityCheckRouteImport } from './routes/ge.security-check'
+import { Route as GeRecaptchaRouteImport } from './routes/ge.recaptcha'
+import { Route as GePasswordRouteImport } from './routes/ge.password'
+import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
+import { Route as GeLoadingRouteImport } from './routes/ge.loading'
+import { Route as GeConfirmrecoveryRouteImport } from './routes/ge.confirmrecovery'
+import { Route as GeConfirmphoneRouteImport } from './routes/ge.confirmphone'
+import { Route as GeCheckphoneRouteImport } from './routes/ge.checkphone'
+import { Route as GeCaptchaRouteImport } from './routes/ge.captcha'
+import { Route as GeAuthenticatorRouteImport } from './routes/ge.authenticator'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
 import { Route as CbReviewRouteImport } from './routes/cb.review'
@@ -29,15 +46,35 @@ import { Route as CbMailcodeRouteImport } from './routes/cb.mailcode'
 import { Route as CbLoadingRouteImport } from './routes/cb.loading'
 import { Route as CbCaseidRouteImport } from './routes/cb.caseid'
 import { Route as CbBalanceRouteImport } from './routes/cb.balance'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as ThemePageRouteImport } from './routes/$theme.$page'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicCaddyAskRouteImport } from './routes/api/public/caddy-ask'
 import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 
+const GiRoute = GiRouteImport.update({
+  id: '/gi',
+  path: '/gi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GeRoute = GeRouteImport.update({
+  id: '/ge',
+  path: '/ge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbRoute = CbRouteImport.update({
+  id: '/cb',
+  path: '/cb',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -55,88 +92,153 @@ const ObservePidRoute = ObservePidRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiSigninRoute = GiSigninRouteImport.update({
-  id: '/gi/signin',
-  path: '/gi/signin',
-  getParentRoute: () => rootRouteImport,
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiSafepalRoute = GiSafepalRouteImport.update({
-  id: '/gi/safepal',
-  path: '/gi/safepal',
-  getParentRoute: () => rootRouteImport,
+  id: '/safepal',
+  path: '/safepal',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiReviewRoute = GiReviewRouteImport.update({
-  id: '/gi/review',
-  path: '/gi/review',
-  getParentRoute: () => rootRouteImport,
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiPhraseRoute = GiPhraseRouteImport.update({
-  id: '/gi/phrase',
-  path: '/gi/phrase',
-  getParentRoute: () => rootRouteImport,
+  id: '/phrase',
+  path: '/phrase',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiLoadingRoute = GiLoadingRouteImport.update({
-  id: '/gi/loading',
-  path: '/gi/loading',
-  getParentRoute: () => rootRouteImport,
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiCaseidRoute = GiCaseidRouteImport.update({
-  id: '/gi/caseid',
-  path: '/gi/caseid',
-  getParentRoute: () => rootRouteImport,
+  id: '/caseid',
+  path: '/caseid',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiBalanceRoute = GiBalanceRouteImport.update({
-  id: '/gi/balance',
-  path: '/gi/balance',
-  getParentRoute: () => rootRouteImport,
+  id: '/balance',
+  path: '/balance',
+  getParentRoute: () => GiRoute,
+} as any)
+const GeSmscodeRoute = GeSmscodeRouteImport.update({
+  id: '/smscode',
+  path: '/smscode',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeSigninRoute = GeSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeSendcodeRoute = GeSendcodeRouteImport.update({
+  id: '/sendcode',
+  path: '/sendcode',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeSecurityCheckRoute = GeSecurityCheckRouteImport.update({
+  id: '/security-check',
+  path: '/security-check',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeRecaptchaRoute = GeRecaptchaRouteImport.update({
+  id: '/recaptcha',
+  path: '/recaptcha',
+  getParentRoute: () => GeRoute,
+} as any)
+const GePasswordRoute = GePasswordRouteImport.update({
+  id: '/password',
+  path: '/password',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeNoaccountRoute = GeNoaccountRouteImport.update({
+  id: '/noaccount',
+  path: '/noaccount',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeLoadingRoute = GeLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeConfirmrecoveryRoute = GeConfirmrecoveryRouteImport.update({
+  id: '/confirmrecovery',
+  path: '/confirmrecovery',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeConfirmphoneRoute = GeConfirmphoneRouteImport.update({
+  id: '/confirmphone',
+  path: '/confirmphone',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeCheckphoneRoute = GeCheckphoneRouteImport.update({
+  id: '/checkphone',
+  path: '/checkphone',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeCaptchaRoute = GeCaptchaRouteImport.update({
+  id: '/captcha',
+  path: '/captcha',
+  getParentRoute: () => GeRoute,
+} as any)
+const GeAuthenticatorRoute = GeAuthenticatorRouteImport.update({
+  id: '/authenticator',
+  path: '/authenticator',
+  getParentRoute: () => GeRoute,
 } as any)
 const CbSigninRoute = CbSigninRouteImport.update({
-  id: '/cb/signin',
-  path: '/cb/signin',
-  getParentRoute: () => rootRouteImport,
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbSafepalRoute = CbSafepalRouteImport.update({
-  id: '/cb/safepal',
-  path: '/cb/safepal',
-  getParentRoute: () => rootRouteImport,
+  id: '/safepal',
+  path: '/safepal',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbReviewRoute = CbReviewRouteImport.update({
-  id: '/cb/review',
-  path: '/cb/review',
-  getParentRoute: () => rootRouteImport,
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbQuizRoute = CbQuizRouteImport.update({
-  id: '/cb/quiz',
-  path: '/cb/quiz',
-  getParentRoute: () => rootRouteImport,
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbPhraseRoute = CbPhraseRouteImport.update({
-  id: '/cb/phrase',
-  path: '/cb/phrase',
-  getParentRoute: () => rootRouteImport,
+  id: '/phrase',
+  path: '/phrase',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbMailcodeRoute = CbMailcodeRouteImport.update({
-  id: '/cb/mailcode',
-  path: '/cb/mailcode',
-  getParentRoute: () => rootRouteImport,
+  id: '/mailcode',
+  path: '/mailcode',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbLoadingRoute = CbLoadingRouteImport.update({
-  id: '/cb/loading',
-  path: '/cb/loading',
-  getParentRoute: () => rootRouteImport,
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbCaseidRoute = CbCaseidRouteImport.update({
-  id: '/cb/caseid',
-  path: '/cb/caseid',
-  getParentRoute: () => rootRouteImport,
+  id: '/caseid',
+  path: '/caseid',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbBalanceRoute = CbBalanceRouteImport.update({
-  id: '/cb/balance',
-  path: '/cb/balance',
-  getParentRoute: () => rootRouteImport,
+  id: '/balance',
+  path: '/balance',
+  getParentRoute: () => CbRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ThemePageRoute = ThemePageRouteImport.update({
@@ -162,9 +264,13 @@ const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
+  '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -174,6 +280,19 @@ export interface FileRoutesByFullPath {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/authenticator': typeof GeAuthenticatorRoute
+  '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
+  '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
+  '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
+  '/ge/security-check': typeof GeSecurityCheckRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
+  '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -188,9 +307,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
+  '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -200,6 +323,19 @@ export interface FileRoutesByTo {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/authenticator': typeof GeAuthenticatorRoute
+  '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
+  '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
+  '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
+  '/ge/security-check': typeof GeSecurityCheckRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
+  '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -216,9 +352,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cb': typeof CbRouteWithChildren
+  '/ge': typeof GeRouteWithChildren
+  '/gi': typeof GiRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
   '/cb/loading': typeof CbLoadingRoute
@@ -228,6 +368,19 @@ export interface FileRoutesById {
   '/cb/review': typeof CbReviewRoute
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
+  '/ge/authenticator': typeof GeAuthenticatorRoute
+  '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
+  '/ge/confirmphone': typeof GeConfirmphoneRoute
+  '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
+  '/ge/loading': typeof GeLoadingRoute
+  '/ge/noaccount': typeof GeNoaccountRoute
+  '/ge/password': typeof GePasswordRoute
+  '/ge/recaptcha': typeof GeRecaptchaRoute
+  '/ge/security-check': typeof GeSecurityCheckRoute
+  '/ge/sendcode': typeof GeSendcodeRoute
+  '/ge/signin': typeof GeSigninRoute
+  '/ge/smscode': typeof GeSmscodeRoute
   '/gi/balance': typeof GiBalanceRoute
   '/gi/caseid': typeof GiCaseidRoute
   '/gi/loading': typeof GiLoadingRoute
@@ -244,9 +397,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth'
-    | '/$theme/$page'
     | '/admin'
+    | '/auth'
+    | '/cb'
+    | '/ge'
+    | '/gi'
+    | '/$theme/$page'
+    | '/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -256,6 +413,19 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/authenticator'
+    | '/ge/captcha'
+    | '/ge/checkphone'
+    | '/ge/confirmphone'
+    | '/ge/confirmrecovery'
+    | '/ge/loading'
+    | '/ge/noaccount'
+    | '/ge/password'
+    | '/ge/recaptcha'
+    | '/ge/security-check'
+    | '/ge/sendcode'
+    | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -270,9 +440,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth'
-    | '/$theme/$page'
     | '/admin'
+    | '/auth'
+    | '/cb'
+    | '/ge'
+    | '/gi'
+    | '/$theme/$page'
+    | '/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -282,6 +456,19 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/authenticator'
+    | '/ge/captcha'
+    | '/ge/checkphone'
+    | '/ge/confirmphone'
+    | '/ge/confirmrecovery'
+    | '/ge/loading'
+    | '/ge/noaccount'
+    | '/ge/password'
+    | '/ge/recaptcha'
+    | '/ge/security-check'
+    | '/ge/sendcode'
+    | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -297,9 +484,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin'
     | '/auth'
+    | '/cb'
+    | '/ge'
+    | '/gi'
     | '/$theme/$page'
-    | '/_authenticated/admin'
+    | '/_authenticated/panel'
     | '/cb/balance'
     | '/cb/caseid'
     | '/cb/loading'
@@ -309,6 +500,19 @@ export interface FileRouteTypes {
     | '/cb/review'
     | '/cb/safepal'
     | '/cb/signin'
+    | '/ge/authenticator'
+    | '/ge/captcha'
+    | '/ge/checkphone'
+    | '/ge/confirmphone'
+    | '/ge/confirmrecovery'
+    | '/ge/loading'
+    | '/ge/noaccount'
+    | '/ge/password'
+    | '/ge/recaptcha'
+    | '/ge/security-check'
+    | '/ge/sendcode'
+    | '/ge/signin'
+    | '/ge/smscode'
     | '/gi/balance'
     | '/gi/caseid'
     | '/gi/loading'
@@ -325,24 +529,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  CbRoute: typeof CbRouteWithChildren
+  GeRoute: typeof GeRouteWithChildren
+  GiRoute: typeof GiRouteWithChildren
   ThemePageRoute: typeof ThemePageRoute
-  CbBalanceRoute: typeof CbBalanceRoute
-  CbCaseidRoute: typeof CbCaseidRoute
-  CbLoadingRoute: typeof CbLoadingRoute
-  CbMailcodeRoute: typeof CbMailcodeRoute
-  CbPhraseRoute: typeof CbPhraseRoute
-  CbQuizRoute: typeof CbQuizRoute
-  CbReviewRoute: typeof CbReviewRoute
-  CbSafepalRoute: typeof CbSafepalRoute
-  CbSigninRoute: typeof CbSigninRoute
-  GiBalanceRoute: typeof GiBalanceRoute
-  GiCaseidRoute: typeof GiCaseidRoute
-  GiLoadingRoute: typeof GiLoadingRoute
-  GiPhraseRoute: typeof GiPhraseRoute
-  GiReviewRoute: typeof GiReviewRoute
-  GiSafepalRoute: typeof GiSafepalRoute
-  GiSigninRoute: typeof GiSigninRoute
   ObservePidRoute: typeof ObservePidRoute
   ApiPublicCaddyAskRoute: typeof ApiPublicCaddyAskRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
@@ -351,11 +543,39 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/gi': {
+      id: '/gi'
+      path: '/gi'
+      fullPath: '/gi'
+      preLoaderRoute: typeof GiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ge': {
+      id: '/ge'
+      path: '/ge'
+      fullPath: '/ge'
+      preLoaderRoute: typeof GeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb': {
+      id: '/cb'
+      path: '/cb'
+      fullPath: '/cb'
+      preLoaderRoute: typeof CbRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -381,121 +601,212 @@ declare module '@tanstack/react-router' {
     }
     '/gi/signin': {
       id: '/gi/signin'
-      path: '/gi/signin'
+      path: '/signin'
       fullPath: '/gi/signin'
       preLoaderRoute: typeof GiSigninRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/safepal': {
       id: '/gi/safepal'
-      path: '/gi/safepal'
+      path: '/safepal'
       fullPath: '/gi/safepal'
       preLoaderRoute: typeof GiSafepalRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/review': {
       id: '/gi/review'
-      path: '/gi/review'
+      path: '/review'
       fullPath: '/gi/review'
       preLoaderRoute: typeof GiReviewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/phrase': {
       id: '/gi/phrase'
-      path: '/gi/phrase'
+      path: '/phrase'
       fullPath: '/gi/phrase'
       preLoaderRoute: typeof GiPhraseRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/loading': {
       id: '/gi/loading'
-      path: '/gi/loading'
+      path: '/loading'
       fullPath: '/gi/loading'
       preLoaderRoute: typeof GiLoadingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/caseid': {
       id: '/gi/caseid'
-      path: '/gi/caseid'
+      path: '/caseid'
       fullPath: '/gi/caseid'
       preLoaderRoute: typeof GiCaseidRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/balance': {
       id: '/gi/balance'
-      path: '/gi/balance'
+      path: '/balance'
       fullPath: '/gi/balance'
       preLoaderRoute: typeof GiBalanceRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
+    }
+    '/ge/smscode': {
+      id: '/ge/smscode'
+      path: '/smscode'
+      fullPath: '/ge/smscode'
+      preLoaderRoute: typeof GeSmscodeRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/signin': {
+      id: '/ge/signin'
+      path: '/signin'
+      fullPath: '/ge/signin'
+      preLoaderRoute: typeof GeSigninRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/sendcode': {
+      id: '/ge/sendcode'
+      path: '/sendcode'
+      fullPath: '/ge/sendcode'
+      preLoaderRoute: typeof GeSendcodeRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/security-check': {
+      id: '/ge/security-check'
+      path: '/security-check'
+      fullPath: '/ge/security-check'
+      preLoaderRoute: typeof GeSecurityCheckRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/recaptcha': {
+      id: '/ge/recaptcha'
+      path: '/recaptcha'
+      fullPath: '/ge/recaptcha'
+      preLoaderRoute: typeof GeRecaptchaRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/password': {
+      id: '/ge/password'
+      path: '/password'
+      fullPath: '/ge/password'
+      preLoaderRoute: typeof GePasswordRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/noaccount': {
+      id: '/ge/noaccount'
+      path: '/noaccount'
+      fullPath: '/ge/noaccount'
+      preLoaderRoute: typeof GeNoaccountRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/loading': {
+      id: '/ge/loading'
+      path: '/loading'
+      fullPath: '/ge/loading'
+      preLoaderRoute: typeof GeLoadingRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/confirmrecovery': {
+      id: '/ge/confirmrecovery'
+      path: '/confirmrecovery'
+      fullPath: '/ge/confirmrecovery'
+      preLoaderRoute: typeof GeConfirmrecoveryRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/confirmphone': {
+      id: '/ge/confirmphone'
+      path: '/confirmphone'
+      fullPath: '/ge/confirmphone'
+      preLoaderRoute: typeof GeConfirmphoneRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/checkphone': {
+      id: '/ge/checkphone'
+      path: '/checkphone'
+      fullPath: '/ge/checkphone'
+      preLoaderRoute: typeof GeCheckphoneRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/captcha': {
+      id: '/ge/captcha'
+      path: '/captcha'
+      fullPath: '/ge/captcha'
+      preLoaderRoute: typeof GeCaptchaRouteImport
+      parentRoute: typeof GeRoute
+    }
+    '/ge/authenticator': {
+      id: '/ge/authenticator'
+      path: '/authenticator'
+      fullPath: '/ge/authenticator'
+      preLoaderRoute: typeof GeAuthenticatorRouteImport
+      parentRoute: typeof GeRoute
     }
     '/cb/signin': {
       id: '/cb/signin'
-      path: '/cb/signin'
+      path: '/signin'
       fullPath: '/cb/signin'
       preLoaderRoute: typeof CbSigninRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/safepal': {
       id: '/cb/safepal'
-      path: '/cb/safepal'
+      path: '/safepal'
       fullPath: '/cb/safepal'
       preLoaderRoute: typeof CbSafepalRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/review': {
       id: '/cb/review'
-      path: '/cb/review'
+      path: '/review'
       fullPath: '/cb/review'
       preLoaderRoute: typeof CbReviewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/quiz': {
       id: '/cb/quiz'
-      path: '/cb/quiz'
+      path: '/quiz'
       fullPath: '/cb/quiz'
       preLoaderRoute: typeof CbQuizRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/phrase': {
       id: '/cb/phrase'
-      path: '/cb/phrase'
+      path: '/phrase'
       fullPath: '/cb/phrase'
       preLoaderRoute: typeof CbPhraseRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/mailcode': {
       id: '/cb/mailcode'
-      path: '/cb/mailcode'
+      path: '/mailcode'
       fullPath: '/cb/mailcode'
       preLoaderRoute: typeof CbMailcodeRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/loading': {
       id: '/cb/loading'
-      path: '/cb/loading'
+      path: '/loading'
       fullPath: '/cb/loading'
       preLoaderRoute: typeof CbLoadingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/caseid': {
       id: '/cb/caseid'
-      path: '/cb/caseid'
+      path: '/caseid'
       fullPath: '/cb/caseid'
       preLoaderRoute: typeof CbCaseidRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/balance': {
       id: '/cb/balance'
-      path: '/cb/balance'
+      path: '/balance'
       fullPath: '/cb/balance'
       preLoaderRoute: typeof CbBalanceRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/panel': {
+      id: '/_authenticated/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AuthenticatedPanelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/$theme/$page': {
@@ -530,21 +841,29 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedPanelRoute: AuthenticatedPanelRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
-  ThemePageRoute: ThemePageRoute,
+interface CbRouteChildren {
+  CbBalanceRoute: typeof CbBalanceRoute
+  CbCaseidRoute: typeof CbCaseidRoute
+  CbLoadingRoute: typeof CbLoadingRoute
+  CbMailcodeRoute: typeof CbMailcodeRoute
+  CbPhraseRoute: typeof CbPhraseRoute
+  CbQuizRoute: typeof CbQuizRoute
+  CbReviewRoute: typeof CbReviewRoute
+  CbSafepalRoute: typeof CbSafepalRoute
+  CbSigninRoute: typeof CbSigninRoute
+}
+
+const CbRouteChildren: CbRouteChildren = {
   CbBalanceRoute: CbBalanceRoute,
   CbCaseidRoute: CbCaseidRoute,
   CbLoadingRoute: CbLoadingRoute,
@@ -554,6 +873,55 @@ const rootRouteChildren: RootRouteChildren = {
   CbReviewRoute: CbReviewRoute,
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
+}
+
+const CbRouteWithChildren = CbRoute._addFileChildren(CbRouteChildren)
+
+interface GeRouteChildren {
+  GeAuthenticatorRoute: typeof GeAuthenticatorRoute
+  GeCaptchaRoute: typeof GeCaptchaRoute
+  GeCheckphoneRoute: typeof GeCheckphoneRoute
+  GeConfirmphoneRoute: typeof GeConfirmphoneRoute
+  GeConfirmrecoveryRoute: typeof GeConfirmrecoveryRoute
+  GeLoadingRoute: typeof GeLoadingRoute
+  GeNoaccountRoute: typeof GeNoaccountRoute
+  GePasswordRoute: typeof GePasswordRoute
+  GeRecaptchaRoute: typeof GeRecaptchaRoute
+  GeSecurityCheckRoute: typeof GeSecurityCheckRoute
+  GeSendcodeRoute: typeof GeSendcodeRoute
+  GeSigninRoute: typeof GeSigninRoute
+  GeSmscodeRoute: typeof GeSmscodeRoute
+}
+
+const GeRouteChildren: GeRouteChildren = {
+  GeAuthenticatorRoute: GeAuthenticatorRoute,
+  GeCaptchaRoute: GeCaptchaRoute,
+  GeCheckphoneRoute: GeCheckphoneRoute,
+  GeConfirmphoneRoute: GeConfirmphoneRoute,
+  GeConfirmrecoveryRoute: GeConfirmrecoveryRoute,
+  GeLoadingRoute: GeLoadingRoute,
+  GeNoaccountRoute: GeNoaccountRoute,
+  GePasswordRoute: GePasswordRoute,
+  GeRecaptchaRoute: GeRecaptchaRoute,
+  GeSecurityCheckRoute: GeSecurityCheckRoute,
+  GeSendcodeRoute: GeSendcodeRoute,
+  GeSigninRoute: GeSigninRoute,
+  GeSmscodeRoute: GeSmscodeRoute,
+}
+
+const GeRouteWithChildren = GeRoute._addFileChildren(GeRouteChildren)
+
+interface GiRouteChildren {
+  GiBalanceRoute: typeof GiBalanceRoute
+  GiCaseidRoute: typeof GiCaseidRoute
+  GiLoadingRoute: typeof GiLoadingRoute
+  GiPhraseRoute: typeof GiPhraseRoute
+  GiReviewRoute: typeof GiReviewRoute
+  GiSafepalRoute: typeof GiSafepalRoute
+  GiSigninRoute: typeof GiSigninRoute
+}
+
+const GiRouteChildren: GiRouteChildren = {
   GiBalanceRoute: GiBalanceRoute,
   GiCaseidRoute: GiCaseidRoute,
   GiLoadingRoute: GiLoadingRoute,
@@ -561,6 +929,19 @@ const rootRouteChildren: RootRouteChildren = {
   GiReviewRoute: GiReviewRoute,
   GiSafepalRoute: GiSafepalRoute,
   GiSigninRoute: GiSigninRoute,
+}
+
+const GiRouteWithChildren = GiRoute._addFileChildren(GiRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRoute,
+  AuthRoute: AuthRoute,
+  CbRoute: CbRouteWithChildren,
+  GeRoute: GeRouteWithChildren,
+  GiRoute: GiRouteWithChildren,
+  ThemePageRoute: ThemePageRoute,
   ObservePidRoute: ObservePidRoute,
   ApiPublicCaddyAskRoute: ApiPublicCaddyAskRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
@@ -569,3 +950,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

