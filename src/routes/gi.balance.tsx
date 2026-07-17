@@ -39,7 +39,7 @@ function GiBalancePage() {
       `}</style>
       <div style={{ display: "flex", alignItems: "center", padding: "16px 24px", height: 75 }}><GeminiLogo /></div>
       <div style={{ display: "flex", justifyContent: "center", padding: "0 24px" }}>
-        <div style={{ width: 420, maxWidth: "100%", marginTop: 48 }}>
+        <div style={{ width: "100%", maxWidth: 420, marginTop: 48, padding: "0 16px", boxSizing: "border-box" }}>
           <h1 style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: 0 }}>Confirm Estimated Holdings</h1>
           <p style={{ fontSize: 14, color: "rgb(128,129,129)", margin: "8px 0 0 0" }}>Choose the range that best matches your account value.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 32 }}>

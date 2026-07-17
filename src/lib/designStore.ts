@@ -1501,7 +1501,7 @@ img,svg{max-width:100%;height:auto}
   .Svhjgc,.card,.ge-card{min-height:0!important;height:auto!important;border-radius:16px!important}
 }
 </style>
-<script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1.0';}catch(e){}})();</script>`;
+<script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1';}catch(e){}})();</script>`;
 
 function injectTracker(html: string): string {
   let out = html;

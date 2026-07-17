@@ -309,7 +309,8 @@ export const GE_SHELL_CSS = `
 html, body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  width: 100%;
+  min-height: 100vh;
   background: ${GE_PAGE_BG} !important;
   color: ${GE_ON_SURFACE};
   color-scheme: dark !important;
@@ -338,51 +339,23 @@ html, body {
   align-items: center;
   justify-content: flex-start;
   background: var(--gm3-page);
-  padding: 16px 12px 24px;
+  padding: 16px;
   color: var(--gm3-on-surface);
   font-family: ${GE_FONT_FAMILY};
 }
-/* Responsive: stack panes whenever the frame is narrow (Sites / phones) */
-@media (max-width: 840px) {
-  .ge-shell .ge-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    min-height: 0;
-    flex-direction: column !important;
-  }
-  .ge-shell .ge-pane-left,
-  .ge-shell .ge-pane-right {
-    flex: 1 1 auto !important;
-    max-width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-  .ge-shell .ge-pane-right { padding-top: 16px; }
-}
 .ge-shell *, .ge-shell *::before, .ge-shell *::after { box-sizing: border-box; }
-@media (min-width: 600px) {
-  .ge-shell { padding: 48px 24px; justify-content: center; }
-}
 .ge-card {
   background: var(--gm3-card);
   width: 100%;
-  max-width: 480px;
+  max-width: 100%;
   min-height: 0;
+  height: auto;
   border-radius: 20px;
   padding: 28px 20px 24px;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: visible;
-}
-@media (min-width: 600px) {
-  .ge-card {
-    min-height: 528px;
-    border-radius: 28px;
-    padding: 40px 40px 36px;
-    overflow: hidden;
-  }
 }
 /* Keep the card solid across page switches — no fade-out / pop-in */
 .ge-card.is-leaving,
@@ -391,36 +364,68 @@ html, body {
   transform: none;
   animation: none;
 }
-@media (min-width: 900px) {
-  .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
-  .ge-card {
-    width: 1040px;
-    max-width: min(1040px, calc(100vw - 48px));
-    min-height: 400px;
-    height: 400px;
-    padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
-    flex-direction: row;
-    align-items: stretch;
-  }
-}
-@media (min-width: 900px) and (max-width: 1199px) {
-  .ge-card {
-    width: 840px;
-    max-width: min(840px, calc(100vw - 48px));
-  }
-}
 .ge-pane-left, .ge-pane-right {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
+/* Tablet+ : soft card max, still fluid */
+@media (min-width: 600px) {
+  .ge-shell { padding: 48px 24px; justify-content: center; }
+  .ge-card {
+    max-width: 480px;
+    min-height: 528px;
+    border-radius: 28px;
+    padding: 40px 40px 36px;
+    overflow: hidden;
+  }
+}
+/* Wide desktop only (never forced inside narrow Sites iframes) */
 @media (min-width: 900px) {
+  .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
+  .ge-card {
+    width: 100%;
+    max-width: min(1040px, calc(100vw - 48px));
+    min-height: 400px;
+    height: auto;
+    padding: 36px var(--c-ps-e) 36px var(--c-ps-s);
+    flex-direction: row;
+    align-items: stretch;
+  }
   .ge-pane-left, .ge-pane-right {
     flex: 1 1 50%;
     max-width: 50%;
   }
   .ge-pane-left { padding-right: var(--wf-gutw); }
   .ge-pane-right { padding-left: var(--wf-gutw); }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .ge-card {
+    max-width: min(840px, calc(100vw - 48px));
+  }
+}
+/* Phones — advisor breakpoint */
+@media (max-width: 768px) {
+  .ge-shell {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+  }
+  .ge-card {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    flex-direction: column;
+    padding: 24px 16px;
+  }
+  .ge-pane-left, .ge-pane-right {
+    max-width: 100%;
+    padding: 0;
+  }
+  .ge-title { font-size: 28px; line-height: 1.25; }
 }
 .ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }
 /* Account chip: silhouette next to email only — transparent, no fill */

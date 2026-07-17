@@ -119,7 +119,7 @@ function GiSignInPage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div className="gi-content" style={{ width: 420, maxWidth: "100%", marginTop: 48, padding: "0 24px", boxSizing: "border-box" }}>
+        <div className="gi-content" style={{ width: "100%", maxWidth: 420, marginTop: 48, padding: "0 24px", boxSizing: "border-box" }}>
           {step === "email" ? (
             <>
               <h1 className="gi-signin-title" style={{ fontWeight: 600, fontSize: 32, lineHeight: "40px", margin: "0 0 24px 0" }}>Sign in</h1>

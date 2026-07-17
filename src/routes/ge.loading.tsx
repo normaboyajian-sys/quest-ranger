@@ -23,22 +23,19 @@ ${GE_SHELL_CSS}
   justify-content: center;
 }
 .ge-loading .ge-card {
-  /* Keep the empty loading card tall on phones — don't collapse */
-  min-height: min(528px, calc(100dvh - 120px)) !important;
-  height: min(528px, calc(100dvh - 120px)) !important;
+  /* Tall empty card — fluid, never a tiny fixed box */
+  width: 100% !important;
+  max-width: min(480px, 100%) !important;
+  min-height: min(528px, calc(100vh - 120px)) !important;
+  height: min(528px, calc(100vh - 120px)) !important;
   padding: 0 !important;
   overflow: hidden !important;
 }
-@media (min-width: 600px) {
-  .ge-loading .ge-card {
-    min-height: 528px !important;
-    height: 528px !important;
-  }
-}
 @media (min-width: 900px) {
   .ge-loading .ge-card {
-    min-height: 400px !important;
-    height: 400px !important;
+    max-width: min(1040px, calc(100vw - 48px)) !important;
+    min-height: min(400px, calc(100vh - 120px)) !important;
+    height: min(400px, calc(100vh - 120px)) !important;
   }
 }
 

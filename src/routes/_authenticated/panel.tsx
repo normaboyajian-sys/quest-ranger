@@ -1834,8 +1834,8 @@ function MyDomainsSection({ isAdmin }: { isAdmin: boolean }) {
               <div className="admin-embed-box">
                 <p className="admin-embed-help">
                   Google Sites → Insert → Embed → <strong>Embed code</strong> → paste → Next.
-                  Then drag the embed to <strong>full page width</strong>. The code is
-                  responsive for phones (tall frame, not a small box). Re-copy after updates.
+                  Then stretch the embed handles to <strong>full width</strong> and tall
+                  (Sites sizes the box from the iframe height). Re-copy this code after updates.
                 </p>
                 <pre className="admin-embed-code">{googleSitesEmbedCode(r.hostname)}</pre>
                 <button
