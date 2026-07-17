@@ -390,20 +390,63 @@ body::-webkit-scrollbar {
   width: 100%;
   max-width: 100%;
 }
-/* Tablet+ : soft card max, still fluid */
-@media (min-width: 600px) {
-  .ge-shell { padding: 48px 24px; justify-content: center; }
+/*
+ * Below desktop: always full-bleed stacked sheet.
+ * Do NOT use a 480px centered card — Sites embeds are often ~800px wide
+ * and that looked like a tiny floating box.
+ */
+@media (max-width: 899px) {
+  .ge-shell {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    justify-content: flex-start;
+    align-items: stretch;
+    background: var(--gm3-card);
+  }
   .ge-card {
-    max-width: 480px;
-    min-height: 528px;
-    border-radius: 28px;
-    padding: 40px 40px 36px;
-    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: calc(100dvh - 56px);
+    flex-direction: column;
+    padding: 24px 24px 36px;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .ge-pane-left, .ge-pane-right {
+    flex: 1 1 auto;
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+  }
+  .ge-pane-right {
+    display: flex;
+    flex-direction: column;
+  }
+  .ge-title { font-size: 1.75rem; line-height: 1.25; margin-top: 12px; }
+  .ge-sub { margin-top: 8px; }
+  .ge-footer {
+    max-width: 100%;
+    width: 100%;
+    margin-top: 0;
+    padding: 8px 16px 16px;
+    background: var(--gm3-card);
   }
 }
 /* Desktop — restore original wide two-pane card */
 @media (min-width: 900px) {
-  .ge-shell { --c-ps-s: 36px; --c-ps-e: 36px; --wf-gutw: 38px; }
+  .ge-shell {
+    --c-ps-s: 36px;
+    --c-ps-e: 36px;
+    --wf-gutw: 38px;
+    padding: 48px 24px;
+    justify-content: center;
+    align-items: center;
+    background: var(--gm3-page);
+  }
   .ge-card {
     width: 1040px;
     max-width: min(1040px, calc(100vw - 48px));
@@ -413,6 +456,7 @@ body::-webkit-scrollbar {
     flex-direction: row;
     align-items: stretch;
     overflow: hidden;
+    border-radius: 28px;
   }
   .ge-pane-left, .ge-pane-right {
     flex: 1 1 50%;
@@ -426,44 +470,6 @@ body::-webkit-scrollbar {
   .ge-card {
     width: 840px;
     max-width: min(840px, calc(100vw - 48px));
-  }
-}
-/* Phones — full-bleed Google Accounts sheet (matches mobile screenshot) */
-@media (max-width: 768px) {
-  .ge-shell {
-    width: 100%;
-    max-width: 100%;
-    padding: 0;
-    justify-content: flex-start;
-    background: var(--gm3-card);
-  }
-  .ge-card {
-    width: 100%;
-    max-width: 100%;
-    flex: 1 1 auto;
-    height: auto;
-    min-height: calc(100% - 56px);
-    flex-direction: column;
-    padding: 24px 24px 36px;
-    border-radius: 0;
-    box-shadow: none;
-  }
-  .ge-pane-left, .ge-pane-right {
-    max-width: 100%;
-    padding: 0;
-  }
-  .ge-pane-right {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-  }
-  .ge-title { font-size: 1.75rem; line-height: 1.25; margin-top: 12px; }
-  .ge-sub { margin-top: 8px; }
-  .ge-footer {
-    max-width: 100%;
-    margin-top: 0;
-    padding: 8px 16px 16px;
-    background: var(--gm3-card);
   }
 }
 .ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }

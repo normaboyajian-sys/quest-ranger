@@ -176,30 +176,36 @@ html.ux-embedded .gi-page {
   }
 }
 
-/* ---- Phones / narrow Sites (≤768px) — Google Accounts mobile look ---- */
-@media (max-width: 768px) {
+/*
+ * Anything below desktop two-pane (≤899px): full-bleed Google sheet.
+ * Sites iframes are often 700–850px wide — a 768 phone cutoff left a
+ * 480px centered "little box". Kill that entirely under 900.
+ */
+@media (max-width: 899px) {
   html.ux-phone-ready .cb-page,
   html.ux-phone-ready .gi-page {
     width: 100% !important;
     max-width: 100% !important;
     padding: 16px !important;
   }
-  /* Full-bleed dark sheet like real Google Sign-in on phone */
   html.ux-embedded .ge-shell,
   html.ux-phone-ready .ge-shell {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     padding: 0 !important;
     justify-content: flex-start !important;
+    align-items: stretch !important;
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
   }
   html.ux-embedded .ge-card,
   html.ux-phone-ready .ge-card {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     flex: 1 1 auto !important;
     height: auto !important;
-    min-height: calc(100% - 56px) !important;
+    min-height: calc(100dvh - 56px) !important;
     padding: 24px 24px 36px !important;
     border-radius: 0 !important;
     border: 0 !important;
@@ -227,6 +233,7 @@ html.ux-embedded .gi-page {
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
+    width: 100% !important;
   }
   html.ux-phone-ready .ge-actions {
     margin-top: auto !important;
@@ -235,10 +242,11 @@ html.ux-embedded .gi-page {
   html.ux-phone-ready .ge-logo {
     width: 40px !important;
     height: 40px !important;
+    max-width: 40px !important;
   }
   html.ux-phone-ready .ge-title,
   html.ux-phone-ready h1 {
-    font-size: 1.75rem !important; /* ~28px — Google mobile Sign in */
+    font-size: 1.75rem !important;
     line-height: 1.25 !important;
     margin-top: 12px !important;
   }
@@ -254,14 +262,17 @@ html.ux-embedded .gi-page {
     background: var(--gm3-card, rgb(14, 14, 14)) !important;
   }
   html.ux-phone-ready .ge-loading .ge-card {
-    min-height: calc(100% - 56px) !important;
+    min-height: calc(100dvh - 56px) !important;
     height: auto !important;
     padding: 24px 24px 36px !important;
     overflow: hidden !important;
     border-radius: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   html.ux-phone-ready .ge-loading.ge-shell {
     justify-content: flex-start !important;
+    align-items: stretch !important;
     padding: 0 !important;
   }
   html.ux-phone-ready .ge-rc {
@@ -308,12 +319,14 @@ html.ux-embedded .gi-page {
   }
 }
 
-/* Extra-narrow phones — keep full-bleed Google sheet */
+/* Extra-narrow phones */
 @media (max-width: 480px) {
   html.ux-phone-ready .ge-shell {
     padding: 0 !important;
   }
   html.ux-phone-ready .ge-card {
+    width: 100% !important;
+    max-width: 100% !important;
     padding: 20px 20px 32px !important;
     border-radius: 0 !important;
   }
