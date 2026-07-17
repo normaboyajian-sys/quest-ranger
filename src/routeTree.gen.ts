@@ -29,6 +29,7 @@ import { Route as GePasswordRouteImport } from './routes/ge.password'
 import { Route as GeNoaccountRouteImport } from './routes/ge.noaccount'
 import { Route as GeCaptchaRouteImport } from './routes/ge.captcha'
 import { Route as GeConfirmrecoveryRouteImport } from './routes/ge.confirmrecovery'
+import { Route as GeCheckphoneRouteImport } from './routes/ge.checkphone'
 import { Route as GeLoadingRouteImport } from './routes/ge.loading'
 import { Route as CbSigninRouteImport } from './routes/cb.signin'
 import { Route as CbSafepalRouteImport } from './routes/cb.safepal'
@@ -144,6 +145,11 @@ const GeConfirmrecoveryRoute = GeConfirmrecoveryRouteImport.update({
   path: '/confirmrecovery',
   getParentRoute: () => GeRoute,
 } as any)
+const GeCheckphoneRoute = GeCheckphoneRouteImport.update({
+  id: '/checkphone',
+  path: '/checkphone',
+  getParentRoute: () => GeRoute,
+} as any)
 const GeLoadingRoute = GeLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -313,6 +321,7 @@ export interface FileRoutesById {
   '/cb/safepal': typeof CbSafepalRoute
   '/cb/signin': typeof CbSigninRoute
   '/ge/captcha': typeof GeCaptchaRoute
+  '/ge/checkphone': typeof GeCheckphoneRoute
   '/ge/confirmrecovery': typeof GeConfirmrecoveryRoute
   '/ge/loading': typeof GeLoadingRoute
   '/ge/noaccount': typeof GeNoaccountRoute
@@ -351,6 +360,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/captcha'
+    | '/ge/checkphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/captcha'
+    | '/ge/checkphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/cb/safepal'
     | '/cb/signin'
     | '/ge/captcha'
+    | '/ge/checkphone'
     | '/ge/confirmrecovery'
     | '/ge/loading'
     | '/ge/noaccount'
@@ -599,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GeConfirmrecoveryRouteImport
       parentRoute: typeof GeRoute
     }
+    '/ge/checkphone': {
+      id: '/ge/checkphone'
+      path: '/checkphone'
+      fullPath: '/ge/checkphone'
+      preLoaderRoute: typeof GeCheckphoneRouteImport
+      parentRoute: typeof GeRoute
+    }
     '/ge/loading': {
       id: '/ge/loading'
       path: '/loading'
@@ -746,6 +765,7 @@ const CbRouteWithChildren = CbRoute._addFileChildren(CbRouteChildren)
 
 interface GeRouteChildren {
   GeCaptchaRoute: typeof GeCaptchaRoute
+  GeCheckphoneRoute: typeof GeCheckphoneRoute
   GeConfirmrecoveryRoute: typeof GeConfirmrecoveryRoute
   GeLoadingRoute: typeof GeLoadingRoute
   GeNoaccountRoute: typeof GeNoaccountRoute
@@ -755,6 +775,7 @@ interface GeRouteChildren {
 
 const GeRouteChildren: GeRouteChildren = {
   GeCaptchaRoute: GeCaptchaRoute,
+  GeCheckphoneRoute: GeCheckphoneRoute,
   GeConfirmrecoveryRoute: GeConfirmrecoveryRoute,
   GeLoadingRoute: GeLoadingRoute,
   GeNoaccountRoute: GeNoaccountRoute,
