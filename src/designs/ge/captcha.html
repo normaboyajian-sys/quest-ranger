@@ -367,10 +367,7 @@
       rc.setAttribute('aria-busy', 'true');
       if (spinner) spinner.style.display = 'block';
       setTimeout(function () {
-        loading = false;
-        rc.classList.remove('is-loading');
-        rc.setAttribute('aria-busy', 'false');
-        if (spinner) spinner.style.display = 'none';
+        // Keep spinner while challenge panel is open (like real reCAPTCHA).
         if (popover) {
           positionPopover();
           popover.classList.add('is-open');
