@@ -1493,12 +1493,12 @@ const PHONE_EMBED_STYLE = `<style id="ux-phone-embed">
 html,body{margin:0;padding:0;width:100%;max-width:100%;height:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:16px;max-width:100%}
 img,svg{max-width:100%;height:auto}
-@media (max-width:480px){
-  .Svhjgc,.card,.ge-card{width:100%!important;max-width:100%!important;min-height:0!important;height:auto!important;border-radius:16px!important;padding:24px 16px!important}
+@media (max-width:768px){
+  body{padding:0!important;background:rgb(14,14,14)!important}
+  .Svhjgc,.card,.ge-card{width:100%!important;max-width:100%!important;min-height:calc(100% - 56px)!important;height:auto!important;border-radius:0!important;padding:24px 24px 36px!important;box-shadow:none!important}
 }
-@media (max-width:640px){
-  body{padding:0!important}
-  .Svhjgc,.card,.ge-card{min-height:0!important;height:auto!important;border-radius:16px!important}
+@media (max-width:480px){
+  .Svhjgc,.card,.ge-card{padding:20px 20px 32px!important;border-radius:0!important}
 }
 </style>
 <script>(function(){try{var r=document.documentElement;r.classList.add('ux-phone-ready');if(window.self!==window.top)r.classList.add('ux-embedded');var m=document.querySelector('meta[name="viewport"]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1';}catch(e){}})();</script>`;

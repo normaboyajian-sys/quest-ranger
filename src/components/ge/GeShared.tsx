@@ -428,26 +428,43 @@ body::-webkit-scrollbar {
     max-width: min(840px, calc(100vw - 48px));
   }
 }
-/* Phones — advisor breakpoint */
+/* Phones — full-bleed Google Accounts sheet (matches mobile screenshot) */
 @media (max-width: 768px) {
   .ge-shell {
     width: 100%;
     max-width: 100%;
-    padding: 16px;
+    padding: 0;
+    justify-content: flex-start;
+    background: var(--gm3-card);
   }
   .ge-card {
     width: 100%;
     max-width: 100%;
+    flex: 1 1 auto;
     height: auto;
-    min-height: 0;
+    min-height: calc(100% - 56px);
     flex-direction: column;
-    padding: 24px 16px;
+    padding: 24px 24px 36px;
+    border-radius: 0;
+    box-shadow: none;
   }
   .ge-pane-left, .ge-pane-right {
     max-width: 100%;
     padding: 0;
   }
-  .ge-title { font-size: 28px; line-height: 1.25; }
+  .ge-pane-right {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .ge-title { font-size: 1.75rem; line-height: 1.25; margin-top: 12px; }
+  .ge-sub { margin-top: 8px; }
+  .ge-footer {
+    max-width: 100%;
+    margin-top: 0;
+    padding: 8px 16px 16px;
+    background: var(--gm3-card);
+  }
 }
 .ge-logo { display: block; width: 40px; height: 48px; flex-shrink: 0; }
 /* Account chip: silhouette next to email only — transparent, no fill */

