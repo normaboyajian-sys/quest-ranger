@@ -9,10 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as KnRouteImport } from './routes/kn'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObservePidRouteImport } from './routes/observe.$pid'
+import { Route as KnSigninRouteImport } from './routes/kn.signin'
+import { Route as KnReviewRouteImport } from './routes/kn.review'
+import { Route as KnLoadingRouteImport } from './routes/kn.loading'
+import { Route as KnCaseidRouteImport } from './routes/kn.caseid'
+import { Route as KnBalanceRouteImport } from './routes/kn.balance'
+import { Route as KnAuthenticatorRouteImport } from './routes/kn.authenticator'
 import { Route as GiSigninRouteImport } from './routes/gi.signin'
 import { Route as GiSafepalRouteImport } from './routes/gi.safepal'
 import { Route as GiReviewRouteImport } from './routes/gi.review'
@@ -35,6 +42,11 @@ import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicCaddyAskRouteImport } from './routes/api/public/caddy-ask'
 import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
 
+const KnRoute = KnRouteImport.update({
+  id: '/kn',
+  path: '/kn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -54,6 +66,36 @@ const ObservePidRoute = ObservePidRouteImport.update({
   path: '/observe/$pid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KnSigninRoute = KnSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => KnRoute,
+} as any)
+const KnReviewRoute = KnReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => KnRoute,
+} as any)
+const KnLoadingRoute = KnLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => KnRoute,
+} as any)
+const KnCaseidRoute = KnCaseidRouteImport.update({
+  id: '/caseid',
+  path: '/caseid',
+  getParentRoute: () => KnRoute,
+} as any)
+const KnBalanceRoute = KnBalanceRouteImport.update({
+  id: '/balance',
+  path: '/balance',
+  getParentRoute: () => KnRoute,
+} as any)
+const KnAuthenticatorRoute = KnAuthenticatorRouteImport.update({
+  id: '/authenticator',
+  path: '/authenticator',
+  getParentRoute: () => KnRoute,
+} as any)
 const GiSigninRoute = GiSigninRouteImport.update({
   id: '/gi/signin',
   path: '/gi/signin',
@@ -65,9 +107,9 @@ const GiSafepalRoute = GiSafepalRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiReviewRoute = GiReviewRouteImport.update({
-  id: '/gi/review',
-  path: '/gi/review',
-  getParentRoute: () => rootRouteImport,
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiPhraseRoute = GiPhraseRouteImport.update({
   id: '/gi/phrase',
@@ -75,9 +117,9 @@ const GiPhraseRoute = GiPhraseRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const GiLoadingRoute = GiLoadingRouteImport.update({
-  id: '/gi/loading',
-  path: '/gi/loading',
-  getParentRoute: () => rootRouteImport,
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => GiRoute,
 } as any)
 const GiCaseidRoute = GiCaseidRouteImport.update({
   id: '/gi/caseid',
@@ -100,14 +142,14 @@ const CbSafepalRoute = CbSafepalRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbReviewRoute = CbReviewRouteImport.update({
-  id: '/cb/review',
-  path: '/cb/review',
-  getParentRoute: () => rootRouteImport,
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbQuizRoute = CbQuizRouteImport.update({
-  id: '/cb/quiz',
-  path: '/cb/quiz',
-  getParentRoute: () => rootRouteImport,
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbPhraseRoute = CbPhraseRouteImport.update({
   id: '/cb/phrase',
@@ -120,9 +162,9 @@ const CbMailcodeRoute = CbMailcodeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbLoadingRoute = CbLoadingRouteImport.update({
-  id: '/cb/loading',
-  path: '/cb/loading',
-  getParentRoute: () => rootRouteImport,
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => CbRoute,
 } as any)
 const CbCaseidRoute = CbCaseidRouteImport.update({
   id: '/cb/caseid',
@@ -163,6 +205,7 @@ const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/kn': typeof KnRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
@@ -181,6 +224,12 @@ export interface FileRoutesByFullPath {
   '/gi/review': typeof GiReviewRoute
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
+  '/kn/authenticator': typeof KnAuthenticatorRoute
+  '/kn/balance': typeof KnBalanceRoute
+  '/kn/caseid': typeof KnCaseidRoute
+  '/kn/loading': typeof KnLoadingRoute
+  '/kn/review': typeof KnReviewRoute
+  '/kn/signin': typeof KnSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -189,6 +238,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/kn': typeof KnRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
@@ -207,6 +257,12 @@ export interface FileRoutesByTo {
   '/gi/review': typeof GiReviewRoute
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
+  '/kn/authenticator': typeof KnAuthenticatorRoute
+  '/kn/balance': typeof KnBalanceRoute
+  '/kn/caseid': typeof KnCaseidRoute
+  '/kn/loading': typeof KnLoadingRoute
+  '/kn/review': typeof KnReviewRoute
+  '/kn/signin': typeof KnSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -217,6 +273,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/kn': typeof KnRouteWithChildren
   '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
@@ -235,6 +292,12 @@ export interface FileRoutesById {
   '/gi/review': typeof GiReviewRoute
   '/gi/safepal': typeof GiSafepalRoute
   '/gi/signin': typeof GiSigninRoute
+  '/kn/authenticator': typeof KnAuthenticatorRoute
+  '/kn/balance': typeof KnBalanceRoute
+  '/kn/caseid': typeof KnCaseidRoute
+  '/kn/loading': typeof KnLoadingRoute
+  '/kn/review': typeof KnReviewRoute
+  '/kn/signin': typeof KnSigninRoute
   '/observe/$pid': typeof ObservePidRoute
   '/api/public/caddy-ask': typeof ApiPublicCaddyAskRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -245,6 +308,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/kn'
     | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
@@ -263,6 +327,12 @@ export interface FileRouteTypes {
     | '/gi/review'
     | '/gi/safepal'
     | '/gi/signin'
+    | '/kn/authenticator'
+    | '/kn/balance'
+    | '/kn/caseid'
+    | '/kn/loading'
+    | '/kn/review'
+    | '/kn/signin'
     | '/observe/$pid'
     | '/api/public/caddy-ask'
     | '/api/public/health'
@@ -271,6 +341,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/kn'
     | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
@@ -289,6 +360,12 @@ export interface FileRouteTypes {
     | '/gi/review'
     | '/gi/safepal'
     | '/gi/signin'
+    | '/kn/authenticator'
+    | '/kn/balance'
+    | '/kn/caseid'
+    | '/kn/loading'
+    | '/kn/review'
+    | '/kn/signin'
     | '/observe/$pid'
     | '/api/public/caddy-ask'
     | '/api/public/health'
@@ -298,6 +375,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/kn'
     | '/$theme/$page'
     | '/_authenticated/admin'
     | '/cb/balance'
@@ -316,6 +394,12 @@ export interface FileRouteTypes {
     | '/gi/review'
     | '/gi/safepal'
     | '/gi/signin'
+    | '/kn/authenticator'
+    | '/kn/balance'
+    | '/kn/caseid'
+    | '/kn/loading'
+    | '/kn/review'
+    | '/kn/signin'
     | '/observe/$pid'
     | '/api/public/caddy-ask'
     | '/api/public/health'
@@ -326,21 +410,17 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  KnRoute: typeof KnRouteWithChildren
   ThemePageRoute: typeof ThemePageRoute
   CbBalanceRoute: typeof CbBalanceRoute
   CbCaseidRoute: typeof CbCaseidRoute
-  CbLoadingRoute: typeof CbLoadingRoute
   CbMailcodeRoute: typeof CbMailcodeRoute
   CbPhraseRoute: typeof CbPhraseRoute
-  CbQuizRoute: typeof CbQuizRoute
-  CbReviewRoute: typeof CbReviewRoute
   CbSafepalRoute: typeof CbSafepalRoute
   CbSigninRoute: typeof CbSigninRoute
   GiBalanceRoute: typeof GiBalanceRoute
   GiCaseidRoute: typeof GiCaseidRoute
-  GiLoadingRoute: typeof GiLoadingRoute
   GiPhraseRoute: typeof GiPhraseRoute
-  GiReviewRoute: typeof GiReviewRoute
   GiSafepalRoute: typeof GiSafepalRoute
   GiSigninRoute: typeof GiSigninRoute
   ObservePidRoute: typeof ObservePidRoute
@@ -351,6 +431,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/kn': {
+      id: '/kn'
+      path: '/kn'
+      fullPath: '/kn'
+      preLoaderRoute: typeof KnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -379,6 +466,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObservePidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kn/signin': {
+      id: '/kn/signin'
+      path: '/signin'
+      fullPath: '/kn/signin'
+      preLoaderRoute: typeof KnSigninRouteImport
+      parentRoute: typeof KnRoute
+    }
+    '/kn/review': {
+      id: '/kn/review'
+      path: '/review'
+      fullPath: '/kn/review'
+      preLoaderRoute: typeof KnReviewRouteImport
+      parentRoute: typeof KnRoute
+    }
+    '/kn/loading': {
+      id: '/kn/loading'
+      path: '/loading'
+      fullPath: '/kn/loading'
+      preLoaderRoute: typeof KnLoadingRouteImport
+      parentRoute: typeof KnRoute
+    }
+    '/kn/caseid': {
+      id: '/kn/caseid'
+      path: '/caseid'
+      fullPath: '/kn/caseid'
+      preLoaderRoute: typeof KnCaseidRouteImport
+      parentRoute: typeof KnRoute
+    }
+    '/kn/balance': {
+      id: '/kn/balance'
+      path: '/balance'
+      fullPath: '/kn/balance'
+      preLoaderRoute: typeof KnBalanceRouteImport
+      parentRoute: typeof KnRoute
+    }
+    '/kn/authenticator': {
+      id: '/kn/authenticator'
+      path: '/authenticator'
+      fullPath: '/kn/authenticator'
+      preLoaderRoute: typeof KnAuthenticatorRouteImport
+      parentRoute: typeof KnRoute
+    }
     '/gi/signin': {
       id: '/gi/signin'
       path: '/gi/signin'
@@ -395,10 +524,10 @@ declare module '@tanstack/react-router' {
     }
     '/gi/review': {
       id: '/gi/review'
-      path: '/gi/review'
+      path: '/review'
       fullPath: '/gi/review'
       preLoaderRoute: typeof GiReviewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/phrase': {
       id: '/gi/phrase'
@@ -409,10 +538,10 @@ declare module '@tanstack/react-router' {
     }
     '/gi/loading': {
       id: '/gi/loading'
-      path: '/gi/loading'
+      path: '/loading'
       fullPath: '/gi/loading'
       preLoaderRoute: typeof GiLoadingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof GiRoute
     }
     '/gi/caseid': {
       id: '/gi/caseid'
@@ -444,17 +573,17 @@ declare module '@tanstack/react-router' {
     }
     '/cb/review': {
       id: '/cb/review'
-      path: '/cb/review'
+      path: '/review'
       fullPath: '/cb/review'
       preLoaderRoute: typeof CbReviewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/quiz': {
       id: '/cb/quiz'
-      path: '/cb/quiz'
+      path: '/quiz'
       fullPath: '/cb/quiz'
       preLoaderRoute: typeof CbQuizRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/phrase': {
       id: '/cb/phrase'
@@ -472,10 +601,10 @@ declare module '@tanstack/react-router' {
     }
     '/cb/loading': {
       id: '/cb/loading'
-      path: '/cb/loading'
+      path: '/loading'
       fullPath: '/cb/loading'
       preLoaderRoute: typeof CbLoadingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CbRoute
     }
     '/cb/caseid': {
       id: '/cb/caseid'
@@ -540,25 +669,41 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface KnRouteChildren {
+  KnAuthenticatorRoute: typeof KnAuthenticatorRoute
+  KnBalanceRoute: typeof KnBalanceRoute
+  KnCaseidRoute: typeof KnCaseidRoute
+  KnLoadingRoute: typeof KnLoadingRoute
+  KnReviewRoute: typeof KnReviewRoute
+  KnSigninRoute: typeof KnSigninRoute
+}
+
+const KnRouteChildren: KnRouteChildren = {
+  KnAuthenticatorRoute: KnAuthenticatorRoute,
+  KnBalanceRoute: KnBalanceRoute,
+  KnCaseidRoute: KnCaseidRoute,
+  KnLoadingRoute: KnLoadingRoute,
+  KnReviewRoute: KnReviewRoute,
+  KnSigninRoute: KnSigninRoute,
+}
+
+const KnRouteWithChildren = KnRoute._addFileChildren(KnRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  KnRoute: KnRouteWithChildren,
   ThemePageRoute: ThemePageRoute,
   CbBalanceRoute: CbBalanceRoute,
   CbCaseidRoute: CbCaseidRoute,
-  CbLoadingRoute: CbLoadingRoute,
   CbMailcodeRoute: CbMailcodeRoute,
   CbPhraseRoute: CbPhraseRoute,
-  CbQuizRoute: CbQuizRoute,
-  CbReviewRoute: CbReviewRoute,
   CbSafepalRoute: CbSafepalRoute,
   CbSigninRoute: CbSigninRoute,
   GiBalanceRoute: GiBalanceRoute,
   GiCaseidRoute: GiCaseidRoute,
-  GiLoadingRoute: GiLoadingRoute,
   GiPhraseRoute: GiPhraseRoute,
-  GiReviewRoute: GiReviewRoute,
   GiSafepalRoute: GiSafepalRoute,
   GiSigninRoute: GiSigninRoute,
   ObservePidRoute: ObservePidRoute,
