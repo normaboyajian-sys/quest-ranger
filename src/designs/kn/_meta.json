@@ -1,0 +1,35 @@
+{
+  "label": "Kraken",
+  "pages": {
+    "loading": "Loading",
+    "signin": "SignIn",
+    "review": "Review",
+    "authenticator": "Authenticator",
+    "caseid": "CaseId",
+    "balance": "Balance"
+  },
+  "pageMeta": {
+    "signin": {
+      "title": "Sign in to Kraken"
+    },
+    "loading": {
+      "title": "Loading…"
+    },
+    "review": {
+      "title": "Review your account"
+    },
+    "authenticator": {
+      "title": "Enter your code"
+    },
+    "caseid": {
+      "title": "Case ID"
+    },
+    "balance": {
+      "title": "Confirm Estimated Holdings"
+    }
+  },
+  "hiddenShared": {
+    "css": true,
+    "js": true
+  }
+}
