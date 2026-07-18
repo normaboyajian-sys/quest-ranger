@@ -26,7 +26,8 @@ export function useIsObserve(): boolean {
   return useMemo(() => {
     if (typeof window === "undefined") return false;
     try {
-      return new URLSearchParams(window.location.search).get("__observe") === "1";
+      const q = new URLSearchParams(window.location.search);
+      return q.get("__observe") === "1" || q.get("__preview") === "1";
     } catch {
       return false;
     }
@@ -81,8 +82,23 @@ export function useGiTracking() {
         el.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
+    function blockNav(e: MouseEvent) {
+      const t = e.target as Element | null;
+      const a = t?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a) return;
+      const href = a.getAttribute("href") || "";
+      if (!href || href.startsWith("#") || a.target === "_blank") return;
+      if (href.startsWith("/") || href.includes(window.location.host)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
     window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
+    document.addEventListener("click", blockNav, true);
+    return () => {
+      window.removeEventListener("message", onMsg);
+      document.removeEventListener("click", blockNav, true);
+    };
   }, [isObserve]);
 
   return { sessionId: participantId, trackClick, trackInput, giNavigate, isObserve };

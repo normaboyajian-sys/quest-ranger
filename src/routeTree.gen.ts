@@ -30,7 +30,6 @@ import { Route as CbLoadingRouteImport } from './routes/cb.loading'
 import { Route as CbCaseidRouteImport } from './routes/cb.caseid'
 import { Route as CbBalanceRouteImport } from './routes/cb.balance'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as ThemePageRouteImport } from './routes/$theme.$page'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicCaddyAskRouteImport } from './routes/api/public/caddy-ask'
 import { Route as ApiPublicDlSplatRouteImport } from './routes/api/public/dl/$'
@@ -139,11 +138,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ThemePageRoute = ThemePageRouteImport.update({
-  id: '/$theme/$page',
-  path: '/$theme/$page',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
@@ -163,7 +157,6 @@ const ApiPublicDlSplatRoute = ApiPublicDlSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
@@ -189,7 +182,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/$theme/$page': typeof ThemePageRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
@@ -217,7 +209,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/$theme/$page': typeof ThemePageRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/cb/balance': typeof CbBalanceRoute
   '/cb/caseid': typeof CbCaseidRoute
@@ -245,7 +236,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
     | '/cb/caseid'
@@ -271,7 +261,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/$theme/$page'
     | '/admin'
     | '/cb/balance'
     | '/cb/caseid'
@@ -298,7 +287,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/$theme/$page'
     | '/_authenticated/admin'
     | '/cb/balance'
     | '/cb/caseid'
@@ -326,7 +314,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ThemePageRoute: typeof ThemePageRoute
   CbBalanceRoute: typeof CbBalanceRoute
   CbCaseidRoute: typeof CbCaseidRoute
   CbLoadingRoute: typeof CbLoadingRoute
@@ -498,13 +485,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/$theme/$page': {
-      id: '/$theme/$page'
-      path: '/$theme/$page'
-      fullPath: '/$theme/$page'
-      preLoaderRoute: typeof ThemePageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/health': {
       id: '/api/public/health'
       path: '/api/public/health'
@@ -544,7 +524,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  ThemePageRoute: ThemePageRoute,
   CbBalanceRoute: CbBalanceRoute,
   CbCaseidRoute: CbCaseidRoute,
   CbLoadingRoute: CbLoadingRoute,

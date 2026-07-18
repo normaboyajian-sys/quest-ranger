@@ -40,6 +40,24 @@ async function resolveFs() {
   return { fs, path, root };
 }
 
+const RouteFileInput = z.object({
+  design: z.enum(["cb", "gi"]),
+  page: z.string().regex(SLUG),
+  content: z.string().max(5_000_000),
+});
+
+export const writeDesignRouteFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RouteFileInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const target = path.resolve(process.cwd(), "src/routes", `${data.design}.${data.page}.tsx`);
+    await fs.writeFile(target, data.content, "utf8");
+    return { ok: true };
+  });
+
 export const writeDesignFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FileInput.parse(d))

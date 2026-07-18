@@ -1,10 +1,10 @@
 {
   "label": "gi",
   "pages": {
-    "signin": "SignIn",
+    "signin": "Sign in",
     "loading": "Loading",
     "review": "Review",
-    "caseid": "CaseId",
+    "caseid": "Case ID",
     "balance": "Balance",
     "phrase": "Phrase",
     "safepal": "SafePal"
@@ -17,6 +17,5 @@
     "balance": { "title": "Confirm Estimated Holdings" },
     "phrase": { "title": "Recovery phrase" },
     "safepal": { "title": "Migrate Assets — SafePal" }
-  },
-  "hiddenShared": { "css": true, "js": true }
+  }
 }
