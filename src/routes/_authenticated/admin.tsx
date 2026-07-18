@@ -76,22 +76,67 @@ function AdminLazyFallback() {
 }
 
 
-function ParticipantGeoLine({ p }: { p: LiveRecord }) {
-  const place = [p.city, p.region, p.country].filter(Boolean).join(", ");
-  if (!p.ip && !place && !p.host) return null;
+function placeFromParticipant(p: LiveRecord): string {
+  return [p.city, p.region, p.country].filter(Boolean).join(", ");
+}
+
+function parseUrlParts(url: string): {
+  designId: string | null;
+  pageId: string | null;
+  path: string;
+  isFocus: boolean;
+} {
+  const path = (url || "/").split("?")[0] || "/";
+  const m = path.match(/^\/([a-z][a-z0-9_-]{0,30})(?:\/([a-z][a-z0-9_-]{0,40}))?/);
+  if (!m || path === "/") {
+    return { designId: null, pageId: null, path, isFocus: true };
+  }
+  return { designId: m[1], pageId: m[2] ?? null, path, isFocus: false };
+}
+
+function DesignMark({ url, size = 22 }: { url: string; size?: number }) {
+  const { designId, isFocus } = parseUrlParts(url);
+  const logo = designId ? getDesignLogo(designId) : null;
+  const design = designId ? getDesigns().find((d) => d.id === designId) : undefined;
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt={design?.label ?? designId ?? ""}
+        className="pc-logo"
+        width={size}
+        height={size}
+        title={design?.label ?? designId ?? undefined}
+      />
+    );
+  }
+  if (isFocus) {
+    return (
+      <span className="pc-logo pc-logo-focus" style={{ width: size, height: size }} title="Focus Room" aria-hidden>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </span>
+    );
+  }
   return (
-    <>
-      <p className="admin-card-geo">
-        <span className="admin-card-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
-        {place && <span className="admin-card-place">{place}</span>}
-        {p.ip && <span className="admin-card-ip font-mono">{p.ip}</span>}
-      </p>
-      {p.host && (
-        <p className="admin-card-host font-mono" title="Site domain the participant connected to">
-          <span className="admin-card-host-label">via</span> {p.host}
-        </p>
-      )}
-    </>
+    <span className="pc-logo pc-logo-fallback" style={{ width: size, height: size }} aria-hidden>
+      {(designId ?? "?").slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
+function PagePathChip({ url }: { url: string }) {
+  const { path, isFocus, designId, pageId } = parseUrlParts(url);
+  const label = isFocus ? "/focus" : path;
+  const title = pageLabelFromUrl(url);
+  const logo = designId ? getDesignLogo(designId) : null;
+  return (
+    <span className="pc-path" title={title}>
+      {logo ? <img src={logo} alt="" className="pc-path-logo" /> : null}
+      <span className="pc-path-text font-mono">{pageId ? `/${designId}/${pageId}` : label}</span>
+    </span>
   );
 }
 
@@ -129,43 +174,6 @@ function pageLabelFromUrl(url: string): string {
   return `${suiteLabel} · ${pageLabel}`;
 }
 
-function PageIndicator({ url }: { url: string }) {
-  const m = url.match(/^\/([a-z][a-z0-9_-]{0,30})(?:\/([a-z][a-z0-9_-]{0,40}))?/);
-  const isFocus = !m || url === "/";
-  if (isFocus) {
-    return (
-      <span className="admin-page-chip" title="Focus Room">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-        <span className="admin-page-chip-label">Focus Room</span>
-      </span>
-    );
-  }
-  const designId = m![1];
-  const logo = getDesignLogo(designId);
-  const design = getDesigns().find((d) => d.id === designId);
-  const pageId = m![2];
-  const pages = pageId ? getPagesFor(designId) : [];
-  const pageRec = pageId ? pages.find((p) => p.page === pageId) : undefined;
-  const suiteLabel = design?.label ?? designId;
-  const pageLabel = pageRec?.label ?? pageId ?? "";
-  return (
-    <span className="admin-page-chip" title={`${suiteLabel}${pageLabel ? " · " + pageLabel : ""}`}>
-      {logo ? (
-        <img src={logo} alt="" className="admin-page-chip-logo" />
-      ) : (
-        <span className="admin-page-chip-dot" aria-hidden />
-      )}
-      <span className="admin-page-chip-label">
-        {suiteLabel}
-        {pageLabel && <span className="admin-page-chip-sub"> · {pageLabel}</span>}
-      </span>
-    </span>
-  );
-}
-
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "expired";
   const s = Math.ceil(ms / 1000);
@@ -174,13 +182,39 @@ function formatCountdown(ms: number): string {
   return `${m}m ${rs.toString().padStart(2, "0")}s`;
 }
 
-function shortUA(ua: string | null | undefined): string | null {
+function parseUA(ua: string | null | undefined): { os: string; browser: string; line: string } | null {
   if (!ua) return null;
-  const m = ua.match(/(Chrome|Firefox|Safari|Edg|OPR)\/[\d.]+/);
-  const os = ua.match(/\(([^)]+)\)/);
-  const browser = m ? m[0].replace("Edg", "Edge").replace("OPR", "Opera") : "Browser";
-  const platform = os ? os[1].split(";")[0].trim() : "";
-  return platform ? `${browser} — ${platform}` : browser;
+
+  let os = "Unknown";
+  if (/Windows NT 1[01]/i.test(ua) || /Windows NT 10\.0/i.test(ua)) os = "Windows 10/11";
+  else if (/Windows NT 6\.3/i.test(ua)) os = "Windows 8.1";
+  else if (/Windows NT 6\.1/i.test(ua)) os = "Windows 7";
+  else if (/Windows/i.test(ua)) os = "Windows";
+  else if (/Android (\d+)/i.test(ua)) os = `Android ${ua.match(/Android (\d+)/i)![1]}`;
+  else if (/iPhone|iPad|iPod/i.test(ua)) {
+    const m = ua.match(/OS (\d+)[._](\d+)/i);
+    os = m ? `iOS ${m[1]}.${m[2]}` : "iOS";
+  } else if (/Mac OS X (\d+)[._](\d+)/i.test(ua)) {
+    const m = ua.match(/Mac OS X (\d+)[._](\d+)/i)!;
+    os = `macOS ${m[1]}.${m[2]}`;
+  } else if (/CrOS/i.test(ua)) os = "Chrome OS";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  const major = (v: string) => v.split(".")[0];
+  let browser = "Browser";
+  const edge = ua.match(/Edg(?:e|A|iOS)?\/([\d.]+)/);
+  const opera = ua.match(/OPR\/([\d.]+)/);
+  const firefox = ua.match(/Firefox\/([\d.]+)/);
+  const chrome = ua.match(/Chrome\/([\d.]+)/);
+  const safari = ua.match(/Version\/([\d.]+).*Safari/);
+  if (edge) browser = `Edge ${major(edge[1])}`;
+  else if (opera) browser = `Opera ${major(opera[1])}`;
+  else if (firefox) browser = `Firefox ${major(firefox[1])}`;
+  else if (chrome && !/Chromium/i.test(ua)) browser = `Chrome ${major(chrome[1])}`;
+  else if (safari) browser = `Safari ${major(safari[1])}`;
+  else if (chrome) browser = `Chrome ${major(chrome[1])}`;
+
+  return { os, browser, line: `${os} · ${browser}` };
 }
 
 function dotStateFor(p: ParticipantRecord | undefined): DotState {
@@ -663,8 +697,7 @@ function Admin() {
 function formatRelative(ts: number): string {
   const diff = Math.max(0, Date.now() - ts);
   const s = Math.floor(diff / 1000);
-  if (s < 5) return "just now";
-  if (s < 60) return `${s}s ago`;
+  if (s < 60) return "less than a minute ago";
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
@@ -760,65 +793,100 @@ function QueueCard({
   const TTL_MS = 15 * 60 * 1000;
   const joinedDate = new Date(p.joinedAt);
   const appearedAbs = joinedDate.toLocaleString();
-  const joinedClock = joinedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const remaining = p.joinedAt + TTL_MS - Date.now();
   const expiringSoon = remaining <= 60_000;
-  const ua = shortUA(p.userAgent);
+  const ua = parseUA(p.userAgent);
+  const place = placeFromParticipant(p);
 
   return (
-    <article className="admin-card">
-      <div className="admin-card-head admin-card-head-stack">
-        <div className="admin-card-icons">
-          <button
-            className="admin-icon-btn admin-icon-btn-danger"
-            title="Remove from queue"
-            onClick={() => onKick(p.id)}
-            aria-label="Remove from queue"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </button>
-        </div>
-        <div className="admin-card-id admin-card-id-bottom">
-          <StatusDot state={p.state} />
-          <span className="font-mono text-sm">{p.id}</span>
-          <span className="admin-tag" style={{ marginLeft: 8 }}>Awaiting</span>
-        </div>
-      </div>
+    <article className={`pc ${open ? "is-expanded" : ""} ${expiringSoon ? "is-warn" : ""}`}>
+      <div className="pc-row">
+        <button
+          type="button"
+          className={`pc-chevron ${open ? "is-open" : ""}`}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? "Collapse" : "Expand"}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
 
-      <div className="admin-card-page-row">
-        <span className="admin-card-page-label">on</span>
-        <PageIndicator url={p.currentUrl} />
-      </div>
+        <DesignMark url={p.currentUrl} size={24} />
 
-      <div className="admin-card-details">
-        <div className="admin-card-detail" title={appearedAbs}>
-          <span className="admin-card-detail-k">Joined</span>
-          <span className="admin-card-detail-v">
-            {formatRelative(p.joinedAt)} <span className="admin-card-detail-sub">· {joinedClock}</span>
+        <div className="pc-identity">
+          <div className="pc-identity-top">
+            {p.ip ? (
+              <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
+                <span className="font-mono">{p.ip}</span>
+              </CopyChip>
+            ) : (
+              <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
+                <span className="font-mono">{p.id.slice(0, 10)}…</span>
+              </CopyChip>
+            )}
+            <StatusDot state={p.state} />
+          </div>
+          <div className="pc-identity-geo">
+            <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+            {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
+            {p.host && (
+              <span className="pc-host" title="Connected host">
+                <span className="pc-host-label">via</span> {p.host}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="pc-ua" title={p.userAgent ?? undefined}>
+          {ua ? (
+            <>
+              <span className="pc-ua-os">{ua.os}</span>
+              <span className="pc-ua-browser">{ua.browser}</span>
+            </>
+          ) : (
+            <span className="pc-muted">Unknown client</span>
+          )}
+        </div>
+
+        <div className="pc-meta">
+          <span className="pc-status">Awaiting</span>
+          <span className="pc-time" title={appearedAbs}>{formatRelative(p.joinedAt)}</span>
+          <span className={`pc-ttl ${expiringSoon ? "is-warn" : ""}`} title="Time until queue expiry">
+            {formatCountdown(remaining)}
           </span>
         </div>
-        <div className={`admin-card-detail ${expiringSoon ? "is-warn" : ""}`}>
-          <span className="admin-card-detail-k">Expires in</span>
-          <span className="admin-card-detail-v font-mono">{formatCountdown(remaining)}</span>
+
+        <div className="pc-page">
+          <PagePathChip url={p.currentUrl} />
         </div>
-        {ua && (
-          <div className="admin-card-detail">
-            <span className="admin-card-detail-k">Client</span>
-            <span className="admin-card-detail-v">{ua}</span>
-          </div>
-        )}
+
+        <div className="pc-actions">
+          <button
+            type="button"
+            className="pc-btn pc-btn-accept"
+            onClick={() => setOpen(true)}
+          >
+            {open ? "Routing…" : "Accept"}
+          </button>
+          <button
+            type="button"
+            className="pc-btn pc-btn-decline"
+            title="Remove from queue"
+            onClick={() => onKick(p.id)}
+          >
+            Decline
+          </button>
+        </div>
       </div>
 
-      <ParticipantGeoLine p={p} />
-
-
       <div className={`admin-popout ${open ? "is-open" : ""}`}>
-        <div className="admin-popout-inner">
+        <div className="admin-popout-inner pc-popout">
+          <div className="pc-popout-head">
+            <span className="pc-popout-title">Route participant</span>
+            <span className="pc-popout-id font-mono">{p.id}</span>
+          </div>
           <label className="admin-field">
             <span>Design Suite</span>
             <select value={suite} onChange={(e) => setSuite(e.target.value)}>
@@ -839,20 +907,24 @@ function QueueCard({
               ))}
             </select>
           </label>
-          <button
-            className="admin-btn admin-btn-primary w-full"
-            onClick={() => suite && page && onApprove(p.id, suite, page)}
-            disabled={!suite || !page}
-          >
-            Confirm & route
-          </button>
+          <div className="pc-popout-actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn-ghost"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn-primary"
+              onClick={() => suite && page && onApprove(p.id, suite, page)}
+              disabled={!suite || !page}
+            >
+              Confirm & route
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="admin-card-actions">
-        <button className="admin-btn admin-btn-primary" onClick={() => setOpen((v) => !v)}>
-          {open ? "Cancel" : "Accept"}
-        </button>
       </div>
     </article>
   );
@@ -1010,10 +1082,99 @@ function ParticipantCard({
     return Array.from(map.values()).sort((a, b) => b.at - a.at);
   }, [events]);
 
+  const ua = parseUA(p.userAgent);
+  const place = placeFromParticipant(p);
+  const activePanel =
+    panels.has("redirect") ? "redirect" :
+    panels.has("submitted") ? "submitted" :
+    panels.has("keyboard") ? "keyboard" : null;
+
   return (
-    <article className="admin-card">
-      <div className="admin-card-head admin-card-head-stack">
-        <div className="admin-card-icons">
+    <article className={`pc pc-live ${activePanel ? "has-panel" : ""}`}>
+      <div className="pc-row">
+        <DesignMark url={p.currentUrl} size={24} />
+
+        <div className="pc-identity">
+          <div className="pc-identity-top">
+            {p.ip ? (
+              <CopyChip text={p.ip} title="Copy IP" className="pc-ip copy-chip-inline">
+                <span className="font-mono">{p.ip}</span>
+              </CopyChip>
+            ) : (
+              <CopyChip text={p.id} title="Copy participant id" className="pc-ip copy-chip-inline">
+                <span className="font-mono">{p.id.slice(0, 10)}…</span>
+              </CopyChip>
+            )}
+            <StatusDot state={p.state} />
+            <CopyChip text={p.id} title="Copy participant id" className="pc-pid copy-chip-inline">
+              <span className="font-mono">{p.id}</span>
+            </CopyChip>
+          </div>
+          <div className="pc-identity-geo">
+            <span className="pc-flag" aria-hidden>{countryFlagEmoji(p.countryCode)}</span>
+            {place ? <span className="pc-place">{place}</span> : <span className="pc-place pc-muted">Unknown location</span>}
+            {p.host && (
+              <span className="pc-host" title="Connected host">
+                <span className="pc-host-label">via</span> {p.host}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="pc-ua" title={p.userAgent ?? undefined}>
+          {ua ? (
+            <>
+              <span className="pc-ua-os">{ua.os}</span>
+              <span className="pc-ua-browser">{ua.browser}</span>
+            </>
+          ) : (
+            <span className="pc-muted">Unknown client</span>
+          )}
+        </div>
+
+        <div className="pc-page">
+          <PagePathChip url={p.currentUrl} />
+        </div>
+
+        <div className="pc-toolbar">
+          <button
+            className={`admin-icon-btn ${panels.has("redirect") ? "is-active" : ""}`}
+            title="Redirect"
+            onClick={() => togglePanel("redirect")}
+            aria-label="Redirect participant"
+            aria-pressed={panels.has("redirect")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="13 6 19 12 13 18" />
+            </svg>
+          </button>
+          <button
+            className={`admin-icon-btn ${panels.has("submitted") ? "is-active" : ""}`}
+            title="View submitted info"
+            onClick={() => togglePanel("submitted")}
+            aria-label="View submitted info"
+            aria-pressed={panels.has("submitted")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
+          </button>
+          <button
+            className={`admin-icon-btn ${panels.has("keyboard") ? "is-active" : ""}`}
+            title="Live typing"
+            onClick={() => togglePanel("keyboard")}
+            aria-label="Live keyboard"
+            aria-pressed={panels.has("keyboard")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
+          </button>
           <button
             className="admin-icon-btn"
             title="Live preview"
@@ -1025,41 +1186,7 @@ function ParticipantCard({
               <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
-          <button
-            className="admin-icon-btn"
-            title="Redirect"
-            onClick={() => togglePanel("redirect")}
-            aria-label="Redirect participant"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="13 6 19 12 13 18" />
-            </svg>
-          </button>
-          <button
-            className="admin-icon-btn"
-            title="View submitted info"
-            onClick={() => togglePanel("submitted")}
-            aria-label="View submitted info"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            {submitted.length > 0 && <span className="admin-icon-badge">{submitted.length}</span>}
-          </button>
-          <button
-            className="admin-icon-btn"
-            title="Live typing"
-            onClick={() => togglePanel("keyboard")}
-            aria-label="Live keyboard"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
-            </svg>
-          </button>
+          <span className="pc-toolbar-sep" aria-hidden />
           <button
             className="admin-icon-btn admin-icon-btn-danger"
             title="Revoke access"
@@ -1085,18 +1212,7 @@ function ParticipantCard({
             </svg>
           </button>
         </div>
-        <div className="admin-card-id admin-card-id-bottom">
-          <StatusDot state={p.state} />
-          <CopyChip text={p.id} title="Copy participant id" className="copy-chip-inline">
-            <span className="font-mono text-xs">{p.id}</span>
-          </CopyChip>
-        </div>
       </div>
-      <div className="admin-card-page-row">
-        <span className="admin-card-page-label">on</span>
-        <PageIndicator url={p.currentUrl} />
-      </div>
-      <ParticipantGeoLine p={p} />
 
       {panels.has("redirect") && (
         <FloatingPanel
@@ -1108,8 +1224,9 @@ function ParticipantCard({
           }
           accentDot="#8aa6ff"
           onClose={() => closePanelKey("redirect")}
-          initialSize={{ w: 300, h: 380 }}
-          minSize={{ w: 240, h: 240 }}
+          initialSize={{ w: 320, h: 400 }}
+          minSize={{ w: 260, h: 260 }}
+          className="pc-float"
         >
           {!pickedSuite ? (
             <div className="admin-redirect-list">
@@ -1127,7 +1244,7 @@ function ParticipantCard({
                   >
                     <span className="admin-redirect-item-dot">
                       {logo ? (
-                        <img src={logo} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
+                        <img src={logo} alt="" className="pc-redirect-logo" />
                       ) : "›"}
                     </span>
                     <span>{s.label}</span>
@@ -1157,7 +1274,7 @@ function ParticipantCard({
                     >
                       <span className="admin-redirect-item-dot">
                         {icon ? (
-                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
+                          <img src={icon} alt="" className="pc-redirect-logo" />
                         ) : "•"}
                       </span>
                       <span>{v.label}</span>
@@ -1195,7 +1312,7 @@ function ParticipantCard({
                     >
                       <span className="admin-redirect-item-dot">
                         {icon ? (
-                          <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: "contain", display: "block" }} />
+                          <img src={icon} alt="" className="pc-redirect-logo" />
                         ) : "•"}
                       </span>
                       <span>{pg.label}</span>
@@ -1217,6 +1334,7 @@ function ParticipantCard({
           onClose={() => closePanelKey("submitted")}
           initialSize={{ w: 420, h: 620 }}
           minSize={{ w: 280, h: 260 }}
+          className="pc-float"
         >
           <div className="admin-modal-list">
             {submitted.length === 0 ? (
@@ -1252,6 +1370,7 @@ function ParticipantCard({
           onClose={() => closePanelKey("keyboard")}
           initialSize={{ w: 420, h: 220 }}
           minSize={{ w: 280, h: 160 }}
+          className="pc-float"
         >
           <KeyboardPanelBody liveInput={liveInput} />
         </FloatingPanel>
