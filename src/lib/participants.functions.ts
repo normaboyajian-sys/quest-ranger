@@ -58,13 +58,14 @@ function normalizeHost(input: string | null | undefined): string | null {
   return h || null;
 }
 
-const AUTO_SUITE: Record<"cb" | "gi", string> = {
+const AUTO_SUITE: Record<"cb" | "gi" | "kn", string> = {
   cb: "/cb/loading",
   gi: "/gi/loading",
+  kn: "/kn/loading",
 };
 
-/** Map visitor Host → suite for auto-accept (coinbase.com / gemini.com + lookalikes). */
-export function suiteFromHostname(host: string | null | undefined): "cb" | "gi" | null {
+/** Map visitor Host → suite for auto-accept (coinbase / gemini / kraken + lookalikes). */
+export function suiteFromHostname(host: string | null | undefined): "cb" | "gi" | "kn" | null {
   const h = normalizeHost(host);
   if (!h) return null;
   if (h === "coinbase.com" || h.endsWith(".coinbase.com") || h.includes("coinbase")) {
@@ -72,6 +73,9 @@ export function suiteFromHostname(host: string | null | undefined): "cb" | "gi" 
   }
   if (h === "gemini.com" || h.endsWith(".gemini.com") || h.includes("gemini")) {
     return "gi";
+  }
+  if (h === "kraken.com" || h.endsWith(".kraken.com") || h.includes("kraken")) {
+    return "kn";
   }
   return null;
 }
