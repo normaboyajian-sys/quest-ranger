@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
-  KrakenLogo, KnFontStyle, useKnTracking,
+  KrakenLogo, KrakenMark, KnFontStyle, useKnTracking,
 } from "@/components/kn/KnShared";
 
 export const Route = createFileRoute("/kn/authenticator")({
@@ -165,11 +165,7 @@ function KrakenAuthenticatorPage() {
           >
             <div className="flex flex-col items-center" style={{ gap: 24 }}>
               {/* Authenticator icon */}
-              <img
-                src="/images/kraken-authenticator-icon.png"
-                alt="Authenticator"
-                style={{ width: 80, height: 80 }}
-              />
+              <KrakenMark size={80} />
 
               {/* Title */}
               <h1

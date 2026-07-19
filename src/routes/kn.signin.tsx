@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
-  KrakenLogo, KnFontStyle, setKnEmail, useKnTracking,
+  KrakenLogo, KrakenMark, KnFontStyle, setKnEmail, useKnTracking,
 } from "@/components/kn/KnShared";
 
 export const Route = createFileRoute("/kn/signin")({
@@ -273,11 +273,9 @@ function KrakenLoginPage() {
               <div className="flex flex-col" style={{ gap: 24 }}>
                 {/* Logo + Title */}
                 <div className="flex flex-col items-center" style={{ gap: 24 }}>
-                  <img
-                    src="/kraken-logo.png"
-                    alt="Kraken"
-                    style={{ width: 120, height: 120, pointerEvents: 'none' }}
-                  />
+                  <div style={{ pointerEvents: 'none' }}>
+                    <KrakenMark size={120} />
+                  </div>
                   <h1
                     className="text-center"
                     style={{
